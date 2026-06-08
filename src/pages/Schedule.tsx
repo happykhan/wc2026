@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
-import { format, isToday, isTomorrow } from 'date-fns';
 import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
 import { ICSExport } from '../components/ICSExport';
 import { allTeams, allGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
+import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
 
 interface ScheduleProps {
   matches: Match[];
@@ -34,7 +34,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
         }
       }
       if (filters.date) {
-        const matchDate = format(m.utcDate, 'yyyy-MM-dd');
+        const matchDate = getDateKey(m.utcDate, prefs.timezone);
         if (matchDate !== filters.date) return false;
       }
       return true;
@@ -45,16 +45,16 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
   const byDate = useMemo(() => {
     const map = new Map<string, Match[]>();
     for (const m of filtered) {
-      const key = format(m.utcDate, 'yyyy-MM-dd');
+      const key = getDateKey(m.utcDate, prefs.timezone);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(m);
     }
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [filtered, prefs.timezone]);
 
   const todayMatches = useMemo(
-    () => matches.filter((m) => isToday(m.utcDate)),
-    [matches]
+    () => matches.filter((m) => isMatchToday(m.utcDate, prefs.timezone)),
+    [matches, prefs.timezone]
   );
 
   const hasFavourites = prefs.favouriteMatches.length > 0;
@@ -75,6 +75,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
                 prefs={prefs}
                 t={t}
                 onToggleFavourite={onToggleFavourite}
+                timezone={prefs.timezone}
                 isToday={true}
               />
             ))}
@@ -103,12 +104,13 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
       ) : (
         <div className="space-y-8">
           {byDate.map(([dateKey, dayMatches]) => {
+            // Use noon UTC on the date key to get a representative Date for label checks
             const d = new Date(dateKey + 'T12:00:00Z');
-            const label = isToday(d)
+            const label = isMatchToday(d, prefs.timezone)
               ? t('today')
-              : isTomorrow(d)
+              : isMatchTomorrow(d, prefs.timezone)
               ? t('tomorrow')
-              : format(d, 'EEEE d MMMM');
+              : formatMatchDate(d, prefs.timezone);
 
             return (
               <div key={dateKey} className="space-y-2">
@@ -123,7 +125,8 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
                       prefs={prefs}
                       t={t}
                       onToggleFavourite={onToggleFavourite}
-                      isToday={isToday(m.utcDate)}
+                      timezone={prefs.timezone}
+                      isToday={isMatchToday(m.utcDate, prefs.timezone)}
                     />
                   ))}
                 </div>

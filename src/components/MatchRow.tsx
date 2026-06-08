@@ -1,10 +1,10 @@
 
-import { format } from 'date-fns';
 import { Star, Tv, MapPin } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { isKnockoutTeam } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
+import { formatMatchTime, formatMatchDate } from '../utils/time';
 
 interface MatchRowProps {
   match: Match;
@@ -12,6 +12,7 @@ interface MatchRowProps {
   t: (key: TranslationKey) => string;
   onToggleFavourite: (id: string) => void;
   isToday: boolean;
+  timezone: string;
 }
 
 function StatusBadge({ status, minute, t }: { status: Match['status']; minute?: number; t: (k: TranslationKey) => string }) {
@@ -51,13 +52,13 @@ function TeamName({ name, spoilerMode, tbd }: { name: string; spoilerMode: boole
   );
 }
 
-export function MatchRow({ match, prefs, t, onToggleFavourite, isToday }: MatchRowProps) {
+export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone }: MatchRowProps) {
   const isFav = prefs.favouriteMatches.includes(match.id);
   const channels = getChannelsForCountry(prefs.countryCode);
   const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
 
-  const localTime = format(match.utcDate, 'HH:mm');
-  const localDate = format(match.utcDate, 'EEE d MMM');
+  const localTime = formatMatchTime(match.utcDate, timezone);
+  const localDate = formatMatchDate(match.utcDate, timezone);
 
   return (
     <div
