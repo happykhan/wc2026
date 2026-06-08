@@ -27,6 +27,8 @@ export interface Match {
   score2?: number;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
   minute?: number;
+  /** football-data.org integer match ID — populated once live scores have been fetched */
+  fdMatchId?: number;
 }
 
 export type TVSchedule = {

@@ -80,6 +80,30 @@ export const en = {
   h2hError: 'Could not load history',
   expand: 'Expand match details',
   collapse: 'Collapse match details',
+  // Lineups
+  lineups: 'Line-ups',
+  lineupsLoading: 'Loading line-ups...',
+  lineupsNoData: 'Line-ups not yet available',
+  lineupsError: 'Could not load line-ups',
+  startingXI: 'Starting XI',
+  bench: 'Bench',
+  // Statistics
+  matchStats: 'Match statistics',
+  statsLoading: 'Loading statistics...',
+  statsNoData: 'Statistics not yet available',
+  statsError: 'Could not load statistics',
+  statPossession: 'Possession',
+  statShots: 'Shots',
+  statShotsOnGoal: 'Shots on target',
+  statShotsOffGoal: 'Shots off target',
+  statCorners: 'Corners',
+  statFouls: 'Fouls',
+  statOffsides: 'Offsides',
+  statYellowCards: 'Yellow cards',
+  statRedCards: 'Red cards',
+  statSaves: 'Saves',
+  statThrowIns: 'Throw-ins',
+  statGoalKicks: 'Goal kicks',
 };
 
 export type TranslationKey = keyof typeof en;

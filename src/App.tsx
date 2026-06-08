@@ -32,6 +32,7 @@ export default function App() {
         score2: live.score2,
         status: live.status,
         minute: live.minute,
+        fdMatchId: live.fdMatchId,
       };
     });
   }, [scores]);

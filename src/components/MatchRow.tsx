@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, Tv, MapPin, Share2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, Tv, MapPin, Share2, ChevronDown, ChevronUp, Users, BarChart2 } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { isKnockoutTeam } from '../data/processFixtures';
@@ -16,6 +16,9 @@ interface MatchRowProps {
   isToday: boolean;
   timezone: string;
 }
+
+// Tab options for the expanded detail panel.
+type DetailTab = 'h2h' | 'lineups' | 'stats';
 
 // ---------------------------------------------------------------------------
 // Status badge
@@ -343,12 +346,373 @@ function H2HPanel({ team1, team2, t }: { team1: string; team2: string; t: (k: Tr
 }
 
 // ---------------------------------------------------------------------------
+// Match detail — lineups + statistics (batched from a single /api/match/{id})
+// ---------------------------------------------------------------------------
+
+interface PlayerEntry {
+  id: number;
+  name: string;
+  shirtNumber?: number;
+  position?: string;
+}
+
+interface TeamLineup {
+  lineup: PlayerEntry[];
+  bench: PlayerEntry[];
+}
+
+interface StatEntry {
+  type: string;
+  home: string | number | null;
+  away: string | number | null;
+}
+
+interface MatchDetailData {
+  homeLineup: TeamLineup;
+  awayLineup: TeamLineup;
+  stats: StatEntry[];
+}
+
+type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
+
+// Mapping of football-data.org stat type names to i18n keys.
+const STAT_KEY_MAP: Record<string, TranslationKey> = {
+  'ball_possession':   'statPossession',
+  'total_shots':       'statShots',
+  'shots_on_goal':     'statShotsOnGoal',
+  'shots_off_goal':    'statShotsOffGoal',
+  'corner_kicks':      'statCorners',
+  'fouls':             'statFouls',
+  'offsides':          'statOffsides',
+  'yellow_cards':      'statYellowCards',
+  'red_cards':         'statRedCards',
+  'goalkeeper_saves':  'statSaves',
+  'throw_ins':         'statThrowIns',
+  'goal_kicks':        'statGoalKicks',
+};
+
+// Order in which we display statistics rows.
+const STAT_ORDER: (keyof typeof STAT_KEY_MAP)[] = [
+  'ball_possession',
+  'total_shots',
+  'shots_on_goal',
+  'shots_off_goal',
+  'corner_kicks',
+  'fouls',
+  'offsides',
+  'yellow_cards',
+  'red_cards',
+  'goalkeeper_saves',
+  'throw_ins',
+  'goal_kicks',
+];
+
+function matchDetailCacheKey(fdMatchId: number): string {
+  return `match-detail-${fdMatchId}`;
+}
+
+// Raw shape returned by football-data.org /v4/matches/{id}
+interface FDMatchDetail {
+  homeTeam: {
+    lineup?: Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
+    bench?:  Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
+    statistics?: Record<string, string | number | null>;
+  };
+  awayTeam: {
+    lineup?: Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
+    bench?:  Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
+    statistics?: Record<string, string | number | null>;
+  };
+}
+
+function parseDetail(raw: FDMatchDetail): MatchDetailData {
+  const home = raw.homeTeam ?? {};
+  const away = raw.awayTeam ?? {};
+
+  const homeLineup: TeamLineup = {
+    lineup: (home.lineup ?? []).map((p) => ({
+      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
+    })),
+    bench: (home.bench ?? []).map((p) => ({
+      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
+    })),
+  };
+
+  const awayLineup: TeamLineup = {
+    lineup: (away.lineup ?? []).map((p) => ({
+      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
+    })),
+    bench: (away.bench ?? []).map((p) => ({
+      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
+    })),
+  };
+
+  // Build stats rows in display order.
+  const hs = home.statistics ?? {};
+  const as_ = away.statistics ?? {};
+  const stats: StatEntry[] = STAT_ORDER
+    .filter((key) => hs[key] !== undefined || as_[key] !== undefined)
+    .map((key) => ({ type: key, home: hs[key] ?? null, away: as_[key] ?? null }));
+
+  return { homeLineup, awayLineup, stats };
+}
+
+// Hook: fetch & cache match detail from /api/match/{fdMatchId}
+function useMatchDetail(fdMatchId: number | undefined): { state: DetailState; detail: MatchDetailData | null } {
+  const [state, setState] = useState<DetailState>('idle');
+  const [detail, setDetail] = useState<MatchDetailData | null>(null);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (!fdMatchId || fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    // Check persistent cache first — completed match data never changes.
+    const cacheKey = matchDetailCacheKey(fdMatchId);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        setDetail(JSON.parse(cached) as MatchDetailData);
+        setState('loaded');
+        return;
+      } catch {
+        // Corrupt cache — fall through to fetch.
+      }
+    }
+
+    setState('loading');
+
+    fetch(`/api/match/${fdMatchId}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<FDMatchDetail>;
+      })
+      .then((raw) => {
+        const parsed = parseDetail(raw);
+        // Only cache when we have actual lineup data (pre-match the arrays are empty).
+        const hasData =
+          parsed.homeLineup.lineup.length > 0 ||
+          parsed.awayLineup.lineup.length > 0 ||
+          parsed.stats.length > 0;
+        if (hasData) {
+          localStorage.setItem(cacheKey, JSON.stringify(parsed));
+        }
+        setDetail(parsed);
+        setState('loaded');
+      })
+      .catch(() => {
+        setState('error');
+      });
+  }, [fdMatchId]);
+
+  return { state, detail };
+}
+
+// ---------------------------------------------------------------------------
+// Lineups panel
+// ---------------------------------------------------------------------------
+
+function PlayerList({ players, t }: { players: PlayerEntry[]; t: (k: TranslationKey) => string }) {
+  if (players.length === 0) {
+    return <div className="text-xs text-neutral-400 italic">{t('lineupsNoData')}</div>;
+  }
+  return (
+    <ul className="space-y-0.5">
+      {players.map((p) => (
+        <li key={p.id} className="flex items-center gap-1.5 text-xs text-neutral-700 dark:text-neutral-300">
+          {p.shirtNumber !== undefined && (
+            <span className="w-5 text-right tabular-nums text-neutral-400 dark:text-neutral-500 flex-shrink-0 font-mono text-[11px]">
+              {p.shirtNumber}
+            </span>
+          )}
+          <span className="truncate">{p.name}</span>
+          {p.position && (
+            <span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-400 flex-shrink-0">
+              {p.position.slice(0, 3)}
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LineupsPanel({
+  homeTeam,
+  awayTeam,
+  fdMatchId,
+  t,
+}: {
+  homeTeam: string;
+  awayTeam: string;
+  fdMatchId: number | undefined;
+  t: (k: TranslationKey) => string;
+}) {
+  const { state, detail } = useMatchDetail(fdMatchId);
+
+  if (!fdMatchId) {
+    return <div className="text-xs text-neutral-400 py-1">{t('lineupsNoData')}</div>;
+  }
+
+  if (state === 'loading' || state === 'idle') {
+    return (
+      <div className="text-xs text-neutral-400 flex items-center gap-2 py-1">
+        <span className="inline-block w-3 h-3 rounded-full border-2 border-neutral-300 border-t-[var(--accent)] animate-spin" />
+        {t('lineupsLoading')}
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    return <div className="text-xs text-neutral-400 py-1">{t('lineupsError')}</div>;
+  }
+
+  if (!detail || (detail.homeLineup.lineup.length === 0 && detail.awayLineup.lineup.length === 0)) {
+    return <div className="text-xs text-neutral-400 py-1">{t('lineupsNoData')}</div>;
+  }
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <Users size={12} />
+        {t('lineups')}
+      </div>
+      <div className="grid grid-cols-2 gap-x-4">
+        {/* Home */}
+        <div>
+          <div className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1 truncate">{homeTeam}</div>
+          <div className="text-[10px] uppercase tracking-wide text-neutral-400 mb-0.5">{t('startingXI')}</div>
+          <PlayerList players={detail.homeLineup.lineup} t={t} />
+          {detail.homeLineup.bench.length > 0 && (
+            <>
+              <div className="text-[10px] uppercase tracking-wide text-neutral-400 mt-2 mb-0.5">{t('bench')}</div>
+              <PlayerList players={detail.homeLineup.bench} t={t} />
+            </>
+          )}
+        </div>
+        {/* Away */}
+        <div>
+          <div className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 mb-1 truncate">{awayTeam}</div>
+          <div className="text-[10px] uppercase tracking-wide text-neutral-400 mb-0.5">{t('startingXI')}</div>
+          <PlayerList players={detail.awayLineup.lineup} t={t} />
+          {detail.awayLineup.bench.length > 0 && (
+            <>
+              <div className="text-[10px] uppercase tracking-wide text-neutral-400 mt-2 mb-0.5">{t('bench')}</div>
+              <PlayerList players={detail.awayLineup.bench} t={t} />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Statistics panel
+// ---------------------------------------------------------------------------
+
+function StatBar({ value, max, side }: { value: number; max: number; side: 'home' | 'away' }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div
+      className={[
+        'h-1.5 rounded-full bg-[var(--accent)] transition-all',
+        side === 'away' ? 'ml-auto' : '',
+      ].join(' ')}
+      style={{ width: `${pct}%` }}
+    />
+  );
+}
+
+function StatsPanel({
+  fdMatchId,
+  t,
+}: {
+  fdMatchId: number | undefined;
+  t: (k: TranslationKey) => string;
+}) {
+  const { state, detail } = useMatchDetail(fdMatchId);
+
+  if (!fdMatchId) {
+    return <div className="text-xs text-neutral-400 py-1">{t('statsNoData')}</div>;
+  }
+
+  if (state === 'loading' || state === 'idle') {
+    return (
+      <div className="text-xs text-neutral-400 flex items-center gap-2 py-1">
+        <span className="inline-block w-3 h-3 rounded-full border-2 border-neutral-300 border-t-[var(--accent)] animate-spin" />
+        {t('statsLoading')}
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    return <div className="text-xs text-neutral-400 py-1">{t('statsError')}</div>;
+  }
+
+  if (!detail || detail.stats.length === 0) {
+    return <div className="text-xs text-neutral-400 py-1">{t('statsNoData')}</div>;
+  }
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <BarChart2 size={12} />
+        {t('matchStats')}
+      </div>
+      <div className="space-y-2">
+        {detail.stats.map((row) => {
+          const labelKey = STAT_KEY_MAP[row.type];
+          const label = labelKey ? t(labelKey) : row.type;
+          const hVal = typeof row.home === 'number' ? row.home : Number(row.home ?? 0);
+          const aVal = typeof row.away === 'number' ? row.away : Number(row.away ?? 0);
+          const max = Math.max(hVal, aVal, 1);
+
+          // Possession is a percentage string — display differently.
+          const isPossession = row.type === 'ball_possession';
+
+          return (
+            <div key={row.type}>
+              {/* Values + label row */}
+              <div className="flex items-center text-xs text-neutral-700 dark:text-neutral-300">
+                <span className="w-10 tabular-nums font-semibold">
+                  {row.home !== null ? row.home : '-'}
+                  {isPossession ? '%' : ''}
+                </span>
+                <span className="flex-1 text-center text-[11px] text-neutral-400 dark:text-neutral-500">
+                  {label}
+                </span>
+                <span className="w-10 tabular-nums font-semibold text-right">
+                  {row.away !== null ? row.away : '-'}
+                  {isPossession ? '%' : ''}
+                </span>
+              </div>
+              {/* Bar row */}
+              <div className="flex items-center gap-1 mt-0.5">
+                <div className="flex-1">
+                  <StatBar value={isPossession ? hVal : hVal} max={isPossession ? 100 : max} side="home" />
+                </div>
+                <div className="flex-1">
+                  <StatBar value={isPossession ? aVal : aVal} max={isPossession ? 100 : max} side="away" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone }: MatchRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [detailTab, setDetailTab] = useState<DetailTab>('h2h');
   const isFav = prefs.favouriteMatches.includes(match.id);
+  const knownTeams = !isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2);
   const channels = getChannelsForCountry(prefs.countryCode);
   const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
 
@@ -465,9 +829,62 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
             <span>{match.venue || match.city}</span>
           </div>
 
-          {/* H2H — only for known teams */}
-          {!isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2) && (
+          {/* Detail tabs */}
+          <div className="flex items-center gap-1 border-b border-neutral-100 dark:border-neutral-800 pb-2">
+            {knownTeams && (
+              <button
+                onClick={() => setDetailTab('h2h')}
+                className={[
+                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                  detailTab === 'h2h'
+                    ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
+                ].join(' ')}
+              >
+                {t('h2hHistory')}
+              </button>
+            )}
+            <button
+              onClick={() => setDetailTab('lineups')}
+              className={[
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                detailTab === 'lineups'
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {t('lineups')}
+            </button>
+            <button
+              onClick={() => setDetailTab('stats')}
+              className={[
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                detailTab === 'stats'
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {t('matchStats')}
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {detailTab === 'h2h' && knownTeams && (
             <H2HPanel team1={match.team1} team2={match.team2} t={t} />
+          )}
+          {detailTab === 'lineups' && (
+            <LineupsPanel
+              homeTeam={match.team1}
+              awayTeam={match.team2}
+              fdMatchId={match.fdMatchId}
+              t={t}
+            />
+          )}
+          {detailTab === 'stats' && (
+            <StatsPanel
+              fdMatchId={match.fdMatchId}
+              t={t}
+            />
           )}
         </div>
       )}
