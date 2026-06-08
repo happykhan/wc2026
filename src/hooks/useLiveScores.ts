@@ -22,7 +22,10 @@ export interface LiveScore {
 // Docs: https://www.football-data.org/documentation/quickstart
 // ---------------------------------------------------------------------------
 
-const WC_SCORES_URL = 'https://brain.genomicx.org/api/wc-scores';
+// Cloudflare Worker — public, CORS-open, fed by wc_scores_poller.py on openclaw.
+// brain.genomicx.org/api/wc-scores is behind Cloudflare Access; the Worker is the
+// public-facing endpoint.
+const WC_SCORES_URL = 'https://wc-scores.nabil-3bd.workers.dev/';
 
 type FDMatchStatus =
   | 'SCHEDULED' | 'TIMED' | 'IN_PLAY' | 'PAUSED'

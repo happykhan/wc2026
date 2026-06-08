@@ -10,7 +10,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // client hook (useLiveScores.ts) now fetches brain.genomicx.org directly.
 // ---------------------------------------------------------------------------
 
-const UPSTREAM = 'https://brain.genomicx.org/api/wc-scores';
+// Cloudflare Worker — public, CORS-open. brain.genomicx.org is behind Access.
+const UPSTREAM = 'https://wc-scores.nabil-3bd.workers.dev/';
 
 const EMPTY_RESPONSE = { live: false, matches: [], standings: [] };
 
