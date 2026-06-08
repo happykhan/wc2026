@@ -1,7 +1,8 @@
 import React from 'react';
-import { Eye, EyeOff, Settings, LayoutList } from 'lucide-react';
+import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor } from 'lucide-react';
 import type { UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
+import type { DarkModePreference } from '../hooks/useTheme';
 
 type Page = 'schedule' | 'groups' | 'settings';
 
@@ -11,6 +12,8 @@ interface HeaderProps {
   page: Page;
   setPage: (p: Page) => void;
   t: (k: TranslationKey) => string;
+  darkMode: DarkModePreference;
+  onToggleDarkMode: () => void;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -21,8 +24,16 @@ const FLAG_MAP: Record<string, string> = {
   'South Korea': '🇰🇷', Morocco: '🇲🇦', Senegal: '🇸🇳',
 };
 
-export function Header({ prefs, setPrefs, page, setPage, t }: HeaderProps) {
+// Icon and tooltip for each dark-mode state
+const DARK_MODE_META: Record<DarkModePreference, { icon: React.ReactNode; label: string }> = {
+  system:  { icon: <Monitor size={16} />, label: 'Theme: following system — click for dark' },
+  dark:    { icon: <Moon size={16} />,    label: 'Theme: dark — click for light' },
+  light:   { icon: <Sun size={16} />,     label: 'Theme: light — click to follow system' },
+};
+
+export function Header({ prefs, setPrefs, page, setPage, t, darkMode, onToggleDarkMode }: HeaderProps) {
   const teamFlag = prefs.favouriteTeams[0] ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null) : null;
+  const dmMeta = DARK_MODE_META[darkMode];
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
@@ -58,6 +69,16 @@ export function Header({ prefs, setPrefs, page, setPage, t }: HeaderProps) {
             <span className="hidden sm:inline">
               {t('spoilerMode')}: {prefs.spoilerMode ? t('spoilerOn') : t('spoilerOff')}
             </span>
+          </button>
+
+          {/* Dark-mode toggle — cycles: system → dark → light → system */}
+          <button
+            onClick={onToggleDarkMode}
+            className="p-1.5 rounded-full transition-colors text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            aria-label={dmMeta.label}
+            title={dmMeta.label}
+          >
+            {dmMeta.icon}
           </button>
 
           {/* Settings */}

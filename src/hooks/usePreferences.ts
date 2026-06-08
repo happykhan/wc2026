@@ -30,7 +30,7 @@ function load(): UserPreferences {
       const parsed = JSON.parse(raw);
       return { ...defaults, ...parsed };
     }
-  } catch (_) {
+  } catch {
     // ignore
   }
   return defaults;

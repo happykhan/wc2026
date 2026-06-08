@@ -1,3 +1,11 @@
+// fixtures.json is a static snapshot of the World Cup 2026 schedule.
+// It was originally sourced from the OpenFootball worldcup.json dataset:
+//   https://github.com/openfootball/world-cup.json
+// To refresh it (e.g. if fixtures are rescheduled), run:
+//   node scripts/fetch-fixtures.mjs
+// Live scores and match statuses during the tournament come from the
+// football-data.org API (see src/hooks/useLiveScores.ts), not this file.
+
 import type { Match, RawMatch } from '../types';
 import { DEFAULT_TV_CHANNELS } from './tvChannels';
 import rawData from './fixtures.json';
