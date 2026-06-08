@@ -777,7 +777,6 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
   const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
 
   const localTime = formatMatchTime(match.utcDate, timezone);
-  const localDate = formatMatchDate(match.utcDate, timezone, prefs.language);
 
   return (
     <div
@@ -790,63 +789,101 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
         isFav ? 'ring-1 ring-amber-400' : '',
       ].join(' ')}
     >
-      {/* Main row */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-        {/* Date + time */}
-        <div className="flex-shrink-0 w-28 text-left">
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">{localDate}</div>
-          <div className="text-base font-semibold tabular-nums text-neutral-800 dark:text-neutral-200">
-            {localTime}
+      {/* ------------------------------------------------------------------ */}
+      {/* Main 3-column row: [home team] [center info] [away team]            */}
+      {/* On very small screens (<sm) everything stacks and centres.          */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+
+        {/* Left col — home team, right-aligned on sm+ */}
+        <div className="flex-1 flex sm:justify-end items-center gap-2 min-w-0">
+          <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100 leading-tight sm:text-right truncate">
+            <TeamName name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
+          </span>
+        </div>
+
+        {/* Centre col — time/score, status, channels, countdown, venue */}
+        <div className="w-36 flex-shrink-0 flex flex-col items-center gap-0.5 text-center">
+          {/* Score or kickoff time */}
+          {showScore && match.score1 !== undefined && match.score2 !== undefined ? (
+            <span className="text-2xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100 leading-none">
+              {match.score1}&ndash;{match.score2}
+            </span>
+          ) : (
+            <span className="text-xl font-semibold tabular-nums text-neutral-800 dark:text-neutral-200 leading-none">
+              {localTime}
+            </span>
+          )}
+
+          {/* Status badge or "vs" */}
+          <div className="flex items-center justify-center mt-0.5">
+            {match.status !== 'upcoming' ? (
+              <StatusBadge status={match.status} minute={match.minute} t={t} />
+            ) : (
+              <span className="text-xs text-neutral-400 dark:text-neutral-500">{t('vs')}</span>
+            )}
           </div>
+
+          {/* TV channels */}
+          <div className="flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">
+            <Tv size={11} className="flex-shrink-0" />
+            {channels.length > 0 ? (
+              <span className="truncate max-w-[7rem]">{channels.slice(0, 2).join(' · ')}</span>
+            ) : (
+              <span className="italic">{t('unknownChannels')}</span>
+            )}
+          </div>
+
+          {/* Countdown for upcoming matches */}
           {match.status === 'upcoming' && (
             <Countdown utcDate={match.utcDate} t={t} />
           )}
+
+          {/* Venue/city */}
+          {(match.venue || match.city) && (
+            <div className="flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">
+              <MapPin size={11} className="flex-shrink-0" />
+              <span className="truncate max-w-[7rem]">{match.venue || match.city}</span>
+            </div>
+          )}
         </div>
 
-        {/* Teams + score */}
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
-            <TeamName name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
-            {showScore && match.score1 !== undefined && match.score2 !== undefined ? (
-              <span className="text-lg font-bold tabular-nums text-neutral-800 dark:text-neutral-100 flex-shrink-0">
-                {match.score1} &ndash; {match.score2}
-              </span>
-            ) : (
-              <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0 font-light text-sm sm:text-base">{t('vs')}</span>
-            )}
+        {/* Right col — away team, left-aligned on sm+ */}
+        <div className="flex-1 flex sm:justify-start items-center gap-2 min-w-0">
+          <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100 leading-tight truncate">
             <TeamName name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
-          </div>
-          <StatusBadge status={match.status} minute={match.minute} t={t} />
+          </span>
         </div>
+      </div>
 
-        {/* Venue (mobile: shown in expanded panel; desktop: always visible) */}
-        <div className="hidden md:flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 flex-shrink-0 max-w-[160px]">
-          <MapPin size={12} className="flex-shrink-0" />
-          <span className="truncate">{match.venue || match.city}</span>
-        </div>
-
-        {/* TV channels */}
-        <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 flex-shrink-0 max-w-[180px]">
-          <Tv size={12} className="flex-shrink-0" />
-          {channels.length > 0 ? (
-            <span className="truncate">{channels.slice(0, 2).join(', ')}</span>
-          ) : (
-            <span className="italic">{t('unknownChannels')}</span>
-          )}
-        </div>
-
+      {/* ------------------------------------------------------------------ */}
+      {/* Secondary row — badge, star, share, expand — right-aligned          */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="flex items-center justify-end gap-1 pt-0.5">
         {/* Group / round badge */}
-        <div className="flex-shrink-0">
-          {match.group ? (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium">
-              {match.group.replace('Group ', '')}
-            </span>
-          ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium whitespace-nowrap">
-              {match.round}
-            </span>
-          )}
-        </div>
+        {match.group ? (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium mr-auto">
+            {match.group.replace('Group ', '')}
+          </span>
+        ) : (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium whitespace-nowrap mr-auto">
+            {match.round}
+          </span>
+        )}
+
+        {/* Favourite star */}
+        <button
+          onClick={() => onToggleFavourite(match.id)}
+          className={[
+            'flex-shrink-0 p-1.5 rounded-lg transition-colors',
+            isFav
+              ? 'text-amber-400 hover:text-amber-500'
+              : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-400',
+          ].join(' ')}
+          aria-label={isFav ? t('removeFromFavourites') : t('addToFavourites')}
+        >
+          <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
 
         {/* Share */}
         <ShareButton
@@ -863,20 +900,6 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
           aria-label={expanded ? t('collapse') : t('expand')}
         >
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-
-        {/* Favourite star */}
-        <button
-          onClick={() => onToggleFavourite(match.id)}
-          className={[
-            'flex-shrink-0 p-1.5 rounded-lg transition-colors',
-            isFav
-              ? 'text-amber-400 hover:text-amber-500'
-              : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-400',
-          ].join(' ')}
-          aria-label={isFav ? t('removeFromFavourites') : t('addToFavourites')}
-        >
-          <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
         </button>
       </div>
 
