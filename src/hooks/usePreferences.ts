@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { UserPreferences } from '../types';
+import type { CompetitionCode } from '../types';
 
 const STORAGE_KEY = 'wc2026_prefs';
 
@@ -11,6 +12,7 @@ const defaults: UserPreferences = {
   favouriteMatches: [],
   favouriteTeams: [],
   teamTheme: null,
+  competition: 'WC' as CompetitionCode,
 };
 
 function inferCountryFromLocale(): string {

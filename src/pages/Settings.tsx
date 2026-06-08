@@ -12,6 +12,7 @@ interface SettingsProps {
   followTeam: (team: string, matchIds: string[]) => void;
   unfollowTeam: (team: string, matchIds: string[]) => void;
   t: (k: TranslationKey) => string;
+  isClubComp?: boolean;
 }
 
 const COMMON_TIMEZONES = [
@@ -50,7 +51,7 @@ const COUNTRIES = [
   { code: 'OTHER', label: 'Other' },
 ];
 
-export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t }: SettingsProps) {
+export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t, isClubComp = false }: SettingsProps) {
   const handleFollowTeam = (team: string) => {
     const matchIds = matches
       .filter((m) => m.team1 === team || m.team2 === team)
@@ -129,66 +130,70 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
         </div>
       </Section>
 
-      {/* Follow a team */}
-      <Section title={t('followTeam')}>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
-          {t('followTeamDescription')}
-        </p>
-        <select
-          value=""
-          onChange={(e) => { if (e.target.value) handleFollowTeam(e.target.value); }}
-          className="select-field"
-        >
-          <option value="">{t('selectTeam')}</option>
-          {allTeams.map((team) => (
-            <option key={team} value={team}>{team}</option>
-          ))}
-        </select>
-        {followedTeams.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {followedTeams.map((team) => (
-              <span
-                key={team}
-                className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium"
-              >
-                ★ {team}
-                <button
-                  onClick={() => handleUnfollowTeam(team)}
-                  aria-label={`${t('unfollowTeam')} ${team}`}
-                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors text-amber-600 dark:text-amber-400 leading-none"
+      {/* Follow a team — WC only (club names don't map to country flags/themes) */}
+      {!isClubComp && (
+        <Section title={t('followTeam')}>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
+            {t('followTeamDescription')}
+          </p>
+          <select
+            value=""
+            onChange={(e) => { if (e.target.value) handleFollowTeam(e.target.value); }}
+            className="select-field"
+          >
+            <option value="">{t('selectTeam')}</option>
+            {allTeams.map((team) => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+          {followedTeams.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {followedTeams.map((team) => (
+                <span
+                  key={team}
+                  className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium"
                 >
-                  ×
-                </button>
-              </span>
+                  ★ {team}
+                  <button
+                    onClick={() => handleUnfollowTeam(team)}
+                    aria-label={`${t('unfollowTeam')} ${team}`}
+                    className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors text-amber-600 dark:text-amber-400 leading-none"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
+              {t('noTeamsFollowed')}
+            </p>
+          )}
+        </Section>
+      )}
+
+      {/* Team theme — WC only */}
+      {!isClubComp && (
+        <Section title={t('teamTheme')}>
+          <div className="grid grid-cols-3 gap-2">
+            <ThemeCard
+              themeKey="default"
+              label={t('themeDefault')}
+              active={!prefs.teamTheme || prefs.teamTheme === 'default'}
+              onClick={() => setPrefs({ teamTheme: null })}
+            />
+            {Object.entries(THEMES).filter(([k]) => k !== 'default').map(([key, theme]) => (
+              <ThemeCard
+                key={key}
+                themeKey={key}
+                label={theme.name}
+                active={prefs.teamTheme === key}
+                onClick={() => setPrefs({ teamTheme: key })}
+              />
             ))}
           </div>
-        ) : (
-          <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
-            {t('noTeamsFollowed')}
-          </p>
-        )}
-      </Section>
-
-      {/* Team theme */}
-      <Section title={t('teamTheme')}>
-        <div className="grid grid-cols-3 gap-2">
-          <ThemeCard
-            themeKey="default"
-            label={t('themeDefault')}
-            active={!prefs.teamTheme || prefs.teamTheme === 'default'}
-            onClick={() => setPrefs({ teamTheme: null })}
-          />
-          {Object.entries(THEMES).filter(([k]) => k !== 'default').map(([key, theme]) => (
-            <ThemeCard
-              key={key}
-              themeKey={key}
-              label={theme.name}
-              active={prefs.teamTheme === key}
-              onClick={() => setPrefs({ teamTheme: key })}
-            />
-          ))}
-        </div>
-      </Section>
+        </Section>
+      )}
 
       {/* Spoiler mode */}
       <Section title={t('spoilerMode')}>

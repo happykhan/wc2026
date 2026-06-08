@@ -165,8 +165,8 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
         <FilterBar
           filters={filters}
           setFilters={setFilters}
-          teams={wcTeams}
-          groups={wcGroups}
+          teams={allTeams}
+          groups={allGroups}
           t={t}
           showFavouritesTab={hasFavourites}
         />

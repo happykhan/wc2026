@@ -1,6 +1,7 @@
 import React from 'react';
-import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor } from 'lucide-react';
-import type { UserPreferences } from '../types';
+import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor, Trophy } from 'lucide-react';
+import type { UserPreferences, Competition } from '../types';
+import { COMPETITIONS } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
 
@@ -14,6 +15,8 @@ interface HeaderProps {
   t: (k: TranslationKey) => string;
   darkMode: DarkModePreference;
   onToggleDarkMode: () => void;
+  competitionMeta: Competition;
+  isClubComp: boolean;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -31,19 +34,36 @@ const DARK_MODE_META: Record<DarkModePreference, { icon: React.ReactNode; label:
   light:   { icon: <Sun size={16} />,     label: 'Theme: light — click to follow system' },
 };
 
-export function Header({ prefs, setPrefs, page, setPage, t, darkMode, onToggleDarkMode }: HeaderProps) {
-  const teamFlag = prefs.favouriteTeams[0] ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null) : null;
+export function Header({
+  prefs,
+  setPrefs,
+  page,
+  setPage,
+  t,
+  darkMode,
+  onToggleDarkMode,
+  competitionMeta,
+  isClubComp,
+}: HeaderProps) {
+  const teamFlag = (!isClubComp && prefs.favouriteTeams[0])
+    ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null)
+    : null;
   const dmMeta = DARK_MODE_META[darkMode];
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
-        {/* Logo */}
+        {/* Logo + competition name */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {teamFlag && <span className="text-xl">{teamFlag}</span>}
           <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
             {t('appTitle')}
           </span>
+          {isClubComp && (
+            <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] font-medium">
+              {competitionMeta.name}
+            </span>
+          )}
         </div>
 
         {/* Nav */}
@@ -54,6 +74,22 @@ export function Header({ prefs, setPrefs, page, setPage, t, darkMode, onToggleDa
 
         {/* Right controls */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Competition selector */}
+          <div className="relative flex items-center">
+            <Trophy size={13} className="absolute left-2 text-neutral-400 pointer-events-none" />
+            <select
+              value={prefs.competition ?? 'WC'}
+              onChange={(e) => setPrefs({ competition: e.target.value as typeof prefs.competition })}
+              className="pl-6 pr-2 py-1 text-xs rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-colors"
+              aria-label="Select competition"
+              title="Select competition"
+            >
+              {COMPETITIONS.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Spoiler toggle */}
           <button
             onClick={() => setPrefs({ spoilerMode: !prefs.spoilerMode })}

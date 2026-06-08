@@ -47,6 +47,20 @@ export interface TeamColors {
   away?: string;
 }
 
+export type CompetitionCode = 'WC' | 'CLI' | 'BSA';
+
+export interface Competition {
+  code: CompetitionCode;
+  name: string;
+  isClub: boolean;
+}
+
+export const COMPETITIONS: Competition[] = [
+  { code: 'WC',  name: 'FIFA World Cup 2026',          isClub: false },
+  { code: 'CLI', name: 'Copa Libertadores',             isClub: true  },
+  { code: 'BSA', name: 'Campeonato Brasileiro Série A', isClub: true  },
+];
+
 export interface UserPreferences {
   timezone: string;
   countryCode: string;
@@ -55,6 +69,7 @@ export interface UserPreferences {
   favouriteMatches: string[];
   favouriteTeams: string[];
   teamTheme: string | null;
+  competition: CompetitionCode;
 }
 
 export interface GroupStanding {
