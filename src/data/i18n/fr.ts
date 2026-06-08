@@ -71,4 +71,13 @@ export const fr = {
   knockout: 'Élimination directe',
   unfollowTeam: 'Ne plus suivre',
   noTeamsFollowed: 'Aucune équipe suivie',
+  kicksOffIn: 'coup d\'envoi dans',
+  shareMatch: 'Partager le match',
+  copied: 'Copié !',
+  h2hHistory: 'Face à face',
+  h2hLoading: 'Chargement...',
+  h2hNoData: 'Aucun historique disponible',
+  h2hError: 'Impossible de charger l\'historique',
+  expand: 'Afficher les détails du match',
+  collapse: 'Masquer les détails du match',
 };

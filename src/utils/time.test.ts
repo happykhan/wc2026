@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMatchTime, formatMatchDate, getDateKey, isMatchToday } from './time';
+import { formatMatchTime, formatMatchDate, getDateKey, isMatchToday, formatCountdown, secondsUntil } from './time';
 
 describe('formatMatchTime', () => {
   it('formats a UTC midnight game as 00:00 in UTC', () => {
@@ -33,6 +33,18 @@ describe('formatMatchDate', () => {
     expect(formatMatchDate('2026-06-12T01:00:00Z', 'America/New_York')).toBe('Thursday 11 June');
     expect(formatMatchDate('2026-06-12T01:00:00Z', 'UTC')).toBe('Friday 12 June');
   });
+
+  it('returns French day/month names when language is fr', () => {
+    // jeudi = Thursday in French, juin = June
+    const result = formatMatchDate('2026-06-11T12:00:00Z', 'UTC', 'fr');
+    expect(result.toLowerCase()).toContain('juin');
+  });
+
+  it('returns Spanish day/month names when language is es', () => {
+    // junio = June in Spanish
+    const result = formatMatchDate('2026-06-11T12:00:00Z', 'UTC', 'es');
+    expect(result.toLowerCase()).toContain('junio');
+  });
 });
 
 describe('getDateKey', () => {
@@ -51,6 +63,42 @@ describe('getDateKey', () => {
     // In UTC+1 (BST) this is already 2026-06-12
     expect(getDateKey(d, 'Europe/London')).toBe('2026-06-12');
     expect(getDateKey(d, 'UTC')).toBe('2026-06-11');
+  });
+});
+
+describe('formatCountdown', () => {
+  it('formats hours and minutes', () => {
+    expect(formatCountdown(7500)).toBe('2h 5m'); // 125 min
+  });
+
+  it('formats minutes only when under an hour', () => {
+    expect(formatCountdown(2700)).toBe('45m');
+  });
+
+  it('formats whole hours without trailing 0m', () => {
+    expect(formatCountdown(7200)).toBe('2h');
+  });
+
+  it('returns empty string for zero or negative', () => {
+    expect(formatCountdown(0)).toBe('');
+    expect(formatCountdown(-60)).toBe('');
+  });
+});
+
+describe('secondsUntil', () => {
+  it('returns a positive number for a future date', () => {
+    const future = new Date(Date.now() + 60_000);
+    expect(secondsUntil(future)).toBeGreaterThan(0);
+  });
+
+  it('returns a negative number for a past date', () => {
+    const past = new Date(Date.now() - 60_000);
+    expect(secondsUntil(past)).toBeLessThan(0);
+  });
+
+  it('accepts a string input', () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    expect(secondsUntil(future)).toBeGreaterThan(0);
   });
 });
 

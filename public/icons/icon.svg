@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#16a34a"/>
+  <!-- Football / soccer ball simplified -->
+  <circle cx="256" cy="220" r="110" fill="white" stroke="#166534" stroke-width="8"/>
+  <!-- Pentagon patches -->
+  <polygon points="256,140 230,175 243,212 270,212 283,175" fill="#1a1a1a"/>
+  <polygon points="190,192 163,210 167,240 198,251 218,230" fill="#1a1a1a"/>
+  <polygon points="322,192 349,210 345,240 314,251 294,230" fill="#1a1a1a"/>
+  <polygon points="213,270 201,300 226,320 256,310 286,320 311,300 299,270 270,260 243,260" fill="#1a1a1a"/>
+  <!-- Text -->
+  <text x="256" y="400" font-family="Arial, sans-serif" font-weight="700" font-size="72" fill="white" text-anchor="middle" letter-spacing="-2">2026</text>
+</svg>

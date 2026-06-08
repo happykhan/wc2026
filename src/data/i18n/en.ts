@@ -71,6 +71,15 @@ export const en = {
   knockout: 'Knockout',
   unfollowTeam: 'Unfollow',
   noTeamsFollowed: 'No teams followed',
+  kicksOffIn: 'kicks off in',
+  shareMatch: 'Share match',
+  copied: 'Copied!',
+  h2hHistory: 'Head to head',
+  h2hLoading: 'Loading history...',
+  h2hNoData: 'No history available',
+  h2hError: 'Could not load history',
+  expand: 'Expand match details',
+  collapse: 'Collapse match details',
 };
 
 export type TranslationKey = keyof typeof en;

@@ -71,4 +71,13 @@ export const de = {
   knockout: 'K.-o.-Runde',
   unfollowTeam: 'Nicht mehr folgen',
   noTeamsFollowed: 'Keine Teams abonniert',
+  kicksOffIn: 'Anstoß in',
+  shareMatch: 'Spiel teilen',
+  copied: 'Kopiert!',
+  h2hHistory: 'Direktvergleich',
+  h2hLoading: 'Laden...',
+  h2hNoData: 'Kein Verlauf verfügbar',
+  h2hError: 'Verlauf konnte nicht geladen werden',
+  expand: 'Spieldetails anzeigen',
+  collapse: 'Spieldetails ausblenden',
 };

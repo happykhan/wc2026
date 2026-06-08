@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
@@ -21,6 +21,12 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
     date: '',
     favouritesOnly: false,
   });
+
+  // Swipe-between-days state
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const swipeThreshold = 50;
 
   const filtered = useMemo(() => {
     return matches.filter((m) => {
@@ -59,6 +65,61 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
 
   const hasFavourites = prefs.favouriteMatches.length > 0;
 
+  // All unique date keys in sorted order (for swipe navigation)
+  const allDateKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const m of matches) {
+      keys.add(getDateKey(m.utcDate, prefs.timezone));
+    }
+    return Array.from(keys).sort();
+  }, [matches, prefs.timezone]);
+
+  const activeDateIndex = useMemo(() => {
+    if (!filters.date) return -1;
+    return allDateKeys.indexOf(filters.date);
+  }, [allDateKeys, filters.date]);
+
+  const navigateDay = useCallback((direction: 1 | -1) => {
+    // If no date filter, find today or first future date as anchor
+    let currentIdx = activeDateIndex;
+    if (currentIdx === -1) {
+      const todayKey = getDateKey(new Date(), prefs.timezone);
+      currentIdx = allDateKeys.findIndex((k) => k >= todayKey);
+      if (currentIdx === -1) currentIdx = 0;
+    }
+    const nextIdx = currentIdx + direction;
+    if (nextIdx >= 0 && nextIdx < allDateKeys.length) {
+      setFilters((prev) => ({ ...prev, date: allDateKeys[nextIdx] }));
+    }
+  }, [activeDateIndex, allDateKeys, prefs.timezone]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setSwipeOffset(0);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    setSwipeOffset(e.touches[0].clientX - touchStartX.current);
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartX.current === null) return;
+    const delta = swipeOffset;
+    touchStartX.current = null;
+
+    if (Math.abs(delta) >= swipeThreshold) {
+      setIsAnimating(true);
+      navigateDay(delta < 0 ? 1 : -1);
+      setTimeout(() => {
+        setSwipeOffset(0);
+        setIsAnimating(false);
+      }, 200);
+    } else {
+      setSwipeOffset(0);
+    }
+  }, [swipeOffset, navigateDay]);
+
   return (
     <div className="space-y-6">
       {/* Today's matches callout */}
@@ -96,13 +157,22 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
         <ICSExport matches={matches} prefs={prefs} t={t} />
       </div>
 
-      {/* Match list */}
+      {/* Match list — swipeable on mobile */}
       {byDate.length === 0 ? (
         <div className="py-16 text-center text-neutral-400 dark:text-neutral-500">
           {t('noMatches')}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div
+          className="space-y-8 touch-pan-y select-none"
+          style={{
+            transform: swipeOffset !== 0 ? `translateX(${swipeOffset * 0.3}px)` : undefined,
+            transition: isAnimating ? 'transform 0.2s ease-out' : undefined,
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {byDate.map(([dateKey, dayMatches]) => {
             // Use noon UTC on the date key to get a representative Date for label checks
             const d = new Date(dateKey + 'T12:00:00Z');
@@ -110,7 +180,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
               ? t('today')
               : isMatchTomorrow(d, prefs.timezone)
               ? t('tomorrow')
-              : formatMatchDate(d, prefs.timezone);
+              : formatMatchDate(d, prefs.timezone, prefs.language);
 
             return (
               <div key={dateKey} className="space-y-2">

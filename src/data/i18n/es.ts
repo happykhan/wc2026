@@ -71,4 +71,13 @@ export const es = {
   knockout: 'Eliminatorias',
   unfollowTeam: 'Dejar de seguir',
   noTeamsFollowed: 'Ningún equipo seguido',
+  kicksOffIn: 'comienza en',
+  shareMatch: 'Compartir partido',
+  copied: '¡Copiado!',
+  h2hHistory: 'Cara a cara',
+  h2hLoading: 'Cargando...',
+  h2hNoData: 'No hay historial disponible',
+  h2hError: 'No se pudo cargar el historial',
+  expand: 'Ver detalles del partido',
+  collapse: 'Ocultar detalles del partido',
 };
