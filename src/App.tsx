@@ -62,7 +62,12 @@ export default function App() {
           />
         )}
         {page === 'groups' && (
-          <Groups matches={matches} prefs={prefs} t={t} />
+          <Groups
+            matches={matches}
+            prefs={prefs}
+            t={t}
+            onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
+          />
         )}
         {page === 'settings' && (
           <Settings

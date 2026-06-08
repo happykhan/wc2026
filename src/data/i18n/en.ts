@@ -62,6 +62,7 @@ export const en = {
   spoilerOffDetail: 'Off — scores hidden',
   spoilerBannerOff: 'Spoilers are off.',
   spoilerEnableHint: 'Enable spoilers',
+  spoilerBannerOffSuffix: 'to see live points and standings.',
   vs: 'vs',
   addToFavourites: 'Add to favourites',
   removeFromFavourites: 'Remove from favourites',

@@ -62,6 +62,7 @@ export const de = {
   spoilerOffDetail: 'Aus — Ergebnisse verborgen',
   spoilerBannerOff: 'Spoiler sind deaktiviert.',
   spoilerEnableHint: 'Spoiler aktivieren',
+  spoilerBannerOffSuffix: 'um Live-Punkte und Tabellen zu sehen.',
   vs: 'vs',
   addToFavourites: 'Zu Favoriten hinzufügen',
   removeFromFavourites: 'Aus Favoriten entfernen',
