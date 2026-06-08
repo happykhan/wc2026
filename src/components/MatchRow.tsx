@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, Tv, MapPin, Share2, ChevronDown, ChevronUp, Users, BarChart2, CalendarPlus } from 'lucide-react';
+import { Star, MapPin, Share2, ChevronDown, ChevronUp, Users, BarChart2, CalendarPlus } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { isKnockoutTeam } from '../data/processFixtures';
@@ -15,6 +15,8 @@ interface MatchRowProps {
   onToggleFavourite: (id: string) => void;
   isToday: boolean;
   timezone: string;
+  /** When true, this match is from a club competition: skip flags and broadcast lookup */
+  isClubComp?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,57 +113,105 @@ function StatusBadge({ status, minute, t }: { status: Match['status']; minute?: 
 }
 
 // ---------------------------------------------------------------------------
-// Team name with flag
+// TeamNameInline — always-horizontal variant: flag + truncated name
+// home side (align="right"): name then flag, whole block right-aligned
+// away side (align="left"): flag then name, whole block left-aligned
 // ---------------------------------------------------------------------------
 
-function TeamName({ name, spoilerMode, tbd }: { name: string; spoilerMode: boolean; tbd: string }) {
+function TeamNameInline({
+  name,
+  spoilerMode,
+  tbd,
+  align,
+  showFlag = true,
+}: {
+  name: string;
+  spoilerMode: boolean;
+  tbd: string;
+  align: 'left' | 'right';
+  showFlag?: boolean;
+}) {
   if (!spoilerMode && isKnockoutTeam(name)) {
-    return <span className="text-neutral-400 italic text-sm">{tbd}</span>;
+    return <span className="text-neutral-400 italic text-sm truncate">{tbd}</span>;
   }
-  const flag = getTeamFlag(name);
+  const flag = showFlag ? getTeamFlag(name) : null;
   return (
-    <span className="font-medium text-neutral-900 dark:text-neutral-100 leading-tight flex items-center gap-1.5">
-      {flag && <span aria-hidden="true">{flag}</span>}
-      {name}
+    <span
+      className={[
+        'text-sm font-medium text-neutral-900 dark:text-neutral-100 leading-tight',
+        'flex items-center gap-1 min-w-0',
+        align === 'right' ? 'flex-row-reverse' : '',
+      ].join(' ')}
+    >
+      <span className="truncate">{name}</span>
+      {flag && <span aria-hidden="true" className="flex-shrink-0">{flag}</span>}
     </span>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Countdown for upcoming matches
+// CountdownInline — renders as two sibling fragments (separator + text)
+// so it slots into the meta line naturally
 // ---------------------------------------------------------------------------
 
-function Countdown({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey) => string }) {
+function CountdownInline({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey) => string }) {
   const [secs, setSecs] = useState(() => secondsUntil(utcDate));
 
   useEffect(() => {
-    // Only run the interval while the match is in the future
     if (secs <= 0) return;
-    const id = setInterval(() => {
-      setSecs(secondsUntil(utcDate));
-    }, 30_000);
+    const id = setInterval(() => setSecs(secondsUntil(utcDate)), 30_000);
     return () => clearInterval(id);
   }, [utcDate, secs]);
 
   if (secs <= 0) return null;
-
   const label = formatCountdown(secs);
   if (!label) return null;
 
-  // Colour thresholds
   const mins = secs / 60;
   const urgency =
     mins <= 15
       ? 'text-red-500 dark:text-red-400 font-semibold'
       : mins <= 60
-      ? 'text-amber-500 dark:text-amber-400 font-medium'
-      : 'text-neutral-400 dark:text-neutral-500';
+        ? 'text-amber-500 dark:text-amber-400 font-medium'
+        : '';
 
   return (
-    <span className={`text-xs ${urgency}`}>
-      {t('kicksOffIn')} {label}
-    </span>
+    <>
+      <span aria-hidden="true">·</span>
+      <span className={urgency}>
+        {t('kicksOffIn')} {label}
+      </span>
+    </>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Channel abbreviation helper — keeps the meta line short on small screens
+// "BBC One", "BBC Two" → "BBC"; "ITV1", "ITV4" → "ITV"; max 2 unique tokens
+// ---------------------------------------------------------------------------
+
+function abbreviateChannels(channels: string[]): string[] {
+  const abbrev = (ch: string): string => {
+    return ch
+      .replace(/\bone\b|\btwo\b|\bthree\b|\bfour\b|\bfive\b/gi, '')
+      .replace(/\d+/g, '')
+      .trim()
+      .split(/\s+/)
+      [0]
+      .toUpperCase();
+  };
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const ch of channels) {
+    const a = abbrev(ch);
+    if (!seen.has(a)) {
+      seen.add(a);
+      result.push(a);
+    }
+    if (result.length === 2) break;
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -768,21 +818,35 @@ function StatsPanel({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone }: MatchRowProps) {
+export function MatchRow({
+  match,
+  prefs,
+  t,
+  onToggleFavourite,
+  isToday,
+  timezone,
+  isClubComp = false,
+}: MatchRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [detailTab, setDetailTab] = useState<DetailTab>('h2h');
   const isFav = prefs.favouriteMatches.includes(match.id);
-  const knownTeams = !isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2);
-  const channels = getChannelsForCountry(prefs.countryCode);
+  // H2H only works for WC (national teams with known FD IDs)
+  const knownTeams = !isClubComp && !isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2);
+  // For club competitions broadcast rights are unknown — always show "check local listings"
+  const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode);
+  const channelLabels = abbreviateChannels(channels);
   const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
 
   const localTime = formatMatchTime(match.utcDate, timezone);
 
+  // Meta line parts: channels, venue/city, countdown (for upcoming within 24 h)
+  const venueName = match.city || match.venue;
+
   return (
     <div
       className={[
-        'group flex flex-col gap-2',
-        'px-4 py-3 rounded-xl transition-colors',
+        'group flex flex-col gap-1.5',
+        'px-3 py-2 rounded-xl transition-colors',
         isToday
           ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/30'
           : 'bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800',
@@ -790,80 +854,66 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
       ].join(' ')}
     >
       {/* ------------------------------------------------------------------ */}
-      {/* Main 3-column row: [home team] [center info] [away team]            */}
-      {/* On very small screens (<sm) everything stacks and centres.          */}
+      {/* Row 1 — [home team] [time/score] [away team]                        */}
+      {/* Always horizontal, never stacks. truncate handles long names.       */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+      <div className="flex items-center gap-1.5">
 
-        {/* Left col — home team, right-aligned on sm+ */}
-        <div className="flex-1 flex sm:justify-end items-center gap-2 min-w-0">
-          <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100 leading-tight sm:text-right truncate">
-            <TeamName name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
-          </span>
+        {/* Left — home team, right-aligned */}
+        <div className="flex-1 flex justify-end items-center gap-1 min-w-0">
+          <TeamNameInline name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="right" showFlag={!isClubComp} />
         </div>
 
-        {/* Centre col — time/score, status, channels, countdown, venue */}
-        <div className="w-36 flex-shrink-0 flex flex-col items-center gap-0.5 text-center">
-          {/* Score or kickoff time */}
+        {/* Centre — fixed width, time/score + optional status chip */}
+        <div className="w-20 flex-shrink-0 flex flex-col items-center gap-0.5">
           {showScore && match.score1 !== undefined && match.score2 !== undefined ? (
-            <span className="text-2xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100 leading-none">
+            <span className="text-xl font-bold tabular-nums text-neutral-900 dark:text-neutral-100 leading-none">
               {match.score1}&ndash;{match.score2}
             </span>
           ) : (
-            <span className="text-xl font-semibold tabular-nums text-neutral-800 dark:text-neutral-200 leading-none">
+            <span className="text-lg font-bold tabular-nums text-neutral-800 dark:text-neutral-200 leading-none">
               {localTime}
             </span>
           )}
-
-          {/* Status badge or "vs" */}
-          <div className="flex items-center justify-center mt-0.5">
-            {match.status !== 'upcoming' ? (
-              <StatusBadge status={match.status} minute={match.minute} t={t} />
-            ) : (
-              <span className="text-xs text-neutral-400 dark:text-neutral-500">{t('vs')}</span>
-            )}
-          </div>
-
-          {/* TV channels */}
-          <div className="flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">
-            <Tv size={11} className="flex-shrink-0" />
-            {channels.length > 0 ? (
-              <span className="truncate max-w-[7rem]">{channels.slice(0, 2).join(' · ')}</span>
-            ) : (
-              <span className="italic">{t('unknownChannels')}</span>
-            )}
-          </div>
-
-          {/* Countdown for upcoming matches */}
-          {match.status === 'upcoming' && (
-            <Countdown utcDate={match.utcDate} t={t} />
-          )}
-
-          {/* Venue/city */}
-          {(match.venue || match.city) && (
-            <div className="flex items-center gap-1 text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">
-              <MapPin size={11} className="flex-shrink-0" />
-              <span className="truncate max-w-[7rem]">{match.venue || match.city}</span>
-            </div>
+          {match.status !== 'upcoming' && (
+            <StatusBadge status={match.status} minute={match.minute} t={t} />
           )}
         </div>
 
-        {/* Right col — away team, left-aligned on sm+ */}
-        <div className="flex-1 flex sm:justify-start items-center gap-2 min-w-0">
-          <span className="text-base font-semibold text-neutral-900 dark:text-neutral-100 leading-tight truncate">
-            <TeamName name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
-          </span>
+        {/* Right — away team, left-aligned */}
+        <div className="flex-1 flex justify-start items-center gap-1 min-w-0">
+          <TeamNameInline name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="left" showFlag={!isClubComp} />
         </div>
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Secondary row — badge, star, share, expand — right-aligned          */}
+      {/* Row 2 — channels · venue · countdown (centered, one line)           */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex items-center justify-end gap-1 pt-0.5">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-500 leading-none">
+        {channelLabels.length > 0 ? (
+          <span>{channelLabels.join(' · ')}</span>
+        ) : (
+          <span className="italic">{t('unknownChannels')}</span>
+        )}
+        {venueName && (
+          <>
+            <span aria-hidden="true">·</span>
+            <span className="truncate max-w-[8rem]">{venueName}</span>
+          </>
+        )}
+        {match.status === 'upcoming' && (
+          <CountdownInline utcDate={match.utcDate} t={t} />
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Row 3 — group/round badge (left) + star · share · expand (right)    */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="flex items-center gap-1">
         {/* Group / round badge */}
         {match.group ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium mr-auto">
-            {match.group.replace('Group ', '')}
+          <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium mr-auto whitespace-nowrap">
+            {match.group.replace('Group ', 'Group ')}
           </span>
         ) : (
           <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium whitespace-nowrap mr-auto">
@@ -882,7 +932,7 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
           ].join(' ')}
           aria-label={isFav ? t('removeFromFavourites') : t('addToFavourites')}
         >
-          <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
+          <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
         </button>
 
         {/* Share */}
@@ -899,7 +949,7 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
           className="flex-shrink-0 p-1.5 rounded-lg transition-colors text-neutral-300 dark:text-neutral-600 hover:text-[var(--accent)]"
           aria-label={expanded ? t('collapse') : t('expand')}
         >
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
       </div>
 

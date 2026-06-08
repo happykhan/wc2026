@@ -3,7 +3,7 @@ import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
 import { ICSExport } from '../components/ICSExport';
-import { allTeams, allGroups } from '../data/processFixtures';
+import { allTeams as wcTeams, allGroups as wcGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
 import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
 
@@ -12,15 +12,30 @@ interface ScheduleProps {
   prefs: UserPreferences;
   t: (k: TranslationKey) => string;
   onToggleFavourite: (id: string) => void;
+  isClubComp?: boolean;
 }
 
-export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps) {
+export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = false }: ScheduleProps) {
   const [filters, setFilters] = useState<FilterState>({
     team: '',
     group: '',
     date: '',
     favouritesOnly: false,
   });
+
+  // For club competitions derive filter options from the live match list;
+  // for WC use the pre-built static arrays.
+  const allTeams = useMemo(() => {
+    if (!isClubComp) return wcTeams;
+    return Array.from(
+      new Set(matches.filter((m) => m.phase === 'group').flatMap((m) => [m.team1, m.team2]))
+    ).sort();
+  }, [isClubComp, matches]);
+
+  const allGroups = useMemo(() => {
+    if (!isClubComp) return wcGroups;
+    return Array.from(new Set(matches.filter((m) => m.group).map((m) => m.group!))).sort();
+  }, [isClubComp, matches]);
 
   // Swipe-between-days state
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -138,6 +153,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
                 onToggleFavourite={onToggleFavourite}
                 timezone={prefs.timezone}
                 isToday={true}
+                isClubComp={isClubComp}
               />
             ))}
           </div>
@@ -149,8 +165,8 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
         <FilterBar
           filters={filters}
           setFilters={setFilters}
-          teams={allTeams}
-          groups={allGroups}
+          teams={wcTeams}
+          groups={wcGroups}
           t={t}
           showFavouritesTab={hasFavourites}
         />
@@ -197,6 +213,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
                       onToggleFavourite={onToggleFavourite}
                       timezone={prefs.timezone}
                       isToday={isMatchToday(m.utcDate, prefs.timezone)}
+                      isClubComp={isClubComp}
                     />
                   ))}
                 </div>
