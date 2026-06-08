@@ -34,10 +34,15 @@ export type TVSchedule = {
 };
 
 export interface TeamColors {
-  primary: string;
-  secondary: string;
-  accent: string;
   name: string;
+  /** Home kit primary colour */
+  primary: string;
+  /** Home kit secondary / trim colour */
+  secondary: string;
+  /** Accent colour (used for UI highlights) */
+  accent: string;
+  /** Away kit primary colour (defaults to secondary if omitted) */
+  away?: string;
 }
 
 export interface UserPreferences {

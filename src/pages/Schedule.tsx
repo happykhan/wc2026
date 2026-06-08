@@ -64,7 +64,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite }: ScheduleProps
       {/* Today's matches callout */}
       {todayMatches.length > 0 && !filters.date && !filters.favouritesOnly && (
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+          <h2 className="text-sm font-semibold text-[var(--accent)] uppercase tracking-wide">
             {t('todayGames')}
           </h2>
           <div className="space-y-2">

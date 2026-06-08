@@ -36,7 +36,7 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
       <select
         value={filters.group}
         onChange={(e) => setFilters({ ...filters, group: e.target.value })}
-        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:outline-[var(--accent)] cursor-pointer"
       >
         <option value="">{t('filterByGroup')}</option>
         {groups.map((g) => (
@@ -49,7 +49,7 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
       <select
         value={filters.team}
         onChange={(e) => setFilters({ ...filters, team: e.target.value })}
-        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:outline-[var(--accent)] cursor-pointer"
       >
         <option value="">{t('filterByTeam')}</option>
         {teams.map((team) => (
@@ -62,7 +62,7 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
         type="date"
         value={filters.date}
         onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:outline-[var(--accent)] cursor-pointer"
         style={{ colorScheme: 'auto' }}
       />
 

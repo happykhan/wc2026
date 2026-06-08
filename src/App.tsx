@@ -12,7 +12,7 @@ import { Settings } from './pages/Settings';
 type Page = 'schedule' | 'groups' | 'settings';
 
 export default function App() {
-  const { prefs, setPrefs, toggleFavouriteMatch, followTeam } = usePreferences();
+  const { prefs, setPrefs, toggleFavouriteMatch, followTeam, unfollowTeam } = usePreferences();
   const [page, setPage] = useState<Page>('schedule');
 
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
@@ -70,6 +70,7 @@ export default function App() {
             setPrefs={setPrefs}
             matches={matches}
             followTeam={followTeam}
+            unfollowTeam={unfollowTeam}
             t={t}
           />
         )}

@@ -65,7 +65,7 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday }: MatchR
         'group flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4',
         'px-4 py-3 rounded-xl transition-colors',
         isToday
-          ? 'bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800'
+          ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/30'
           : 'bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800',
         isFav ? 'ring-1 ring-amber-400' : '',
       ].join(' ')}

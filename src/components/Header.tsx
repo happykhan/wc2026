@@ -87,7 +87,7 @@ export function Header({ prefs, setPrefs, page, setPage, t, darkMode, onToggleDa
             className={[
               'p-1.5 rounded-full transition-colors',
               page === 'settings'
-                ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                 : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
             ].join(' ')}
             aria-label={t('settings')}
@@ -112,7 +112,7 @@ function NavButton({ active, onClick, icon, label }: {
       className={[
         'flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors',
         active
-          ? 'bg-blue-600 text-white'
+          ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
           : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800',
       ].join(' ')}
     >

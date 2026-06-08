@@ -67,5 +67,14 @@ export function usePreferences() {
     });
   };
 
-  return { prefs, setPrefs, toggleFavouriteMatch, followTeam };
+  const unfollowTeam = (team: string, matchIds: string[]) => {
+    setPrefsState((prev) => {
+      const teams = prev.favouriteTeams.filter((t) => t !== team);
+      const matchIdSet = new Set(matchIds);
+      const favs = prev.favouriteMatches.filter((id) => !matchIdSet.has(id));
+      return { ...prev, favouriteTeams: teams, favouriteMatches: favs };
+    });
+  };
+
+  return { prefs, setPrefs, toggleFavouriteMatch, followTeam, unfollowTeam };
 }

@@ -68,4 +68,6 @@ export const fr = {
   spoilerToggleOn: 'Spoilers activés — cliquez pour masquer',
   spoilerToggleOff: 'Spoilers désactivés — cliquez pour afficher',
   knockout: 'Élimination directe',
+  unfollowTeam: 'Ne plus suivre',
+  noTeamsFollowed: 'Aucune équipe suivie',
 };

@@ -60,14 +60,16 @@ export const en = {
   themeDefault: 'Default',
   spoilerOnDetail: 'On — scores and results visible',
   spoilerOffDetail: 'Off — scores hidden',
-  spoilerBannerOff: 'Spoilers are off. Enable them in the header to see live points and standings.',
-  spoilerEnableHint: 'Enable spoilers to see live standings',
+  spoilerBannerOff: 'Spoilers are off.',
+  spoilerEnableHint: 'Enable spoilers',
   vs: 'vs',
   addToFavourites: 'Add to favourites',
   removeFromFavourites: 'Remove from favourites',
   spoilerToggleOn: 'Spoilers on — click to hide',
   spoilerToggleOff: 'Spoilers off — click to show',
   knockout: 'Knockout',
+  unfollowTeam: 'Unfollow',
+  noTeamsFollowed: 'No teams followed',
 };
 
 export type TranslationKey = keyof typeof en;

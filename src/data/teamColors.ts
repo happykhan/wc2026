@@ -1,63 +1,78 @@
 import type { TeamColors } from '../types';
 
-// 8 palette themes mapped to countries
+// 8 palette themes mapped to countries.
+// primary  = home kit dominant colour
+// secondary = home kit trim / second colour
+// accent   = UI highlight colour (usually same as primary)
+// away     = away kit dominant colour (shown as second swatch in theme picker)
 export const THEMES: Record<string, TeamColors> = {
   'red-white': {
     name: 'Red & White',
     primary: '#dc2626',
     secondary: '#ffffff',
     accent: '#dc2626',
+    away: '#1d4ed8',
   },
   'blue-white': {
     name: 'Blue & White',
     primary: '#1d4ed8',
     secondary: '#ffffff',
     accent: '#2563eb',
+    away: '#dc2626',
   },
   'green-gold': {
     name: 'Green & Gold',
     primary: '#15803d',
     secondary: '#d97706',
     accent: '#16a34a',
+    away: '#1d4ed8',
   },
   'yellow-blue': {
     name: 'Yellow & Blue',
     primary: '#fbbf24',
     secondary: '#1d4ed8',
     accent: '#d97706',
+    away: '#1d4ed8',
   },
   'orange-black': {
     name: 'Orange & Black',
     primary: '#ea580c',
     secondary: '#1c1917',
     accent: '#f97316',
+    away: '#1c1917',
   },
   'tricolor': {
     name: 'Tricolour',
     primary: '#1d4ed8',
     secondary: '#dc2626',
     accent: '#1d4ed8',
+    away: '#dc2626',
   },
   'green-white': {
     name: 'Green & White',
     primary: '#15803d',
     secondary: '#ffffff',
     accent: '#16a34a',
+    away: '#ffffff',
   },
   'white-dark': {
     name: 'White & Dark',
     primary: '#f5f5f5',
     secondary: '#171717',
     accent: '#525252',
+    away: '#171717',
   },
   default: {
     name: 'Default',
     primary: '#2563eb',
     secondary: '#f5f5f5',
     accent: '#2563eb',
+    away: '#f5f5f5',
   },
 };
 
+// Maps each qualified nation to a theme key.
+// Spelling matches what appears in fixtures.json (e.g. "Curacoa").
 export const COUNTRY_THEME_MAP: Record<string, string> = {
   England: 'red-white',
   Denmark: 'red-white',
@@ -102,7 +117,8 @@ export const COUNTRY_THEME_MAP: Record<string, string> = {
   Haiti: 'blue-white',
   Turkey: 'red-white',
   Paraguay: 'red-white',
-  Curaçao: 'blue-white',
+  // Fixture data spells this as "Curacoa" (no accent)
+  Curacoa: 'blue-white',
   'Bosnia & Herzegovina': 'blue-white',
   Uzbekistan: 'blue-white',
   Algeria: 'green-white',

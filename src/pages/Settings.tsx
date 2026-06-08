@@ -10,6 +10,7 @@ interface SettingsProps {
   setPrefs: (p: Partial<UserPreferences>) => void;
   matches: Match[];
   followTeam: (team: string, matchIds: string[]) => void;
+  unfollowTeam: (team: string, matchIds: string[]) => void;
   t: (k: TranslationKey) => string;
 }
 
@@ -103,7 +104,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
               className={[
                 'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
                 prefs.language.startsWith(lang.code)
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300',
               ].join(' ')}
             >
@@ -208,13 +209,17 @@ function ThemeCard({ themeKey, label, active, onClick }: {
       className={[
         'flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-colors text-xs font-medium',
         active
-          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
           : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-600',
       ].join(' ')}
     >
-      <div className="flex gap-1">
-        <div className="w-5 h-5 rounded-full" style={{ background: theme.primary }} />
-        <div className="w-5 h-5 rounded-full" style={{ background: theme.secondary === '#ffffff' ? '#e5e7eb' : theme.secondary }} />
+      {/* Split swatch: left half = home kit, right half = away kit */}
+      <div
+        className="w-10 h-5 rounded-full overflow-hidden flex"
+        title={`Home: ${theme.primary} / Away: ${theme.away ?? theme.secondary}`}
+      >
+        <div className="w-1/2 h-full" style={{ background: theme.primary }} />
+        <div className="w-1/2 h-full" style={{ background: theme.away ?? (theme.secondary === '#ffffff' ? '#e5e7eb' : theme.secondary) }} />
       </div>
       <span className="text-center leading-tight">{label}</span>
     </button>
