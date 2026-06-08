@@ -50,7 +50,7 @@ const COUNTRIES = [
   { code: 'OTHER', label: 'Other' },
 ];
 
-export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsProps) {
+export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t }: SettingsProps) {
   const handleFollowTeam = (team: string) => {
     const matchIds = matches
       .filter((m) => m.team1 === team || m.team2 === team)
@@ -59,6 +59,21 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
     const theme = getThemeForTeam(team);
     setPrefs({ teamTheme: theme });
   };
+
+  const handleUnfollowTeam = (team: string) => {
+    const matchIds = matches
+      .filter((m) => m.team1 === team || m.team2 === team)
+      .map((m) => m.id);
+    unfollowTeam(team, matchIds);
+  };
+
+  // Teams that are in favouriteTeams and have at least one starred match
+  const followedTeams = prefs.favouriteTeams.filter((team) => {
+    const teamMatchIds = matches
+      .filter((m) => m.team1 === team || m.team2 === team)
+      .map((m) => m.id);
+    return teamMatchIds.some((id) => prefs.favouriteMatches.includes(id));
+  });
 
   return (
     <div className="max-w-lg space-y-6">
@@ -129,14 +144,28 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
             <option key={team} value={team}>{team}</option>
           ))}
         </select>
-        {prefs.favouriteTeams.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {prefs.favouriteTeams.map((team) => (
-              <span key={team} className="px-2 py-0.5 rounded-full text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium">
+        {followedTeams.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {followedTeams.map((team) => (
+              <span
+                key={team}
+                className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium"
+              >
                 ★ {team}
+                <button
+                  onClick={() => handleUnfollowTeam(team)}
+                  aria-label={`${t('unfollowTeam')} ${team}`}
+                  className="ml-0.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-amber-200 dark:hover:bg-amber-800/50 transition-colors text-amber-600 dark:text-amber-400 leading-none"
+                >
+                  ×
+                </button>
               </span>
             ))}
           </div>
+        ) : (
+          <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
+            {t('noTeamsFollowed')}
+          </p>
         )}
       </Section>
 
