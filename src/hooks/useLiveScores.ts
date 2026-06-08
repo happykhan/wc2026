@@ -16,12 +16,13 @@ export interface LiveScore {
 // ---------------------------------------------------------------------------
 // football-data.org free tier
 // Competition code for FIFA World Cup 2026 is "WC".
-// Live score data is fetched via the /api/scores server-side proxy, which
-// holds the API key in process.env.FOOTBALL_DATA_KEY (Vercel server-side env
-// var — never bundled into client JS). The proxy caches upstream responses for
-// 60 seconds, so this hook's polling interval aligns with that TTL.
+// Live score data is fetched from brain.genomicx.org/api/wc-scores, which
+// reads ~/brain/wc-scores.json written by wc_scores_poller.py running on
+// openclaw. The poller polls every 10 s when a match is live, 60 s otherwise.
 // Docs: https://www.football-data.org/documentation/quickstart
 // ---------------------------------------------------------------------------
+
+const WC_SCORES_URL = 'https://brain.genomicx.org/api/wc-scores';
 
 type FDMatchStatus =
   | 'SCHEDULED' | 'TIMED' | 'IN_PLAY' | 'PAUSED'
@@ -46,8 +47,12 @@ interface FDMatch {
   awayTeam: { name: string };
 }
 
-interface FDResponse {
+// Shape written by wc_scores_poller.py
+interface WCScoresResponse {
+  fetchedAt: string;
+  live: boolean;
   matches: FDMatch[];
+  standings: unknown[];
 }
 
 function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['status'] {
@@ -71,11 +76,11 @@ async function fetchFromFootballData(
 ): Promise<Map<string, LiveScore>> {
   const next = new Map<string, LiveScore>();
 
-  const res = await fetch('/api/scores');
+  const res = await fetch(WC_SCORES_URL);
 
   if (!res.ok) return next;
 
-  const data: FDResponse = await res.json();
+  const data: WCScoresResponse = await res.json();
   const fdMatches: FDMatch[] = data.matches ?? [];
 
   for (const fdm of fdMatches) {
