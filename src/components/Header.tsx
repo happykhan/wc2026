@@ -31,7 +31,7 @@ export function Header({ prefs, setPrefs, page, setPage, t }: HeaderProps) {
         <div className="flex items-center gap-2 flex-shrink-0">
           {teamFlag && <span className="text-xl">{teamFlag}</span>}
           <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-            WC 2026
+            {t('appTitle')}
           </span>
         </div>
 
@@ -52,7 +52,7 @@ export function Header({ prefs, setPrefs, page, setPage, t }: HeaderProps) {
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400',
             ].join(' ')}
-            title={prefs.spoilerMode ? 'Spoilers on — click to hide' : 'Spoilers off — click to show'}
+            title={prefs.spoilerMode ? t('spoilerToggleOn') : t('spoilerToggleOff')}
           >
             {prefs.spoilerMode ? <Eye size={13} /> : <EyeOff size={13} />}
             <span className="hidden sm:inline">

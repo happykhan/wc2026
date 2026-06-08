@@ -40,9 +40,9 @@ function StatusBadge({ status, minute, t }: { status: Match['status']; minute?: 
   return null;
 }
 
-function TeamName({ name, spoilerMode }: { name: string; spoilerMode: boolean }) {
+function TeamName({ name, spoilerMode, tbd }: { name: string; spoilerMode: boolean; tbd: string }) {
   if (!spoilerMode && isKnockoutTeam(name)) {
-    return <span className="text-neutral-400 italic text-sm">TBD</span>;
+    return <span className="text-neutral-400 italic text-sm">{tbd}</span>;
   }
   return (
     <span className="font-medium text-neutral-900 dark:text-neutral-100 leading-tight">
@@ -81,15 +81,15 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday }: MatchR
       {/* Teams + score */}
       <div className="flex-1 flex items-center gap-2 min-w-0">
         <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
-          <TeamName name={match.team1} spoilerMode={prefs.spoilerMode} />
+          <TeamName name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
           {showScore && match.score1 !== undefined && match.score2 !== undefined ? (
             <span className="text-lg font-bold tabular-nums text-neutral-800 dark:text-neutral-100 flex-shrink-0">
               {match.score1} – {match.score2}
             </span>
           ) : (
-            <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0 font-light text-sm sm:text-base">vs</span>
+            <span className="text-neutral-400 dark:text-neutral-500 flex-shrink-0 font-light text-sm sm:text-base">{t('vs')}</span>
           )}
-          <TeamName name={match.team2} spoilerMode={prefs.spoilerMode} />
+          <TeamName name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} />
         </div>
         <StatusBadge status={match.status} minute={match.minute} t={t} />
       </div>
@@ -132,7 +132,7 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday }: MatchR
             ? 'text-amber-400 hover:text-amber-500'
             : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-400',
         ].join(' ')}
-        aria-label={isFav ? 'Remove from favourites' : 'Add to favourites'}
+        aria-label={isFav ? t('removeFromFavourites') : t('addToFavourites')}
       >
         <Star size={16} fill={isFav ? 'currentColor' : 'none'} />
       </button>

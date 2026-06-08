@@ -64,9 +64,9 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
       <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-100">{t('settings')}</h2>
 
       {/* Country / TV */}
-      <Section title="Country & TV channels">
+      <Section title={t('countryAndTv')}>
         <label className="block text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-          Your country (sets TV channel info)
+          {t('countryLabel')}
         </label>
         <select
           value={prefs.countryCode}
@@ -86,7 +86,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
           onChange={(e) => setPrefs({ timezone: e.target.value })}
           className="select-field"
         >
-          <option value={prefs.timezone}>{prefs.timezone} (current)</option>
+          <option value={prefs.timezone}>{prefs.timezone} ({t('currentTimezone')})</option>
           {COMMON_TIMEZONES.filter((tz) => tz !== prefs.timezone).map((tz) => (
             <option key={tz} value={tz}>{tz}</option>
           ))}
@@ -116,14 +116,14 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
       {/* Follow a team */}
       <Section title={t('followTeam')}>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
-          Pick a team to automatically star all their matches and apply a matching colour theme.
+          {t('followTeamDescription')}
         </p>
         <select
           value=""
           onChange={(e) => { if (e.target.value) handleFollowTeam(e.target.value); }}
           className="select-field"
         >
-          <option value="">Select a team...</option>
+          <option value="">{t('selectTeam')}</option>
           {allTeams.map((team) => (
             <option key={team} value={team}>{team}</option>
           ))}
@@ -144,7 +144,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
         <div className="grid grid-cols-3 gap-2">
           <ThemeCard
             themeKey="default"
-            label="Default"
+            label={t('themeDefault')}
             active={!prefs.teamTheme || prefs.teamTheme === 'default'}
             onClick={() => setPrefs({ teamTheme: null })}
           />
@@ -176,7 +176,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, t }: SettingsPr
             ].join(' ')} />
           </button>
           <span className="text-sm text-neutral-700 dark:text-neutral-300">
-            {prefs.spoilerMode ? 'On — scores and results visible' : 'Off — scores hidden'}
+            {prefs.spoilerMode ? t('spoilerOnDetail') : t('spoilerOffDetail')}
           </span>
         </div>
       </Section>

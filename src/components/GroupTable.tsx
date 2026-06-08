@@ -43,7 +43,7 @@ export function GroupTable({ group, matches, spoilerMode, t }: GroupTableProps) 
       <div className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-between">
         <span className="font-semibold text-sm text-neutral-700 dark:text-neutral-200">{group}</span>
         {!spoilerMode && (
-          <span className="text-xs text-neutral-400 italic">Enable spoilers to see live standings</span>
+          <span className="text-xs text-neutral-400 italic">{t('spoilerEnableHint')}</span>
         )}
       </div>
       <table className="w-full text-sm">

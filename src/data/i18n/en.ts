@@ -52,6 +52,22 @@ export const en = {
   final: 'Final',
   todayGames: "Today's matches",
   noTodayGames: 'No matches today',
+  countryAndTv: 'Country & TV channels',
+  countryLabel: 'Your country (sets TV channel info)',
+  currentTimezone: 'current',
+  followTeamDescription: 'Pick a team to automatically star all their matches and apply a matching colour theme.',
+  selectTeam: 'Select a team...',
+  themeDefault: 'Default',
+  spoilerOnDetail: 'On — scores and results visible',
+  spoilerOffDetail: 'Off — scores hidden',
+  spoilerBannerOff: 'Spoilers are off. Enable them in the header to see live points and standings.',
+  spoilerEnableHint: 'Enable spoilers to see live standings',
+  vs: 'vs',
+  addToFavourites: 'Add to favourites',
+  removeFromFavourites: 'Remove from favourites',
+  spoilerToggleOn: 'Spoilers on — click to hide',
+  spoilerToggleOff: 'Spoilers off — click to show',
+  knockout: 'Knockout',
 };
 
 export type TranslationKey = keyof typeof en;

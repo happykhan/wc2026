@@ -42,7 +42,7 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
         {groups.map((g) => (
           <option key={g} value={g}>{g}</option>
         ))}
-        <option value="knockout">Knockout</option>
+        <option value="knockout">{t('knockout')}</option>
       </select>
 
       {/* Team filter */}
