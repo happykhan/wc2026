@@ -16,14 +16,12 @@ export interface LiveScore {
 // ---------------------------------------------------------------------------
 // football-data.org free tier
 // Competition code for FIFA World Cup 2026 is "WC".
-// API key is read from VITE_FOOTBALL_DATA_KEY (set in Vercel env vars or a
-// local .env.local file — never commit real keys). Without a key the API
-// returns 401 and we fall back to showing no live scores rather than crashing.
+// Live score data is fetched via the /api/scores server-side proxy, which
+// holds the API key in process.env.FOOTBALL_DATA_KEY (Vercel server-side env
+// var — never bundled into client JS). The proxy caches upstream responses for
+// 60 seconds, so this hook's polling interval aligns with that TTL.
 // Docs: https://www.football-data.org/documentation/quickstart
 // ---------------------------------------------------------------------------
-
-const FD_BASE = 'https://api.football-data.org/v4';
-const FD_KEY  = import.meta.env.VITE_FOOTBALL_DATA_KEY ?? '';
 
 type FDMatchStatus =
   | 'SCHEDULED' | 'TIMED' | 'IN_PLAY' | 'PAUSED'
@@ -73,12 +71,7 @@ async function fetchFromFootballData(
 ): Promise<Map<string, LiveScore>> {
   const next = new Map<string, LiveScore>();
 
-  if (!FD_KEY) return next;
-
-  const res = await fetch(
-    `${FD_BASE}/competitions/WC/matches?status=IN_PLAY,PAUSED,FINISHED,TIMED`,
-    { headers: { 'X-Auth-Token': FD_KEY } }
-  );
+  const res = await fetch('/api/scores');
 
   if (!res.ok) return next;
 
