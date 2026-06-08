@@ -58,13 +58,16 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
       </select>
 
       {/* Date filter */}
-      <input
-        type="date"
-        value={filters.date}
-        onChange={(e) => setFilters({ ...filters, date: e.target.value })}
-        className="px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:outline-[var(--accent)] cursor-pointer"
-        style={{ colorScheme: 'auto' }}
-      />
+      <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 cursor-pointer">
+        <span className="text-neutral-500 dark:text-neutral-400 whitespace-nowrap">{t('filterByDate')}</span>
+        <input
+          type="date"
+          value={filters.date}
+          onChange={(e) => setFilters({ ...filters, date: e.target.value })}
+          className="bg-transparent border-none outline-none focus:outline-none text-neutral-700 dark:text-neutral-300 cursor-pointer"
+          style={{ colorScheme: 'auto' }}
+        />
+      </label>
 
       {/* Clear */}
       {hasActiveFilters && (

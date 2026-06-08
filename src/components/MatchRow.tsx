@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, Tv, MapPin, Share2, ChevronDown, ChevronUp, Users, BarChart2 } from 'lucide-react';
+import { Star, Tv, MapPin, Share2, ChevronDown, ChevronUp, Users, BarChart2, CalendarPlus } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { isKnockoutTeam } from '../data/processFixtures';
@@ -15,6 +15,66 @@ interface MatchRowProps {
   onToggleFavourite: (id: string) => void;
   isToday: boolean;
   timezone: string;
+}
+
+// ---------------------------------------------------------------------------
+// Per-match ICS download helper
+// ---------------------------------------------------------------------------
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function toICSDate(d: Date): string {
+  return (
+    d.getUTCFullYear() +
+    pad2(d.getUTCMonth() + 1) +
+    pad2(d.getUTCDate()) +
+    'T' +
+    pad2(d.getUTCHours()) +
+    pad2(d.getUTCMinutes()) +
+    '00Z'
+  );
+}
+
+function downloadMatchICS(match: Match, countryCode: string): void {
+  const channels = getChannelsForCountry(countryCode);
+  const channelStr = channels.length > 0 ? channels.join(', ') : 'Check local listings';
+
+  const start = toICSDate(match.utcDate);
+  const end = toICSDate(new Date(match.utcDate.getTime() + 2 * 60 * 60 * 1000));
+  const title = `${match.team1} vs ${match.team2}`;
+  const desc = [
+    `World Cup 2026 - ${match.round}`,
+    match.group ? `Group: ${match.group}` : '',
+    `Venue: ${match.venue}`,
+    `Watch on: ${channelStr}`,
+  ].filter(Boolean).join('\\n');
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//World Cup 2026//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${title}`,
+    `DESCRIPTION:${desc}`,
+    `LOCATION:${match.venue}`,
+    `UID:wc2026-${match.id}@wc2026`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `wc2026-${match.team1.toLowerCase().replace(/\s+/g, '-')}-vs-${match.team2.toLowerCase().replace(/\s+/g, '-')}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // Tab options for the expanded detail panel.
@@ -273,9 +333,9 @@ function H2HPanel({ team1, team2, t }: { team1: string; team2: string; t: (k: Tr
       return;
     }
 
-    const url = `https://api.football-data.org/v4/teams/${id1}/matches?status=FINISHED&limit=20`;
+    const url = `/api/h2h?team=${id1}&limit=20`;
 
-    fetch(url, { headers: { 'X-Auth-Token': '' } })
+    fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error('not ok');
         return r.json() as Promise<{ matches: Array<{
@@ -823,10 +883,20 @@ export function MatchRow({ match, prefs, t, onToggleFavourite, isToday, timezone
       {/* Expanded panel */}
       {expanded && (
         <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
-          {/* Venue detail on mobile */}
-          <div className="flex md:hidden items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-            <MapPin size={12} className="flex-shrink-0" />
-            <span>{match.venue || match.city}</span>
+          {/* Venue detail on mobile + per-match ICS button */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex md:hidden items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+              <MapPin size={12} className="flex-shrink-0" />
+              <span>{match.venue || match.city}</span>
+            </div>
+            <button
+              onClick={() => downloadMatchICS(match, prefs.countryCode)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 transition-colors ml-auto"
+              aria-label={t('exportMatch')}
+            >
+              <CalendarPlus size={12} />
+              {t('exportMatch')}
+            </button>
           </div>
 
           {/* Detail tabs */}

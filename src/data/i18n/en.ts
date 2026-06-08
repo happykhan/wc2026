@@ -23,6 +23,7 @@ export const en = {
   exportCalendar: 'Export to calendar',
   exportAll: 'Export all',
   exportFavourites: 'Export favourites',
+  exportMatch: 'Add to calendar',
   timezone: 'Timezone',
   language: 'Language',
   teamTheme: 'Team theme',

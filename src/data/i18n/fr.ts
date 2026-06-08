@@ -23,6 +23,7 @@ export const fr = {
   exportCalendar: 'Exporter le calendrier',
   exportAll: 'Exporter tout',
   exportFavourites: 'Exporter les favoris',
+  exportMatch: 'Ajouter au calendrier',
   timezone: 'Fuseau horaire',
   language: 'Langue',
   teamTheme: 'Thème équipe',
