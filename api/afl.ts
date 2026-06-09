@@ -1,16 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ---------------------------------------------------------------------------
-// /api/afl/[...path] — catch-all proxy for API-Football (api-sports.io)
+// /api/afl/* — proxy for API-Football (api-sports.io)
 //
-// Forwards requests to https://v3.football.api-sports.io/{path}?{querystring}
+// Vite-on-Vercel projects do NOT support Next.js-style [...catch-all] function
+// routing, so instead of a `api/afl/[...path].ts` file we use a single flat
+// `api/afl.ts` function plus a rewrite in vercel.json:
+//
+//   { "source": "/api/afl/:path*", "destination": "/api/afl?path=:path*" }
+//
+// The requested endpoint therefore arrives in the `path` query param
+// (e.g. /api/afl/fixtures/lineups?fixture=1 → path=fixtures/lineups,
+//  fixture=1). It forwards to https://v3.football.api-sports.io/{path}?{qs}
 // using the AFL_API_KEY server-side environment variable.
 //
-// Only a fixed allowlist of endpoints is permitted to prevent abuse and
-// keep within the free-tier rate limit (100 req/day).
+// Only a fixed allowlist of endpoints is permitted to prevent abuse and keep
+// within the free-tier rate limit (100 req/day).
 //
-// Cache-Control: public, max-age=86400 is set on all responses so that
-// Vercel edge caches and browsers avoid redundant upstream calls.
+// Cache-Control: public, max-age=86400 is set on all responses so that Vercel
+// edge caches and browsers avoid redundant upstream calls.
 // ---------------------------------------------------------------------------
 
 const AFL_BASE = 'https://v3.football.api-sports.io';
@@ -26,22 +34,32 @@ const ALLOWED_ENDPOINTS = new Set([
   'teams',
 ]);
 
+// Resolve the upstream endpoint from the rewritten `path` query param, with a
+// fallback to parsing req.url directly (in case the function is reached without
+// the rewrite, e.g. in local dev).
+function resolveEndpoint(req: VercelRequest): string {
+  const raw = req.query.path;
+  let endpoint = Array.isArray(raw) ? raw.join('/') : (raw ?? '');
+  if (!endpoint && req.url) {
+    const match = req.url.match(/^\/api\/afl\/([^?]*)/);
+    if (match) endpoint = decodeURIComponent(match[1]);
+  }
+  return endpoint.replace(/^\/+|\/+$/g, '');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const key = process.env.AFL_API_KEY;
   if (!key) {
     return res.status(503).json({ error: 'API key not configured.' });
   }
 
-  // path is the catch-all segment — may be a string or an array of segments.
-  const rawPath = req.query.path;
-  const pathSegments = Array.isArray(rawPath) ? rawPath : [rawPath ?? ''];
-  const endpoint = pathSegments.join('/');
+  const endpoint = resolveEndpoint(req);
 
   if (!ALLOWED_ENDPOINTS.has(endpoint)) {
     return res.status(403).json({ error: `Endpoint not permitted: ${endpoint}` });
   }
 
-  // Forward all query params except the internal 'path' catch-all.
+  // Forward all query params except the internal 'path' catch-all marker.
   const forwardParams = new URLSearchParams();
   for (const [k, v] of Object.entries(req.query)) {
     if (k === 'path') continue;
@@ -56,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     upstream = await fetch(upstreamUrl, {
       headers: { 'x-apisports-key': key },
     });
-  } catch (err) {
+  } catch {
     return res.status(502).json({ error: 'Failed to reach upstream API.' });
   }
 
