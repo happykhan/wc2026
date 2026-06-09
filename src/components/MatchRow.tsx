@@ -40,7 +40,7 @@ function toICSDate(d: Date): string {
 }
 
 function downloadMatchICS(match: Match, countryCode: string): void {
-  const channels = getChannelsForCountry(countryCode);
+  const channels = getChannelsForCountry(countryCode, match.team1, match.team2);
   const channelStr = channels.length > 0 ? channels.join(', ') : 'Check local listings';
 
   const start = toICSDate(match.utcDate);
@@ -847,7 +847,7 @@ export function MatchRow({
   // H2H only works for WC (national teams with known FD IDs)
   const knownTeams = !isClubComp && !isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2);
   // For club competitions broadcast rights are unknown — always show "check local listings"
-  const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode);
+  const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode, match.team1, match.team2);
   const channelLabels = abbreviateChannels(channels);
   const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
 
