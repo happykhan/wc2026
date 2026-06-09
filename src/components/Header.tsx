@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor, Trophy } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import type { UserPreferences, Competition } from '../types';
 import { COMPETITIONS } from '../types';
 import type { TranslationKey } from '../data/i18n';
@@ -50,19 +50,89 @@ export function Header({
     : null;
   const dmMeta = DARK_MODE_META[darkMode];
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    if (!pickerOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [pickerOpen]);
+
+  // Close picker on Escape
+  useEffect(() => {
+    if (!pickerOpen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPickerOpen(false);
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [pickerOpen]);
+
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
-        {/* Logo + competition name */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {teamFlag && <span className="text-xl">{teamFlag}</span>}
-          <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-            {t('appTitle')}
-          </span>
-          {isClubComp && (
-            <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] font-medium">
-              {competitionMeta.name}
+        {/* Competition title — tapping opens the league picker */}
+        <div className="relative flex-shrink-0" ref={pickerRef}>
+          <button
+            onClick={() => setPickerOpen((v) => !v)}
+            className="flex items-center gap-1.5 group"
+            aria-haspopup="listbox"
+            aria-expanded={pickerOpen}
+            aria-label="Select competition"
+          >
+            {teamFlag && <span className="text-xl">{teamFlag}</span>}
+            <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm group-hover:text-[var(--accent)] transition-colors">
+              {competitionMeta.short}
             </span>
+            <ChevronDown
+              size={13}
+              className={[
+                'text-neutral-400 group-hover:text-[var(--accent)] transition-all',
+                pickerOpen ? 'rotate-180' : '',
+              ].join(' ')}
+            />
+          </button>
+
+          {/* Picker popover */}
+          {pickerOpen && (
+            <div
+              role="listbox"
+              aria-label="Competition list"
+              className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50"
+            >
+              {COMPETITIONS.map((c) => {
+                const isSelected = c.code === competitionMeta.code;
+                return (
+                  <button
+                    key={c.code}
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      setPrefs({ competition: c.code });
+                      setPickerOpen(false);
+                    }}
+                    className={[
+                      'w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between gap-2',
+                      isSelected
+                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-semibold'
+                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800',
+                    ].join(' ')}
+                  >
+                    <span>{c.name}</span>
+                    {isSelected && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -74,22 +144,6 @@ export function Header({
 
         {/* Right controls */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Competition selector */}
-          <div className="relative flex items-center">
-            <Trophy size={13} className="absolute left-2 text-neutral-400 pointer-events-none" />
-            <select
-              value={prefs.competition ?? 'WC'}
-              onChange={(e) => setPrefs({ competition: e.target.value as typeof prefs.competition })}
-              className="pl-6 pr-2 py-1 text-xs rounded-full border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-300 font-medium appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-colors"
-              aria-label="Select competition"
-              title="Select competition"
-            >
-              {COMPETITIONS.map((c) => (
-                <option key={c.code} value={c.code}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Spoiler toggle */}
           <button
             onClick={() => setPrefs({ spoilerMode: !prefs.spoilerMode })}

@@ -21,7 +21,7 @@ export default function App() {
 
   const competition = prefs.competition ?? 'WC';
   const competitionMeta = COMPETITIONS.find((c) => c.code === competition) ?? COMPETITIONS[0];
-  const isClubComp = competitionMeta.isClub;
+  const isClubComp = !competitionMeta.isNational;
 
   // Fetch club competition matches from the API when not on WC.
   const { matches: clubMatches, state: clubState } = useCompetitionMatches(competition, prefs.spoilerMode);

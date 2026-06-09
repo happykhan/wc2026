@@ -3,12 +3,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // ---------------------------------------------------------------------------
 // /api/competition/[code] — proxy for football-data.org competition matches
 //
-// Supports: WC (FIFA World Cup 2026), CLI (Copa Libertadores), BSA (Brasileirao)
+// Supports all football-data.org free-tier competitions.
 // The API key lives in process.env.FOOTBALL_DATA_KEY (server-side only).
 // Responses are cached for 5 minutes via Cache-Control headers.
 // ---------------------------------------------------------------------------
 
-const ALLOWED_CODES = new Set(['WC', 'CLI', 'BSA']);
+const ALLOWED_CODES = new Set([
+  'WC', 'CL', 'PL', 'BL1', 'SA', 'PD', 'FL1', 'CLI', 'BSA', 'DED', 'PPL', 'ELC',
+]);
 
 const FD_BASE = 'https://api.football-data.org/v4/competitions';
 
