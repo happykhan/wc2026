@@ -17,6 +17,12 @@ export default function App() {
   const { prefs, setPrefs, toggleFavouriteMatch, followTeam, unfollowTeam } = usePreferences();
   const [page, setPage] = useState<Page>('schedule');
 
+  // Deep-link target from a shared /match/:id link (redirected to /?match=<id>).
+  const focusMatchId = useMemo(() => {
+    if (typeof window === 'undefined') return undefined;
+    return new URLSearchParams(window.location.search).get('match') ?? undefined;
+  }, []);
+
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
 
   // This app is World Cup 2026 only.
@@ -66,6 +72,7 @@ export default function App() {
             prefs={prefs}
             t={t}
             onToggleFavourite={toggleFavouriteMatch}
+            focusMatchId={focusMatchId}
           />
         )}
         {page === 'groups' && (

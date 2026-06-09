@@ -4,6 +4,7 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/api/afl/:path*", "destination": "/api/afl?path=:path*" },
+    { "source": "/match/:id", "destination": "/api/share?id=:id" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

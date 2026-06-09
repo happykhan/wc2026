@@ -13,9 +13,11 @@ interface ScheduleProps {
   t: (k: TranslationKey) => string;
   onToggleFavourite: (id: string) => void;
   isClubComp?: boolean;
+  /** Match id to auto-open and scroll to (from a shared /match/:id link). */
+  focusMatchId?: string;
 }
 
-export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = false }: ScheduleProps) {
+export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = false, focusMatchId }: ScheduleProps) {
   const [filters, setFilters] = useState<FilterState>({
     team: '',
     group: '',
@@ -220,6 +222,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
                       timezone={prefs.timezone}
                       isToday={isMatchToday(m.utcDate, prefs.timezone)}
                       isClubComp={isClubComp}
+                      initialExpanded={!!focusMatchId && m.id === focusMatchId}
                     />
                   ))}
                 </div>

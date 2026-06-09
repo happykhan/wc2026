@@ -18,6 +18,8 @@ interface MatchRowProps {
   timezone: string;
   /** When true, this match is from a club competition: skip flags and broadcast lookup */
   isClubComp?: boolean;
+  /** When true (e.g. opened from a shared /match/:id link), start expanded and scroll into view. */
+  initialExpanded?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -256,7 +258,7 @@ function ShareButton({
     const date = formatMatchDate(match.utcDate, timezone, language);
     const title = `\u{1F3C6} ${match.team1} vs ${match.team2}`;
     const text = `Kicks off ${time} on ${date}`;
-    const url = window.location.href;
+    const url = `${window.location.origin}/match/${match.id}`;
 
     if (navigator.share) {
       try {
@@ -313,7 +315,8 @@ function CopyButton({
   const handleCopy = useCallback(async () => {
     const time = formatMatchTime(match.utcDate, timezone);
     const date = formatMatchDate(match.utcDate, timezone, language);
-    const summary = `\u{1F3C6} ${match.team1} vs ${match.team2}\nKicks off ${time} on ${date}\n${window.location.href}`;
+    const url = `${window.location.origin}/match/${match.id}`;
+    const summary = `\u{1F3C6} ${match.team1} vs ${match.team2}\nKicks off ${time} on ${date}\n${url}`;
     try {
       await navigator.clipboard.writeText(summary);
       setCopied(true);
@@ -705,9 +708,19 @@ export function MatchRow({
   isToday,
   timezone,
   isClubComp = false,
+  initialExpanded = false,
 }: MatchRowProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initialExpanded);
+  const rootRef = useRef<HTMLDivElement>(null);
   const isFav = prefs.favouriteMatches.includes(match.id);
+
+  // When opened from a shared link, scroll this card into view once.
+  useEffect(() => {
+    if (initialExpanded && rootRef.current) {
+      rootRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // H2H only works for WC (national teams with known FD IDs)
   const knownTeams = !isClubComp && !isKnockoutTeam(match.team1) && !isKnockoutTeam(match.team2);
   // Default to the H2H tab when it's available, otherwise lineups.
