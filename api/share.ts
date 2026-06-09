@@ -32,7 +32,10 @@ const MATCHES = (fixtures as { matches: RawMatch[] }).matches;
 function findMatch(id: string): RawMatch | undefined {
   let counter = 1;
   for (const m of MATCHES) {
-    const mid = m.num !== undefined ? `m${m.num}` : `m${counter++}`;
+    let mid: string;
+    if (m.num !== undefined) mid = `m${m.num}`;
+    else if (m.group) mid = `m${counter++}`;
+    else mid = `m-${m.round.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
     if (mid === id) return m;
   }
   return undefined;

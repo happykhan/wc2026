@@ -38,7 +38,15 @@ let counter = 1;
 
 export const processedMatches: Match[] = (rawData.matches as RawMatch[]).map((raw) => {
   const utcDate = parseMatchDate(raw.date, raw.time);
-  const id = raw.num ? `m${raw.num}` : `m${counter++}`;
+  // ID scheme:
+  //   knockout matches with a number → m{num} (e.g. m73)
+  //   group matches (no number)      → running counter m1..m72
+  //   the third-place + final (no number, no group) → a round slug, so they
+  //   don't collide with m73/m74 from the numbered knockout matches.
+  let id: string;
+  if (raw.num !== undefined) id = `m${raw.num}`;
+  else if (raw.group) id = `m${counter++}`;
+  else id = `m-${raw.round.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
 
   const phase: 'group' | 'knockout' = raw.group ? 'group' : 'knockout';
 
