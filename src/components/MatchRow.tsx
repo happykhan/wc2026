@@ -237,6 +237,22 @@ function abbreviateChannels(channels: string[]): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Share URL — /match/:id carries display fields as query params so the share
+// page (and its OG image) can render without a server-side data lookup.
+// ---------------------------------------------------------------------------
+
+function matchShareUrl(match: Match, timezone: string, language: string): string {
+  const params = new URLSearchParams({
+    h: match.team1,
+    a: match.team2,
+    s: match.group || match.round,
+    d: formatMatchDate(match.utcDate, timezone, language),
+    v: match.city || match.venue,
+  });
+  return `${window.location.origin}/match/${match.id}?${params.toString()}`;
+}
+
+// ---------------------------------------------------------------------------
 // Share button
 // ---------------------------------------------------------------------------
 
@@ -258,7 +274,7 @@ function ShareButton({
     const date = formatMatchDate(match.utcDate, timezone, language);
     const title = `\u{1F3C6} ${match.team1} vs ${match.team2}`;
     const text = `Kicks off ${time} on ${date}`;
-    const url = `${window.location.origin}/match/${match.id}`;
+    const url = matchShareUrl(match, timezone, language);
 
     if (navigator.share) {
       try {
@@ -315,7 +331,7 @@ function CopyButton({
   const handleCopy = useCallback(async () => {
     const time = formatMatchTime(match.utcDate, timezone);
     const date = formatMatchDate(match.utcDate, timezone, language);
-    const url = `${window.location.origin}/match/${match.id}`;
+    const url = matchShareUrl(match, timezone, language);
     const summary = `\u{1F3C6} ${match.team1} vs ${match.team2}\nKicks off ${time} on ${date}\n${url}`;
     try {
       await navigator.clipboard.writeText(summary);

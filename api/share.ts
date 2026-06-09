@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import fixtures from '../src/data/fixtures.json';
 
 // ---------------------------------------------------------------------------
 // /api/share — per-match share page (reached via the /match/:id rewrite).
@@ -9,36 +8,15 @@ import fixtures from '../src/data/fixtures.json';
 // This function returns a tiny HTML document with match-specific Open Graph /
 // Twitter tags (and a dynamic /api/og card image), then redirects real
 // browsers into the app at /?match=<id>.
+//
+// Match details ride along as query params set by the in-app Share/Copy
+// buttons (h=home, a=away, s=stage, d=date, v=venue), so this function has no
+// server-side data dependency. If they're missing we fall back to a generic
+// World Cup 2026 preview.
 // ---------------------------------------------------------------------------
 
-interface RawMatch {
-  round: string;
-  num?: number;
-  date: string;
-  time: string;
-  team1: string;
-  team2: string;
-  group?: string;
-  ground: string;
-}
-
-const MATCHES = (fixtures as { matches: RawMatch[] }).matches;
-
-// Mirror the id scheme in src/data/processFixtures.ts EXACTLY: matches with a
-// `num` (knockout) become `m{num}`; everything else (group matches) gets a
-// running counter `m1`, `m2`, … in fixtures.json array order. This must stay
-// in sync with processFixtures so /match/:id resolves the same match the SPA
-// links to.
-function findMatch(id: string): RawMatch | undefined {
-  let counter = 1;
-  for (const m of MATCHES) {
-    let mid: string;
-    if (m.num !== undefined) mid = `m${m.num}`;
-    else if (m.group) mid = `m${counter++}`;
-    else mid = `m-${m.round.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
-    if (mid === id) return m;
-  }
-  return undefined;
+function first(v: string | string[] | undefined): string {
+  return (Array.isArray(v) ? v[0] : v) ?? '';
 }
 
 function esc(s: string): string {
@@ -49,46 +27,35 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function formatDate(dateStr: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    }).format(new Date(`${dateStr}T12:00:00Z`));
-  } catch {
-    return dateStr;
-  }
-}
-
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const rawId = req.query.id;
-  const id = (Array.isArray(rawId) ? rawId[0] : rawId) ?? '';
+  const id = first(req.query.id);
+  const home = first(req.query.h);
+  const away = first(req.query.a);
+  const stage = first(req.query.s);
+  const date = first(req.query.d);
+  const venue = first(req.query.v);
+
   const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
   const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
   const origin = `${proto}://${host}`;
 
-  const match = findMatch(id);
+  const hasMatch = home && away;
+  const metaLine = [stage, date].filter(Boolean).join(' · ');
 
-  // Fall back to the generic app if the id is unknown.
-  if (!match) {
-    res.setHeader('Location', '/');
-    return res.status(302).end();
-  }
+  const title = hasMatch
+    ? `${home} vs ${away} — World Cup 2026`
+    : 'FIFA World Cup 2026 — Schedule, Scores & TV Guide';
+  const description = hasMatch
+    ? [metaLine, venue].filter(Boolean).join(' · ')
+    : 'Full World Cup 2026 schedule, live scores, group tables and the knockout bracket.';
 
-  const dateLabel = formatDate(match.date);
-  const stage = match.group ? match.group : match.round;
-  const metaLine = `${stage} · ${dateLabel}`;
-  const venue = match.ground;
+  const ogImage = hasMatch
+    ? `${origin}/api/og?h=${encodeURIComponent(home)}&a=${encodeURIComponent(away)}` +
+      `&meta=${encodeURIComponent(metaLine)}&venue=${encodeURIComponent(venue)}`
+    : `${origin}/api/og`;
 
-  const title = `${match.team1} vs ${match.team2} — World Cup 2026`;
-  const description = `${metaLine} · ${venue}`;
-  const ogImage =
-    `${origin}/api/og?h=${encodeURIComponent(match.team1)}` +
-    `&a=${encodeURIComponent(match.team2)}` +
-    `&meta=${encodeURIComponent(metaLine)}` +
-    `&venue=${encodeURIComponent(venue)}`;
-  const appUrl = `/?match=${encodeURIComponent(id)}`;
+  // Real browsers continue into the app; if we know the match, deep-link to it.
+  const appUrl = id ? `/?match=${encodeURIComponent(id)}` : '/';
 
   const html = `<!doctype html>
 <html lang="en">
@@ -116,7 +83,6 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
 </html>`;
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  // Cache the share page; fixtures are static.
   res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400');
   return res.status(200).send(html);
 }
