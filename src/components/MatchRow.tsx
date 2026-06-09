@@ -169,16 +169,21 @@ function TeamNameInline({
 // so it slots into the meta line naturally
 // ---------------------------------------------------------------------------
 
+// Hide the countdown when kickoff is further away than this — a "200h" figure
+// isn't meaningful; the date/time is enough until we're within 3 days.
+const COUNTDOWN_MAX_SECONDS = 72 * 60 * 60;
+
 function CountdownInline({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey) => string }) {
   const [secs, setSecs] = useState(() => secondsUntil(utcDate));
 
   useEffect(() => {
-    if (secs <= 0) return;
+    // Only tick while the countdown is actually on screen (within the window).
+    if (secs <= 0 || secs > COUNTDOWN_MAX_SECONDS) return;
     const id = setInterval(() => setSecs(secondsUntil(utcDate)), 30_000);
     return () => clearInterval(id);
   }, [utcDate, secs]);
 
-  if (secs <= 0) return null;
+  if (secs <= 0 || secs > COUNTDOWN_MAX_SECONDS) return null;
   const label = formatCountdown(secs);
   if (!label) return null;
 
