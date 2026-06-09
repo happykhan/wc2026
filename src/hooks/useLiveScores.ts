@@ -15,18 +15,14 @@ export interface LiveScore {
 }
 
 // ---------------------------------------------------------------------------
-// football-data.org free tier
-// Competition code for FIFA World Cup 2026 is "WC".
-// Live score data is fetched from brain.genomicx.org/api/wc-scores, which
-// reads ~/brain/wc-scores.json written by wc_scores_poller.py running on
-// openclaw. The poller polls every 10 s when a match is live, 60 s otherwise.
+// Live scores come from our own /api/scores Vercel function, which calls
+// football-data.org directly and is edge-cached so the upstream stays within
+// the free 10-requests/minute limit. This replaced a Cloudflare Worker + KV +
+// poller daemon (see api/scores.ts).
 // Docs: https://www.football-data.org/documentation/quickstart
 // ---------------------------------------------------------------------------
 
-// Cloudflare Worker — public, CORS-open, fed by wc_scores_poller.py on openclaw.
-// brain.genomicx.org/api/wc-scores is behind Cloudflare Access; the Worker is the
-// public-facing endpoint.
-const WC_SCORES_URL = 'https://wc-scores.nabil-3bd.workers.dev/';
+const WC_SCORES_URL = '/api/scores';
 
 type FDMatchStatus =
   | 'SCHEDULED' | 'TIMED' | 'IN_PLAY' | 'PAUSED'
