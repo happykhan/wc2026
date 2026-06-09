@@ -73,6 +73,38 @@ const THEME_LABEL_KEYS: Record<string, TranslationKey> = {
   'white-dark': 'themeWhiteDark',
 };
 
+// Localized city names for timezones where the city differs by language.
+// Anything not listed falls back to the de-underscored IANA city name.
+const TZ_CITY: Record<string, Partial<Record<string, string>>> = {
+  'Europe/London': { es: 'Londres', fr: 'Londres' },
+  'Europe/Paris': { es: 'París' },
+  'Europe/Berlin': { es: 'Berlín' },
+  'Europe/Lisbon': { es: 'Lisboa', fr: 'Lisbonne', de: 'Lissabon' },
+  'Europe/Rome': { es: 'Roma', de: 'Rom' },
+  'America/New_York': { es: 'Nueva York' },
+  'America/Mexico_City': { es: 'Ciudad de México', fr: 'Mexico', de: 'Mexiko-Stadt' },
+  'Asia/Tokyo': { es: 'Tokio', de: 'Tokio' },
+  'Asia/Seoul': { es: 'Seúl', fr: 'Séoul' },
+  'Asia/Riyadh': { es: 'Riad', fr: 'Riyad', de: 'Riad' },
+};
+
+// Friendly, localized timezone label: "City (GMT±X)" instead of the raw IANA id.
+function timezoneLabel(tz: string, language: string): string {
+  const lang = language.slice(0, 2);
+  const city = TZ_CITY[tz]?.[lang] ?? (tz.split('/').pop() ?? tz).replace(/_/g, ' ');
+  let offset = '';
+  try {
+    const parts = new Intl.DateTimeFormat(language, {
+      timeZone: tz,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date());
+    offset = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+  } catch {
+    /* unknown zone — fall back to city only */
+  }
+  return offset ? `${city} (${offset})` : city;
+}
+
 export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t, isClubComp = false }: SettingsProps) {
   const handleFollowTeam = (team: string) => {
     const matchIds = matches
@@ -127,9 +159,11 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
           onChange={(e) => setPrefs({ timezone: e.target.value })}
           className="select-field"
         >
-          <option value={prefs.timezone}>{prefs.timezone} ({t('currentTimezone')})</option>
+          <option value={prefs.timezone}>
+            {timezoneLabel(prefs.timezone, prefs.language)} · {t('currentTimezone')}
+          </option>
           {COMMON_TIMEZONES.filter((tz) => tz !== prefs.timezone).map((tz) => (
-            <option key={tz} value={tz}>{tz}</option>
+            <option key={tz} value={tz}>{timezoneLabel(tz, prefs.language)}</option>
           ))}
         </select>
       </Section>
