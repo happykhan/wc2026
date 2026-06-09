@@ -74,6 +74,7 @@ export const en = {
   noTeamsFollowed: 'No teams followed',
   kicksOffIn: 'kicks off in',
   shareMatch: 'Share match',
+  copyMatch: 'Copy match',
   copied: 'Copied!',
   h2hHistory: 'Head to head',
   h2hLoading: 'Loading history...',

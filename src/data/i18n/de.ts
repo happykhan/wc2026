@@ -74,6 +74,7 @@ export const de = {
   noTeamsFollowed: 'Keine Teams abonniert',
   kicksOffIn: 'Anstoß in',
   shareMatch: 'Spiel teilen',
+  copyMatch: 'Spiel kopieren',
   copied: 'Kopiert!',
   h2hHistory: 'Direktvergleich',
   h2hLoading: 'Laden...',

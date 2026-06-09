@@ -34,6 +34,30 @@ const ALLOWED_ENDPOINTS = new Set([
   'teams',
 ]);
 
+// Endpoints whose data is historical/immutable (past fixtures, head-to-head
+// records). These get a 1-year immutable edge cache so each unique query is
+// fetched from API-Football roughly once, then served from Vercel's CDN —
+// critical for staying within the free-tier 100 req/day budget.
+const IMMUTABLE_ENDPOINTS = new Set([
+  'fixtures/lineups',
+  'fixtures/statistics',
+  'fixtures/events',
+  'fixtures/players',
+  'fixtures/headtohead',
+]);
+
+function cacheControlFor(endpoint: string): string {
+  if (IMMUTABLE_ENDPOINTS.has(endpoint)) {
+    // Browser: 1 day. Edge/CDN (s-maxage): 1 year, served stale while
+    // revalidating, marked immutable. Combined with the client's permanent
+    // localStorage cache this means a given team-pair / fixture is fetched
+    // upstream at most once.
+    return 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800, immutable';
+  }
+  // teams / predictions can change over time — 1 day everywhere.
+  return 'public, max-age=86400';
+}
+
 // Resolve the upstream endpoint from the rewritten `path` query param, with a
 // fallback to parsing req.url directly (in case the function is reached without
 // the rewrite, e.g. in local dev).
@@ -86,8 +110,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const data: unknown = await upstream.json();
 
-  // 24-hour cache: all AFL data for WC 2026 is either static (lineups, stats
-  // for finished matches) or updated infrequently.
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', cacheControlFor(endpoint));
   return res.status(200).json(data);
 }
