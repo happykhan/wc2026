@@ -62,19 +62,9 @@ export interface Competition {
   isNational: boolean;
 }
 
+// This app covers the FIFA World Cup 2026 only.
 export const COMPETITIONS: Competition[] = [
   { code: 'WC',  name: 'FIFA World Cup 2026',      short: 'World Cup',     isNational: true  },
-  { code: 'CL',  name: 'UEFA Champions League',    short: 'UCL',           isNational: false },
-  { code: 'PL',  name: 'Premier League',           short: 'PL',            isNational: false },
-  { code: 'BL1', name: 'Bundesliga',               short: 'Bundesliga',    isNational: false },
-  { code: 'SA',  name: 'Serie A',                  short: 'Serie A',       isNational: false },
-  { code: 'PD',  name: 'La Liga',                  short: 'La Liga',       isNational: false },
-  { code: 'FL1', name: 'Ligue 1',                  short: 'Ligue 1',       isNational: false },
-  { code: 'CLI', name: 'Copa Libertadores',        short: 'Libertadores',  isNational: false },
-  { code: 'BSA', name: 'Brasileirão Série A',      short: 'Brasileirão',   isNational: false },
-  { code: 'DED', name: 'Eredivisie',               short: 'Eredivisie',    isNational: false },
-  { code: 'PPL', name: 'Primeira Liga',            short: 'Liga Portugal', isNational: false },
-  { code: 'ELC', name: 'Championship',             short: 'Championship',  isNational: false },
 ];
 
 export interface UserPreferences {

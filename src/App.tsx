@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { usePreferences } from './hooks/usePreferences';
 import { useTheme } from './hooks/useTheme';
 import { useLiveScores } from './hooks/useLiveScores';
-import { useCompetitionMatches } from './hooks/useCompetitionMatches';
 import { processedMatches } from './data/processFixtures';
 import { getTranslations } from './data/i18n';
 import { Header } from './components/Header';
@@ -20,18 +19,14 @@ export default function App() {
 
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
 
-  const competition = prefs.competition ?? 'WC';
-  const competitionMeta = COMPETITIONS.find((c) => c.code === competition) ?? COMPETITIONS[0];
-  const isClubComp = !competitionMeta.isNational;
+  // This app is World Cup 2026 only.
+  const competitionMeta = COMPETITIONS[0];
 
-  // Fetch club competition matches from the API when not on WC.
-  const { matches: clubMatches, state: clubState } = useCompetitionMatches(competition, prefs.spoilerMode);
+  // Fetch live scores from the WC Cloudflare Worker.
+  const { scores } = useLiveScores(prefs.spoilerMode, processedMatches);
 
-  // Fetch live scores from the WC Cloudflare Worker — only for WC.
-  const { scores } = useLiveScores(!isClubComp && prefs.spoilerMode, processedMatches);
-
-  // Merge live scores into the WC static fixture list.
-  const wcMatches = useMemo(() => {
+  // Merge live scores into the static fixture list.
+  const matches = useMemo(() => {
     if (scores.size === 0) return processedMatches;
     return processedMatches.map((m) => {
       const live = scores.get(m.id);
@@ -46,9 +41,6 @@ export default function App() {
       };
     });
   }, [scores]);
-
-  // Choose the correct match list based on the selected competition.
-  const matches = isClubComp ? clubMatches : wcMatches;
 
   const t = useMemo(() => {
     const translations = getTranslations(prefs.language);
@@ -66,60 +58,41 @@ export default function App() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         competitionMeta={competitionMeta}
-        isClubComp={isClubComp}
       />
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Loading state for club competitions */}
-        {isClubComp && clubState === 'loading' && (
-          <div className="flex items-center justify-center py-16 gap-3 text-neutral-400">
-            <span className="inline-block w-5 h-5 rounded-full border-2 border-neutral-300 border-t-[var(--accent)] animate-spin" />
-            <span className="text-sm">Loading {competitionMeta.name} fixtures&hellip;</span>
-          </div>
+        {page === 'schedule' && (
+          <Schedule
+            matches={matches}
+            prefs={prefs}
+            t={t}
+            onToggleFavourite={toggleFavouriteMatch}
+          />
         )}
-        {isClubComp && clubState === 'error' && (
-          <div className="py-16 text-center text-neutral-400 text-sm">
-            Could not load {competitionMeta.name} fixtures. Please try again.
-          </div>
+        {page === 'groups' && (
+          <Groups
+            matches={matches}
+            prefs={prefs}
+            t={t}
+            onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
+          />
         )}
-        {(!isClubComp || clubState === 'loaded') && (
-          <>
-            {(page === 'schedule' || (page === 'bracket' && isClubComp)) && (
-              <Schedule
-                matches={matches}
-                prefs={prefs}
-                t={t}
-                onToggleFavourite={toggleFavouriteMatch}
-                isClubComp={isClubComp}
-              />
-            )}
-            {page === 'groups' && (
-              <Groups
-                matches={matches}
-                prefs={prefs}
-                t={t}
-                onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
-              />
-            )}
-            {page === 'bracket' && !isClubComp && (
-              <Bracket
-                matches={matches}
-                prefs={prefs}
-                t={t}
-                onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
-              />
-            )}
-            {page === 'settings' && (
-              <Settings
-                prefs={prefs}
-                setPrefs={setPrefs}
-                matches={matches}
-                followTeam={followTeam}
-                unfollowTeam={unfollowTeam}
-                t={t}
-                isClubComp={isClubComp}
-              />
-            )}
-          </>
+        {page === 'bracket' && (
+          <Bracket
+            matches={matches}
+            prefs={prefs}
+            t={t}
+            onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
+          />
+        )}
+        {page === 'settings' && (
+          <Settings
+            prefs={prefs}
+            setPrefs={setPrefs}
+            matches={matches}
+            followTeam={followTeam}
+            unfollowTeam={unfollowTeam}
+            t={t}
+          />
         )}
       </main>
     </div>

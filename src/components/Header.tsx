@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Eye, EyeOff, Settings, LayoutList, Trophy, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Eye, EyeOff, Settings, LayoutList, Trophy, Sun, Moon, Monitor } from 'lucide-react';
 import type { UserPreferences, Competition } from '../types';
-import { COMPETITIONS } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
 
@@ -16,7 +15,6 @@ interface HeaderProps {
   darkMode: DarkModePreference;
   onToggleDarkMode: () => void;
   competitionMeta: Competition;
-  isClubComp: boolean;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -43,106 +41,28 @@ export function Header({
   darkMode,
   onToggleDarkMode,
   competitionMeta,
-  isClubComp,
 }: HeaderProps) {
-  const teamFlag = (!isClubComp && prefs.favouriteTeams[0])
+  const teamFlag = prefs.favouriteTeams[0]
     ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null)
     : null;
   const dmMeta = DARK_MODE_META[darkMode];
 
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
-
-  // Close picker when clicking outside
-  useEffect(() => {
-    if (!pickerOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setPickerOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [pickerOpen]);
-
-  // Close picker on Escape
-  useEffect(() => {
-    if (!pickerOpen) return;
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setPickerOpen(false);
-    }
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [pickerOpen]);
-
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
-        {/* Competition title — tapping opens the league picker */}
-        <div className="relative flex-shrink-0" ref={pickerRef}>
-          <button
-            onClick={() => setPickerOpen((v) => !v)}
-            className="flex items-center gap-1.5 group"
-            aria-haspopup="listbox"
-            aria-expanded={pickerOpen}
-            aria-label="Select competition"
-          >
-            {teamFlag && <span className="text-xl">{teamFlag}</span>}
-            <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm group-hover:text-[var(--accent)] transition-colors">
-              {competitionMeta.short}
-            </span>
-            <ChevronDown
-              size={13}
-              className={[
-                'text-neutral-400 group-hover:text-[var(--accent)] transition-all',
-                pickerOpen ? 'rotate-180' : '',
-              ].join(' ')}
-            />
-          </button>
-
-          {/* Picker popover */}
-          {pickerOpen && (
-            <div
-              role="listbox"
-              aria-label="Competition list"
-              className="absolute top-full left-0 mt-2 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-lg overflow-hidden z-50"
-            >
-              {COMPETITIONS.map((c) => {
-                const isSelected = c.code === competitionMeta.code;
-                return (
-                  <button
-                    key={c.code}
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => {
-                      setPrefs({ competition: c.code });
-                      setPickerOpen(false);
-                    }}
-                    className={[
-                      'w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between gap-2',
-                      isSelected
-                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] font-semibold'
-                        : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800',
-                    ].join(' ')}
-                  >
-                    <span>{c.name}</span>
-                    {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] flex-shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* App title — World Cup 2026 only */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {teamFlag && <span className="text-xl">{teamFlag}</span>}
+          <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
+            {competitionMeta.short}
+          </span>
         </div>
 
         {/* Nav */}
         <nav className="flex gap-1 flex-1">
           <NavButton active={page === 'schedule'} onClick={() => setPage('schedule')} icon={<LayoutList size={15} />} label={t('schedule')} />
           <NavButton active={page === 'groups'} onClick={() => setPage('groups')} icon={<span className="text-xs font-bold">A-L</span>} label={t('groups')} />
-          {!isClubComp && (
-            <NavButton active={page === 'bracket'} onClick={() => setPage('bracket')} icon={<Trophy size={15} />} label={t('bracket')} />
-          )}
+          <NavButton active={page === 'bracket'} onClick={() => setPage('bracket')} icon={<Trophy size={15} />} label={t('bracket')} />
         </nav>
 
         {/* Right controls */}
