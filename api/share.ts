@@ -24,8 +24,18 @@ interface RawMatch {
 
 const MATCHES = (fixtures as { matches: RawMatch[] }).matches;
 
+// Mirror the id scheme in src/data/processFixtures.ts EXACTLY: matches with a
+// `num` (knockout) become `m{num}`; everything else (group matches) gets a
+// running counter `m1`, `m2`, … in fixtures.json array order. This must stay
+// in sync with processFixtures so /match/:id resolves the same match the SPA
+// links to.
 function findMatch(id: string): RawMatch | undefined {
-  return MATCHES.find((m) => m.num !== undefined && `m${m.num}` === id);
+  let counter = 1;
+  for (const m of MATCHES) {
+    const mid = m.num !== undefined ? `m${m.num}` : `m${counter++}`;
+    if (mid === id) return m;
+  }
+  return undefined;
 }
 
 function esc(s: string): string {
