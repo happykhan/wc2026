@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch-fixtures": "node scripts/fetch-fixtures.mjs",
+    "fetch-afl-fixtures": "node scripts/fetch-afl-fixtures.mjs",
+    "fetch-afl-teams": "node scripts/fetch-afl-teams.mjs",
     "test": "vitest run"
   },
   "dependencies": {
