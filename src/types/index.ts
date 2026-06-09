@@ -29,6 +29,9 @@ export interface Match {
   minute?: number;
   /** football-data.org integer match ID — populated once live scores have been fetched */
   fdMatchId?: number;
+  /** Club competition team crest URLs (undefined for WC/national-team matches) */
+  crest1?: string;
+  crest2?: string;
 }
 
 export type TVSchedule = {

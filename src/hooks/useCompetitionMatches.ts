@@ -14,6 +14,7 @@ interface FDTeam {
   id: number;
   name: string;
   shortName?: string;
+  crest?: string;
 }
 
 interface FDMatch {
@@ -84,6 +85,8 @@ export function normaliseFDMatch(fdm: FDMatch): Match {
     status:   mapStatus(fdm.status, fdm.minute),
     minute:   fdm.minute ?? undefined,
     fdMatchId: fdm.id,
+    crest1:   fdm.homeTeam.crest,
+    crest2:   fdm.awayTeam.crest,
   };
 }
 

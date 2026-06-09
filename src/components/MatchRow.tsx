@@ -124,17 +124,19 @@ function TeamNameInline({
   tbd,
   align,
   showFlag = true,
+  crest,
 }: {
   name: string;
   spoilerMode: boolean;
   tbd: string;
   align: 'left' | 'right';
   showFlag?: boolean;
+  crest?: string;
 }) {
   if (!spoilerMode && isKnockoutTeam(name)) {
     return <span className="text-neutral-400 italic text-sm truncate">{tbd}</span>;
   }
-  const flag = showFlag ? getTeamFlag(name) : null;
+  const flag = showFlag && !crest ? getTeamFlag(name) : null;
   return (
     <span
       className={[
@@ -144,6 +146,18 @@ function TeamNameInline({
       ].join(' ')}
     >
       <span className="truncate">{name}</span>
+      {crest && (
+        <img
+          src={crest}
+          alt=""
+          aria-hidden="true"
+          width={20}
+          height={20}
+          loading="lazy"
+          className="flex-shrink-0 object-contain"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      )}
       {flag && <span aria-hidden="true" className="flex-shrink-0">{flag}</span>}
     </span>
   );
@@ -861,7 +875,7 @@ export function MatchRow({
 
         {/* Left — home team, right-aligned */}
         <div className="flex-1 flex justify-end items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="right" showFlag={!isClubComp} />
+          <TeamNameInline name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="right" showFlag={!isClubComp} crest={match.crest1} />
         </div>
 
         {/* Centre — fixed width, time/score + optional status chip */}
@@ -882,7 +896,7 @@ export function MatchRow({
 
         {/* Right — away team, left-aligned */}
         <div className="flex-1 flex justify-start items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="left" showFlag={!isClubComp} />
+          <TeamNameInline name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="left" showFlag={!isClubComp} crest={match.crest2} />
         </div>
       </div>
 
