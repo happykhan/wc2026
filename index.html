@@ -2,18 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Favicons -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme & PWA -->
     <meta name="theme-color" content="#16a34a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="WC26" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Dark mode flash prevention -->
     <script>
       (function(){try{var p=localStorage.getItem('wc2026_darkMode');if(p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();
     </script>
-    <title>World Cup 2026</title>
-    <meta name="description" content="World Cup 2026 schedule, TV guide and live scores. All 104 matches with times in your local timezone." />
+
+    <!-- SEO -->
+    <title>World Cup 2026 — Schedule, Scores &amp; TV Guide</title>
+    <meta name="description" content="Full FIFA World Cup 2026 schedule with live scores, TV channels in your country, and times in your timezone. All 104 matches from June 11 to July 19." />
+    <link rel="canonical" href="https://wc2026-happykhans-projects.vercel.app" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wc2026-happykhans-projects.vercel.app" />
+    <meta property="og:title" content="World Cup 2026 — Schedule, Scores &amp; TV Guide" />
+    <meta property="og:description" content="Full FIFA World Cup 2026 schedule with live scores, TV channels in your country, and times in your timezone. 104 matches, June 11 – July 19." />
+    <meta property="og:image" content="https://wc2026-happykhans-projects.vercel.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter/X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="World Cup 2026 — Schedule, Scores &amp; TV Guide" />
+    <meta name="twitter:description" content="Live scores, TV channels &amp; times in your timezone for all 104 World Cup matches." />
+    <meta name="twitter:image" content="https://wc2026-happykhans-projects.vercel.app/og-image.png" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SportsEvent",
+      "name": "FIFA World Cup 2026",
+      "startDate": "2026-06-11",
+      "endDate": "2026-07-19",
+      "location": {"@type": "Place", "name": "USA, Canada, Mexico"},
+      "url": "https://wc2026-happykhans-projects.vercel.app"
+    }
+    </script>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />

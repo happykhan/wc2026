@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14532d"/>
+      <stop offset="100%" style="stop-color:#052e16"/>
+    </linearGradient>
+    <!-- Subtle pitch lines -->
+    <pattern id="pitch" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="none"/>
+      <rect width="60" height="120" fill="rgba(255,255,255,0.015)"/>
+    </pattern>
+  </defs>
+
+  <!-- Background fill -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Pitch stripe overlay -->
+  <rect width="1200" height="630" fill="url(#pitch)"/>
+
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="8" height="630" fill="#16a34a"/>
+
+  <!-- Football icon (large, left side) -->
+  <g transform="translate(140, 315) scale(3.5)">
+    <circle cx="0" cy="0" r="38" fill="white" opacity="0.12"/>
+    <circle cx="0" cy="0" r="34" fill="white" opacity="0.08"/>
+  </g>
+  <!-- Football shape -->
+  <g transform="translate(140, 315)">
+    <circle cx="0" cy="0" r="80" fill="white" opacity="0.95"/>
+    <!-- Patches -->
+    <polygon points="0,-48 14,-34 10,-14 -10,-14 -14,-34" fill="#1a1a1a" opacity="0.85"/>
+    <polygon points="14,-34 42,-42 46,-18 26,-6 10,-14" fill="#1a1a1a" opacity="0.85"/>
+    <polygon points="26,-6 46,-18 50,10 34,26 18,18" fill="#1a1a1a" opacity="0.85"/>
+    <polygon points="-18,18 18,18 34,26 26,40 -4,46" fill="#1a1a1a" opacity="0.85"/>
+    <polygon points="-42,-18 -14,-34 -10,-14 -26,-6 -46,10" fill="#1a1a1a" opacity="0.85"/>
+    <polygon points="-26,40 -4,46 -18,54 -38,42 -38,20" fill="#1a1a1a" opacity="0.85"/>
+  </g>
+
+  <!-- Main title -->
+  <text x="280" y="260" font-family="Georgia, 'Times New Roman', serif" font-size="92" font-weight="700" fill="white" letter-spacing="-2">World Cup 2026</text>
+
+  <!-- Subtitle -->
+  <text x="282" y="340" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="400" fill="#86efac" letter-spacing="4">SCHEDULE · SCORES · TV GUIDE</text>
+
+  <!-- Divider line -->
+  <rect x="280" y="375" width="640" height="3" fill="#16a34a" opacity="0.8"/>
+
+  <!-- Supporting text -->
+  <text x="282" y="430" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="rgba(255,255,255,0.75)">104 matches  ·  June 11 – July 19  ·  USA, Canada, Mexico</text>
+
+  <!-- URL badge -->
+  <rect x="282" y="480" width="460" height="52" rx="8" fill="rgba(22,163,74,0.25)" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="512" y="513" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="#86efac" text-anchor="middle">wc2026-happykhans-projects.vercel.app</text>
+
+  <!-- Bottom accent -->
+  <rect x="0" y="622" width="1200" height="8" fill="#16a34a"/>
+</svg>
