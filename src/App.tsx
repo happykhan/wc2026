@@ -9,7 +9,6 @@ import { Schedule } from './pages/Schedule';
 import { Groups } from './pages/Groups';
 import { Bracket } from './pages/Bracket';
 import { Settings } from './pages/Settings';
-import { COMPETITIONS } from './types';
 
 type Page = 'schedule' | 'groups' | 'bracket' | 'settings';
 
@@ -24,9 +23,6 @@ export default function App() {
   }, []);
 
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
-
-  // This app is World Cup 2026 only.
-  const competitionMeta = COMPETITIONS[0];
 
   // Fetch live scores from the WC Cloudflare Worker.
   const { scores } = useLiveScores(prefs.spoilerMode, processedMatches);
@@ -63,7 +59,6 @@ export default function App() {
         t={t}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
-        competitionMeta={competitionMeta}
       />
       <main className="max-w-5xl mx-auto px-4 py-6">
         {page === 'schedule' && (

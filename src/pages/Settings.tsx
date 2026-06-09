@@ -51,6 +51,28 @@ const COUNTRIES = [
   { code: 'OTHER', label: 'Other' },
 ];
 
+// Localised country name via the platform's Intl data (no need to hand-translate
+// every country). Falls back to the English label if Intl is unavailable.
+function localizedCountry(code: string, language: string, fallback: string): string {
+  try {
+    return new Intl.DisplayNames([language], { type: 'region' }).of(code) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// Theme colour names are translated via i18n keys (Intl can't help here).
+const THEME_LABEL_KEYS: Record<string, TranslationKey> = {
+  'red-white': 'themeRedWhite',
+  'blue-white': 'themeBlueWhite',
+  'green-gold': 'themeGreenGold',
+  'yellow-blue': 'themeYellowBlue',
+  'orange-black': 'themeOrangeBlack',
+  'tricolor': 'themeTricolour',
+  'green-white': 'themeGreenWhite',
+  'white-dark': 'themeWhiteDark',
+};
+
 export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t, isClubComp = false }: SettingsProps) {
   const handleFollowTeam = (team: string) => {
     const matchIds = matches
@@ -91,7 +113,9 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
           className="select-field"
         >
           {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.label}</option>
+            <option key={c.code} value={c.code}>
+              {c.code === 'OTHER' ? t('countryOther') : localizedCountry(c.code, prefs.language, c.label)}
+            </option>
           ))}
         </select>
       </Section>
@@ -186,7 +210,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
               <ThemeCard
                 key={key}
                 themeKey={key}
-                label={theme.name}
+                label={THEME_LABEL_KEYS[key] ? t(THEME_LABEL_KEYS[key]) : theme.name}
                 active={prefs.teamTheme === key}
                 onClick={() => setPrefs({ teamTheme: key })}
               />

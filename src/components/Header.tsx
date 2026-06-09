@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, EyeOff, Settings, LayoutList, Trophy, Sun, Moon, Monitor } from 'lucide-react';
-import type { UserPreferences, Competition } from '../types';
+import type { UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
 
@@ -14,7 +14,6 @@ interface HeaderProps {
   t: (k: TranslationKey) => string;
   darkMode: DarkModePreference;
   onToggleDarkMode: () => void;
-  competitionMeta: Competition;
 }
 
 const FLAG_MAP: Record<string, string> = {
@@ -40,7 +39,6 @@ export function Header({
   t,
   darkMode,
   onToggleDarkMode,
-  competitionMeta,
 }: HeaderProps) {
   const teamFlag = prefs.favouriteTeams[0]
     ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null)
@@ -54,7 +52,7 @@ export function Header({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {teamFlag && <span className="text-xl">{teamFlag}</span>}
           <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-            {competitionMeta.short}
+            {t('worldCup')}
           </span>
         </div>
 
