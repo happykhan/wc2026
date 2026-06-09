@@ -1,5 +1,5 @@
 
-import { X } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import type { FilterState } from '../types';
 import type { TranslationKey } from '../data/i18n';
 
@@ -13,10 +13,22 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ filters, setFilters, teams, groups, t, showFavouritesTab }: FilterBarProps) {
-  const hasActiveFilters = filters.team || filters.group || filters.date || filters.favouritesOnly;
+  const hasActiveFilters = filters.team || filters.group || filters.date || filters.favouritesOnly || filters.search;
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
+      {/* Free-text search */}
+      <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 focus-within:outline focus-within:outline-[var(--accent)]">
+        <Search size={14} className="text-neutral-400 flex-shrink-0" />
+        <input
+          type="search"
+          value={filters.search}
+          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          placeholder={t('searchPlaceholder')}
+          className="bg-transparent border-none outline-none focus:outline-none placeholder:text-neutral-400 w-28 sm:w-36"
+        />
+      </label>
+
       {/* Favourites toggle */}
       {showFavouritesTab && (
         <button
@@ -72,7 +84,7 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
       {/* Clear */}
       {hasActiveFilters && (
         <button
-          onClick={() => setFilters({ team: '', group: '', date: '', favouritesOnly: false })}
+          onClick={() => setFilters({ team: '', group: '', date: '', favouritesOnly: false, search: '' })}
           className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200 bg-neutral-100 dark:bg-neutral-800"
         >
           <X size={12} />

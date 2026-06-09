@@ -105,4 +105,6 @@ export type FilterState = {
   group: string;
   date: string;
   favouritesOnly: boolean;
+  /** Free-text search across team names and venue/city. */
+  search: string;
 };

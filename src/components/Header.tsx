@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Eye, EyeOff, Settings, LayoutList, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Settings, LayoutList, Trophy, Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
 import type { UserPreferences, Competition } from '../types';
 import { COMPETITIONS } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
 
-type Page = 'schedule' | 'groups' | 'settings';
+type Page = 'schedule' | 'groups' | 'bracket' | 'settings';
 
 interface HeaderProps {
   prefs: UserPreferences;
@@ -140,6 +140,9 @@ export function Header({
         <nav className="flex gap-1 flex-1">
           <NavButton active={page === 'schedule'} onClick={() => setPage('schedule')} icon={<LayoutList size={15} />} label={t('schedule')} />
           <NavButton active={page === 'groups'} onClick={() => setPage('groups')} icon={<span className="text-xs font-bold">A-L</span>} label={t('groups')} />
+          {!isClubComp && (
+            <NavButton active={page === 'bracket'} onClick={() => setPage('bracket')} icon={<Trophy size={15} />} label={t('bracket')} />
+          )}
         </nav>
 
         {/* Right controls */}

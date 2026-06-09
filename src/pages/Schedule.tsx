@@ -21,6 +21,7 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
     group: '',
     date: '',
     favouritesOnly: false,
+    search: '',
   });
 
   // For club competitions derive filter options from the live match list;
@@ -44,8 +45,13 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
   const swipeThreshold = 50;
 
   const filtered = useMemo(() => {
+    const query = filters.search.trim().toLowerCase();
     return matches.filter((m) => {
       if (filters.favouritesOnly && !prefs.favouriteMatches.includes(m.id)) return false;
+      if (query) {
+        const haystack = `${m.team1} ${m.team2} ${m.venue} ${m.city} ${m.group ?? ''}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
       if (filters.team && m.team1 !== filters.team && m.team2 !== filters.team) return false;
       if (filters.group) {
         if (filters.group === 'knockout') {

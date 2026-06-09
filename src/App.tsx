@@ -8,10 +8,11 @@ import { getTranslations } from './data/i18n';
 import { Header } from './components/Header';
 import { Schedule } from './pages/Schedule';
 import { Groups } from './pages/Groups';
+import { Bracket } from './pages/Bracket';
 import { Settings } from './pages/Settings';
 import { COMPETITIONS } from './types';
 
-type Page = 'schedule' | 'groups' | 'settings';
+type Page = 'schedule' | 'groups' | 'bracket' | 'settings';
 
 export default function App() {
   const { prefs, setPrefs, toggleFavouriteMatch, followTeam, unfollowTeam } = usePreferences();
@@ -82,7 +83,7 @@ export default function App() {
         )}
         {(!isClubComp || clubState === 'loaded') && (
           <>
-            {page === 'schedule' && (
+            {(page === 'schedule' || (page === 'bracket' && isClubComp)) && (
               <Schedule
                 matches={matches}
                 prefs={prefs}
@@ -93,6 +94,14 @@ export default function App() {
             )}
             {page === 'groups' && (
               <Groups
+                matches={matches}
+                prefs={prefs}
+                t={t}
+                onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
+              />
+            )}
+            {page === 'bracket' && !isClubComp && (
+              <Bracket
                 matches={matches}
                 prefs={prefs}
                 t={t}
