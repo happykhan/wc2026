@@ -105,8 +105,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     return res.status(200).json(EMPTY_RESPONSE);
   }
 
-  // Refresh fast while something is live, slowly otherwise.
-  const sMaxAge = anyLive ? 15 : 120;
-  res.setHeader('Cache-Control', `public, max-age=8, s-maxage=${sMaxAge}, stale-while-revalidate=30`);
+  // API-Football's free plan is 100 req/day, so keep upstream calls modest.
+  // The edge cache means one upstream call serves everyone in the window:
+  // ~90s while live (updates roughly every minute and a half), 5 min idle.
+  const sMaxAge = anyLive ? 90 : 300;
+  res.setHeader('Cache-Control', `public, max-age=30, s-maxage=${sMaxAge}, stale-while-revalidate=120`);
   return res.status(200).json({ live: anyLive, matches, standings: [] });
 }

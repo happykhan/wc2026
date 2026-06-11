@@ -806,7 +806,7 @@ function useMatchStats(team1: string, team2: string): { state: DetailState; rows
     };
 
     void load();
-    const id = setInterval(() => void load(), 30_000);
+    const id = setInterval(() => void load(), 90_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [team1, team2]);
 
