@@ -119,6 +119,11 @@ export const en = {
   statSaves: 'Saves',
   statThrowIns: 'Throw-ins',
   statGoalKicks: 'Goal kicks',
+  // Timeline
+  timeline: 'Timeline',
+  eventsLoading: 'Loading events...',
+  eventsNoData: 'No events yet',
+  eventsError: 'Could not load events',
 };
 
 export type TranslationKey = keyof typeof en;

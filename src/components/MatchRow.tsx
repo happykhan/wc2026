@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, MapPin, Share2, Copy, Check, ChevronDown, ChevronUp, Users, BarChart2, CalendarPlus } from 'lucide-react';
+import { Star, MapPin, Share2, Copy, Check, ChevronDown, ChevronUp, Users, BarChart2, Clock, CalendarPlus } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import aflTeamIds from '../data/aflTeamIds.json';
 import { getChannelsForCountry } from '../data/tvChannels';
@@ -83,7 +83,7 @@ function downloadMatchICS(match: Match, countryCode: string): void {
 }
 
 // Tab options for the expanded detail panel.
-type DetailTab = 'h2h' | 'lineups' | 'stats';
+type DetailTab = 'h2h' | 'lineups' | 'stats' | 'timeline';
 
 // ---------------------------------------------------------------------------
 // Status badge
@@ -509,11 +509,14 @@ interface TeamLineup {
   bench: PlayerEntry[];
 }
 
+interface MatchEvent { minute: string; kind: string; team: string; player: string; detail?: string }
+
 interface MatchDetailData {
   source: string | null;
   homeLineup: TeamLineup;
   awayLineup: TeamLineup;
   stats: StatRow[];
+  events: MatchEvent[];
 }
 
 type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
@@ -566,11 +569,12 @@ function useMatchDetail(
         if (aflFixtureId) params.set('afl', String(aflFixtureId));
         const r = await fetch(`/api/matchdetail?${params.toString()}`);
         if (!r.ok) return;
-        const j = (await r.json()) as { source: string | null; teams: MdTeam[] };
+        const j = (await r.json()) as { source: string | null; teams: MdTeam[]; events?: MatchEvent[] };
         const teams = j.teams ?? [];
-        if (teams.length < 2) { if (!cancelled && !cached) setState('loaded'); return; }
-        const homeT = teams.find((tm) => normTeam(tm.name) === n1) ?? teams[0];
-        const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
+        const events = j.events ?? [];
+        if (teams.length < 2 && events.length === 0) { if (!cancelled && !cached) setState('loaded'); return; }
+        const homeT = teams.find((tm) => normTeam(tm.name) === n1) ?? teams[0] ?? { name: homeTeam, startXI: [], bench: [], stats: {} };
+        const awayT = teams.find((tm) => tm !== homeT) ?? teams[1] ?? { name: awayTeam, startXI: [], bench: [], stats: {} };
         const stats: StatRow[] = STAT_ORDER
           .filter((k) => homeT.stats[k] != null || awayT.stats[k] != null)
           .map((k) => ({ type: k, home: homeT.stats[k] ?? null, away: awayT.stats[k] ?? null }));
@@ -579,9 +583,10 @@ function useMatchDetail(
           homeLineup: mdToLineup(homeT),
           awayLineup: mdToLineup(awayT),
           stats,
+          events,
         };
         if (cancelled) return;
-        const hasData = md.homeLineup.lineup.length > 0 || md.awayLineup.lineup.length > 0 || md.stats.length > 0;
+        const hasData = md.homeLineup.lineup.length > 0 || md.awayLineup.lineup.length > 0 || md.stats.length > 0 || md.events.length > 0;
         if (hasData) localStorage.setItem(cacheKey, JSON.stringify(md));
         setDetail(md);
         setState('loaded');
@@ -786,6 +791,49 @@ function StatsPanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t }: { home
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Timeline panel — goals / cards / subs with player + minute, from /api/matchdetail.
+// ---------------------------------------------------------------------------
+
+const EVENT_ICON: Record<string, string> = { goal: '⚽', own: '⚽', pen: '⚽', yellow: '🟨', red: '🟥', sub: '🔁' };
+
+function TimelinePanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t }: {
+  homeTeam: string; awayTeam: string; espnEventId?: string; aflFixtureId?: number; t: (k: TranslationKey) => string;
+}) {
+  const { state, detail } = useMatchDetail(homeTeam, awayTeam, espnEventId, aflFixtureId);
+  const events = detail?.events ?? null;
+
+  if (state === 'loading' || state === 'idle') {
+    return (
+      <div className="text-xs text-neutral-400 flex items-center gap-2 py-1">
+        <span className="inline-block w-3 h-3 rounded-full border-2 border-neutral-300 border-t-[var(--accent)] animate-spin" />
+        {t('eventsLoading')}
+      </div>
+    );
+  }
+  if (state === 'error') return <div className="text-xs text-neutral-400 py-1">{t('eventsError')}</div>;
+  if (!events || events.length === 0) return <div className="text-xs text-neutral-400 py-1">{t('eventsNoData')}</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <Clock size={12} />
+        {t('timeline')}
+      </div>
+      <ul className="space-y-1">
+        {events.map((e, i) => (
+          <li key={i} className="flex items-center gap-2 text-xs text-neutral-700 dark:text-neutral-300">
+            <span className="w-9 text-right tabular-nums text-neutral-400 dark:text-neutral-500 flex-shrink-0 font-mono">{e.minute}</span>
+            <span className="flex-shrink-0">{EVENT_ICON[e.kind] ?? '•'}</span>
+            <span className="truncate font-medium">{e.player || e.detail}</span>
+            <span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-400 flex-shrink-0 truncate max-w-[35%]">{e.team}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -1004,6 +1052,17 @@ export function MatchRow({
             >
               {t('matchStats')}
             </button>
+            <button
+              onClick={() => setDetailTab('timeline')}
+              className={[
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                detailTab === 'timeline'
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {t('timeline')}
+            </button>
           </div>
 
           {/* Tab content */}
@@ -1021,6 +1080,15 @@ export function MatchRow({
           )}
           {detailTab === 'stats' && (
             <StatsPanel
+              homeTeam={match.team1}
+              awayTeam={match.team2}
+              espnEventId={match.espnEventId}
+              aflFixtureId={match.aflFixtureId}
+              t={t}
+            />
+          )}
+          {detailTab === 'timeline' && (
+            <TimelinePanel
               homeTeam={match.team1}
               awayTeam={match.team2}
               espnEventId={match.espnEventId}

@@ -119,4 +119,8 @@ export const es = {
   statSaves: 'Paradas',
   statThrowIns: 'Saques de banda',
   statGoalKicks: 'Saques de puerta',
+  timeline: 'Cronología',
+  eventsLoading: 'Cargando eventos...',
+  eventsNoData: 'Sin eventos aún',
+  eventsError: 'No se pudieron cargar los eventos',
 };

@@ -46,12 +46,16 @@ export function Header({
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
-        {/* App title — World Cup 2026 only */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {teamFlag && <span className="text-xl">{teamFlag}</span>}
-          <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm">
-            {t('worldCup')}
+        {/* App title — official FIFA World Cup 26 emblem (on a white chip so it
+            stays legible in dark mode) */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-white shadow-sm">
+            <img src="/wc2026-logo.png" alt="FIFA World Cup 2026" className="h-7 w-7 object-contain" />
           </span>
+          <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm hidden sm:inline">
+            {t('worldCup')} 2026
+          </span>
+          {teamFlag && <span className="text-lg" title="Your team">{teamFlag}</span>}
         </div>
 
         {/* Nav */}

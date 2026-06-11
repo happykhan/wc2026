@@ -119,4 +119,8 @@ export const fr = {
   statSaves: 'Arrêts',
   statThrowIns: 'Remises en jeu',
   statGoalKicks: 'Dégagements aux 6 mètres',
+  timeline: 'Chronologie',
+  eventsLoading: 'Chargement des événements...',
+  eventsNoData: 'Aucun événement pour le moment',
+  eventsError: 'Impossible de charger les événements',
 };

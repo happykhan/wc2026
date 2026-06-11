@@ -71,6 +71,8 @@ console.log('4) /api/matchdetail returns lineups + stats with a source');
   check('two teams', teams.length === 2, `got ${teams.length}`);
   check('has a starting XI', (teams[0]?.startXI?.length ?? 0) >= 11, `XI: ${teams[0]?.startXI?.length}`);
   check('has stats (possession)', !!teams[0]?.stats?.possession, `stats keys: ${Object.keys(teams[0]?.stats || {})}`);
+  const events = r.body?.events || [];
+  check('has events (goals/cards)', events.length > 0 && events.some((e) => ['goal', 'yellow', 'red'].includes(e.kind)), `events: ${events.length}`);
   check('public cache directive set', /public/.test(r.cache) && /max-age=\d+/.test(r.cache), `cache-control: ${r.cache}`);
 }
 

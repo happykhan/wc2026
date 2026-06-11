@@ -20,7 +20,29 @@ interface TeamDetail {
   bench: Player[];
   stats: Record<string, string>;
 }
-interface Detail { source: 'espn' | 'afl' | null; teams: TeamDetail[]; }
+// kind: goal | own | pen | yellow | red | sub
+interface MatchEvent { minute: string; kind: string; team: string; player: string; detail?: string; }
+interface Detail { source: 'espn' | 'afl' | null; teams: TeamDetail[]; events: MatchEvent[]; }
+
+// ESPN puts the player in the free-text description, not athletesInvolved — pull
+// the capitalised name that sits immediately before " (Team)".
+function playerFromText(text: string | undefined): string {
+  if (!text) return '';
+  const i = text.indexOf(' (');
+  if (i === -1) return '';
+  const m = text.slice(0, i).match(/([\p{Lu}][\p{L}.\-' ]+)$/u);
+  return m ? m[1].trim() : '';
+}
+function espnKind(type: string | undefined): string | null {
+  const t = (type ?? '').toLowerCase();
+  if (t.includes('own goal')) return 'own';
+  if (t.includes('penalty') && t.includes('scored')) return 'pen';
+  if (t.includes('goal')) return 'goal';
+  if (t.includes('yellow')) return 'yellow';
+  if (t.includes('red')) return 'red';
+  if (t.includes('substitution')) return 'sub';
+  return null;
+}
 
 // Canonical stat keys the client knows how to label.
 const ESPN_STAT: Record<string, string> = {
@@ -93,8 +115,22 @@ async function fromEspn(event: string): Promise<Detail | null> {
     }
 
     const teams = order.map((id) => byId.get(id)!).filter(Boolean);
-    const hasData = teams.some((t) => t.startXI.length > 0 || Object.keys(t.stats).length > 0);
-    return hasData ? { source: 'espn', teams } : null;
+
+    const events: MatchEvent[] = [];
+    for (const e of j.keyEvents ?? []) {
+      const kind = espnKind(e.type?.text);
+      if (!kind) continue;
+      events.push({
+        minute: e.clock?.displayValue ?? '',
+        kind,
+        team: e.team?.displayName ?? '',
+        player: (e.athletesInvolved?.[0]?.displayName as string) || playerFromText(e.text),
+        detail: e.type?.text,
+      });
+    }
+
+    const hasData = teams.some((t) => t.startXI.length > 0 || Object.keys(t.stats).length > 0) || events.length > 0;
+    return hasData ? { source: 'espn', teams, events } : null;
   } catch {
     return null;
   }
@@ -103,12 +139,14 @@ async function fromEspn(event: string): Promise<Detail | null> {
 async function fromAfl(fixture: string, key: string): Promise<Detail | null> {
   try {
     const headers = { 'x-apisports-key': key };
-    const [luR, stR] = await Promise.all([
+    const [luR, stR, evR] = await Promise.all([
       fetch(`${AFL_BASE}/fixtures/lineups?fixture=${fixture}`, { headers }),
       fetch(`${AFL_BASE}/fixtures/statistics?fixture=${fixture}`, { headers }),
+      fetch(`${AFL_BASE}/fixtures/events?fixture=${fixture}`, { headers }),
     ]);
     const lu: any = luR.ok ? await luR.json() : {};
     const st: any = stR.ok ? await stR.json() : {};
+    const ev: any = evR.ok ? await evR.json() : {};
     if ((lu.errors && Object.keys(lu.errors).length) && (st.errors && Object.keys(st.errors).length)) return null;
 
     const byName = new Map<string, TeamDetail>();
@@ -137,8 +175,27 @@ async function fromAfl(fixture: string, key: string): Promise<Detail | null> {
       }
     }
     const teams = order.map((n) => byName.get(n)!).filter(Boolean);
-    const hasData = teams.some((t) => t.startXI.length > 0 || Object.keys(t.stats).length > 0);
-    return hasData ? { source: 'afl', teams } : null;
+
+    const events: MatchEvent[] = [];
+    for (const e of ev.response ?? []) {
+      const type = String(e.type ?? '').toLowerCase();
+      const detail = String(e.detail ?? '').toLowerCase();
+      let kind: string | null = null;
+      if (type === 'goal') kind = detail.includes('own') ? 'own' : detail.includes('penalty') ? 'pen' : 'goal';
+      else if (type === 'card') kind = detail.includes('red') ? 'red' : 'yellow';
+      else if (type === 'subst') kind = 'sub';
+      if (!kind) continue;
+      events.push({
+        minute: e.time?.elapsed != null ? `${e.time.elapsed}'` : '',
+        kind,
+        team: e.team?.name ?? '',
+        player: e.player?.name ?? '',
+        detail: e.detail,
+      });
+    }
+
+    const hasData = teams.some((t) => t.startXI.length > 0 || Object.keys(t.stats).length > 0) || events.length > 0;
+    return hasData ? { source: 'afl', teams, events } : null;
   } catch {
     return null;
   }
@@ -156,7 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!detail) {
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120');
-    return res.status(200).json({ source: null, teams: [] });
+    return res.status(200).json({ source: null, teams: [], events: [] });
   }
   // One upstream call per ~2 min serves all viewers; client pins finished matches.
   res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=180, stale-while-revalidate=600');

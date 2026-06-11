@@ -119,4 +119,8 @@ export const de = {
   statSaves: 'Paraden',
   statThrowIns: 'Einwürfe',
   statGoalKicks: 'Abstoße',
+  timeline: 'Verlauf',
+  eventsLoading: 'Ereignisse werden geladen...',
+  eventsNoData: 'Noch keine Ereignisse',
+  eventsError: 'Ereignisse konnten nicht geladen werden',
 };
