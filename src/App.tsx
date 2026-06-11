@@ -40,6 +40,7 @@ export default function App() {
         status: live.status,
         minute: live.minute,
         fdMatchId: live.fdMatchId,
+        aflFixtureId: live.aflFixtureId,
       };
     });
   }, [scores]);

@@ -531,11 +531,6 @@ function normTeam(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, '');
 }
 
-interface AflLiveFixture {
-  fixture: { id: number };
-  teams: { home: { name: string }; away: { name: string } };
-}
-
 interface AflLineupTeam {
   team: { name: string };
   startXI?: Array<{ player: { id: number; name: string; number?: number; pos?: string } }>;
@@ -553,49 +548,35 @@ function mapAflTeam(raw: AflLineupTeam | undefined): TeamLineup {
   return { lineup: map(raw?.startXI), bench: map(raw?.substitutes) };
 }
 
-function lineupCacheKey(team1: string, team2: string): string {
-  const [a, b] = [normTeam(team1), normTeam(team2)].sort();
-  return `afl-lineup-${a}-${b}`;
-}
-
-// Hook: find the live WC fixture for these two teams, then fetch its lineups.
-function useMatchLineups(team1: string, team2: string): { state: DetailState; detail: MatchDetailData | null } {
+// Hook: fetch lineups by the API-Football fixture id (supplied by /api/scores
+// for live matches). No id → match isn't live → no data, and crucially NO API
+// call, so we never spend quota on matches that can't have lineups.
+function useMatchLineups(
+  homeTeam: string,
+  aflFixtureId: number | undefined,
+): { state: DetailState; detail: MatchDetailData | null } {
   const [state, setState] = useState<DetailState>('idle');
   const [detail, setDetail] = useState<MatchDetailData | null>(null);
-  const fetchedRef = useRef(false);
+  const fetchedRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
+    if (!aflFixtureId) { setState('loaded'); setDetail(null); return; }
+    if (fetchedRef.current === aflFixtureId) return;
+    fetchedRef.current = aflFixtureId;
 
-    const cacheKey = lineupCacheKey(team1, team2);
+    const cacheKey = `afl-lineup-fx-${aflFixtureId}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try { setDetail(JSON.parse(cached) as MatchDetailData); setState('loaded'); return; } catch { /* corrupt */ }
     }
 
-    const n1 = normTeam(team1);
-    const n2 = normTeam(team2);
+    const n1 = normTeam(homeTeam);
     setState('loading');
 
     (async () => {
-      // 1. Find the live fixture id for this pairing.
-      const liveRes = await fetch('/api/afl/fixtures?live=all');
-      if (!liveRes.ok) { setState('error'); return; }
-      const liveData = await liveRes.json();
-      const fixtures: AflLiveFixture[] = liveData.response ?? [];
-      const fx = fixtures.find((f) => {
-        const h = normTeam(f.teams?.home?.name ?? '');
-        const a = normTeam(f.teams?.away?.name ?? '');
-        return (h === n1 && a === n2) || (h === n2 && a === n1);
-      });
-      if (!fx) { setDetail(null); setState('loaded'); return; } // not currently live
-
-      // 2. Fetch lineups for that fixture.
-      const luRes = await fetch(`/api/afl/fixtures/lineups?fixture=${fx.fixture.id}`);
+      const luRes = await fetch(`/api/afl/fixtures/lineups?fixture=${aflFixtureId}`);
       if (!luRes.ok) { setState('error'); return; }
-      const luData = await luRes.json();
-      const teams: AflLineupTeam[] = luData.response ?? [];
+      const teams: AflLineupTeam[] = (await luRes.json()).response ?? [];
       if (teams.length < 2) { setDetail(null); setState('loaded'); return; }
 
       // Assign home/away by name (don't trust array order).
@@ -610,7 +591,7 @@ function useMatchLineups(team1: string, team2: string): { state: DetailState; de
       setDetail(parsed);
       setState('loaded');
     })().catch(() => setState('error'));
-  }, [team1, team2]);
+  }, [homeTeam, aflFixtureId]);
 
   return { state, detail };
 }
@@ -647,13 +628,15 @@ function PlayerList({ players, t }: { players: PlayerEntry[]; t: (k: Translation
 function LineupsPanel({
   homeTeam,
   awayTeam,
+  aflFixtureId,
   t,
 }: {
   homeTeam: string;
   awayTeam: string;
+  aflFixtureId?: number;
   t: (k: TranslationKey) => string;
 }) {
-  const { state, detail } = useMatchLineups(homeTeam, awayTeam);
+  const { state, detail } = useMatchLineups(homeTeam, aflFixtureId);
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -747,20 +730,22 @@ const STAT_ORDER = [
   'Passes %', 'expected_goals',
 ];
 
-function statsCacheKey(team1: string, team2: string): string {
-  const [a, b] = [normTeam(team1), normTeam(team2)].sort();
-  return `afl-stats-${a}-${b}`;
-}
-
-// Stats refresh live: shows any cached values instantly, then re-fetches on
-// open and every 30s while the Stats tab is open (the proxy edge-caches 20s).
-function useMatchStats(team1: string, team2: string): { state: DetailState; rows: StatRow[] | null } {
+// Stats fetch by the API-Football fixture id (from /api/scores, live only).
+// No id → not live → no data and NO API call. While live, shows any cached
+// values instantly then refreshes every 3 min (the proxy edge-caches 5 min,
+// so this stays well within the 100-req/day free budget).
+function useMatchStats(
+  homeTeam: string,
+  aflFixtureId: number | undefined,
+): { state: DetailState; rows: StatRow[] | null } {
   const [state, setState] = useState<DetailState>('idle');
   const [rows, setRows] = useState<StatRow[] | null>(null);
 
   useEffect(() => {
+    if (!aflFixtureId) { setState('loaded'); setRows(null); return; }
+
     let cancelled = false;
-    const cacheKey = statsCacheKey(team1, team2);
+    const cacheKey = `afl-stats-fx-${aflFixtureId}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try { setRows(JSON.parse(cached) as StatRow[]); setState('loaded'); } catch { /* corrupt */ }
@@ -768,25 +753,14 @@ function useMatchStats(team1: string, team2: string): { state: DetailState; rows
       setState('loading');
     }
 
-    const n1 = normTeam(team1);
-    const n2 = normTeam(team2);
+    const n1 = normTeam(homeTeam);
 
     const load = async () => {
       try {
-        const liveRes = await fetch('/api/afl/fixtures?live=all');
-        if (!liveRes.ok) return;
-        const fixtures: AflLiveFixture[] = (await liveRes.json()).response ?? [];
-        const fx = fixtures.find((f) => {
-          const h = normTeam(f.teams?.home?.name ?? '');
-          const a = normTeam(f.teams?.away?.name ?? '');
-          return (h === n1 && a === n2) || (h === n2 && a === n1);
-        });
-        if (!fx) { if (!cancelled && !cached) setState('loaded'); return; } // not live; keep any cache
-
-        const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${fx.fixture.id}`);
+        const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${aflFixtureId}`);
         if (!stRes.ok) return;
         const teams: AflStatTeam[] = (await stRes.json()).response ?? [];
-        if (teams.length < 2) return;
+        if (teams.length < 2) { if (!cancelled && !cached) setState('loaded'); return; }
 
         const homeT = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
         const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
@@ -806,9 +780,9 @@ function useMatchStats(team1: string, team2: string): { state: DetailState; rows
     };
 
     void load();
-    const id = setInterval(() => void load(), 90_000);
+    const id = setInterval(() => void load(), 180_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [team1, team2]);
+  }, [homeTeam, aflFixtureId]);
 
   return { state, rows };
 }
@@ -829,8 +803,8 @@ function StatBar({ value, max, side }: { value: number; max: number; side: 'home
   );
 }
 
-function StatsPanel({ homeTeam, awayTeam, t }: { homeTeam: string; awayTeam: string; t: (k: TranslationKey) => string }) {
-  const { state, rows } = useMatchStats(homeTeam, awayTeam);
+function StatsPanel({ homeTeam, aflFixtureId, t }: { homeTeam: string; aflFixtureId?: number; t: (k: TranslationKey) => string }) {
+  const { state, rows } = useMatchStats(homeTeam, aflFixtureId);
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -1100,13 +1074,14 @@ export function MatchRow({
             <LineupsPanel
               homeTeam={match.team1}
               awayTeam={match.team2}
+              aflFixtureId={match.aflFixtureId}
               t={t}
             />
           )}
           {detailTab === 'stats' && (
             <StatsPanel
               homeTeam={match.team1}
-              awayTeam={match.team2}
+              aflFixtureId={match.aflFixtureId}
               t={t}
             />
           )}

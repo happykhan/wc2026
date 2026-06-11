@@ -58,8 +58,8 @@ function cacheControlFor(endpoint: string): string {
     return 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800, immutable';
   }
   if (LIVE_ENDPOINTS.has(endpoint)) {
-    // Free plan is 100 req/day — one upstream call serves everyone for 90s.
-    return 'public, max-age=30, s-maxage=90, stale-while-revalidate=120';
+    // Free plan is 100 req/day — one upstream call serves everyone for 5 min.
+    return 'public, max-age=60, s-maxage=300, stale-while-revalidate=300';
   }
   // teams / predictions can change over time — 1 day everywhere.
   return 'public, max-age=86400';

@@ -8,6 +8,7 @@ const POLL_IDLE   = 5 * 60_000; // 5 min — spoilers off / no live action
 export interface LiveScore {
   matchId: string;
   fdMatchId?: number;   // football-data.org integer match ID (for detail lookups)
+  aflFixtureId?: number; // API-Football fixture id (for lineups/stats — live only)
   score1?: number;
   score2?: number;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
@@ -39,6 +40,7 @@ interface FDMatch {
   utcDate: string;
   status: FDMatchStatus;
   minute?: number | null;
+  aflFixtureId?: number;
   score: {
     fullTime: FDScore;
     halfTime?: FDScore;
@@ -99,6 +101,7 @@ async function fetchFromFootballData(
     next.set(match.id, {
       matchId: match.id,
       fdMatchId: fdm.id,
+      aflFixtureId: fdm.aflFixtureId,
       score1: fdm.score.fullTime.home ?? undefined,
       score2: fdm.score.fullTime.away ?? undefined,
       status: mapStatus(fdm.status, fdm.minute),

@@ -26,10 +26,13 @@ interface FDMatch {
   score?: { fullTime?: { home: number | null; away: number | null } };
   homeTeam?: { name?: string };
   awayTeam?: { name?: string };
+  // API-Football fixture id, attached for live matches so the client can fetch
+  // lineups/stats by id without making its own /fixtures?live=all lookup.
+  aflFixtureId?: number;
 }
 
 interface AflFixture {
-  fixture: { status?: { short?: string; elapsed?: number | null } };
+  fixture: { id?: number; status?: { short?: string; elapsed?: number | null } };
   league?: { name?: string };
   teams?: { home?: { name?: string }; away?: { name?: string } };
   goals?: { home?: number | null; away?: number | null };
@@ -92,6 +95,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
           m.status = status;
           m.minute = f.fixture?.status?.elapsed ?? m.minute ?? null;
           m.score = { fullTime: reversed ? { home: ga, away: gh } : { home: gh, away: ga } };
+          if (f.fixture?.id !== undefined) m.aflFixtureId = f.fixture.id;
           if (status === 'IN_PLAY' || status === 'PAUSED') anyLive = true;
         }
       }
@@ -105,10 +109,11 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     return res.status(200).json(EMPTY_RESPONSE);
   }
 
-  // API-Football's free plan is 100 req/day, so keep upstream calls modest.
-  // The edge cache means one upstream call serves everyone in the window:
-  // ~90s while live (updates roughly every minute and a half), 5 min idle.
-  const sMaxAge = anyLive ? 90 : 300;
-  res.setHeader('Cache-Control', `public, max-age=30, s-maxage=${sMaxAge}, stale-while-revalidate=120`);
+  // API-Football's free plan is 100 req/day. The edge cache means one upstream
+  // call serves everyone in the window — 3 min while live, 10 min idle — which
+  // keeps a full match day comfortably inside the budget. (live=all returns all
+  // live matches in one call, and lineups/stats reuse the fixture id from here.)
+  const sMaxAge = anyLive ? 180 : 600;
+  res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${sMaxAge}, stale-while-revalidate=300`);
   return res.status(200).json({ live: anyLive, matches, standings: [] });
 }
