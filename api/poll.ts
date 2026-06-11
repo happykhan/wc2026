@@ -175,16 +175,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch { /* best effort */ }
   }
 
-  // 3. If we didn't refresh the live overlay this cycle, carry the last one
-  //    forward so live scores persist between API-Football fetches.
-  if (!didAfl && prior) {
+  // 3. Don't let a flaky blank fetch erase a score we already had. football-data's
+  //    free feed flip-flops (shows a live score, then reverts to TIMED/null), so
+  //    whenever the current fetch is blank for a match but the prior cache had a
+  //    real result, carry the prior result forward. (API-Football, when it ran
+  //    this cycle, is authoritative and already applied above.)
+  const hasScore = (s?: { fullTime?: { home: number | null; away: number | null } }) =>
+    !!s?.fullTime && (s.fullTime.home !== null || s.fullTime.away !== null);
+  if (prior) {
     const priorById = new Map(prior.matches.map((m) => [m.id, m]));
     for (const m of matches) {
       const p = priorById.get(m.id);
-      if (p && p.aflFixtureId && (p.status === 'IN_PLAY' || p.status === 'PAUSED' || p.status === 'FINISHED')) {
+      if (!p) continue;
+      const priorResult = p.status === 'IN_PLAY' || p.status === 'PAUSED' || p.status === 'FINISHED' || hasScore(p.score);
+      const currentBlank = !m.status || m.status === 'TIMED' || m.status === 'SCHEDULED' || !hasScore(m.score);
+      if (priorResult && currentBlank) {
         m.status = p.status;
         m.minute = p.minute;
         m.score = p.score;
+        if (p.aflFixtureId) m.aflFixtureId = p.aflFixtureId;
+        // A match can't be "live" hours after kickoff — settle stale live state to finished.
+        if ((m.status === 'IN_PLAY' || m.status === 'PAUSED') && m.utcDate) {
+          if (nowMs > Date.parse(m.utcDate) + LIVE_WINDOW_MIN * 60000) m.status = 'FINISHED';
+        }
+      } else if (p.aflFixtureId && !m.aflFixtureId) {
         m.aflFixtureId = p.aflFixtureId;
       }
     }
