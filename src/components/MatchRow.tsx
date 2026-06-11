@@ -522,93 +522,96 @@ type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
 // Removed — lineups (which the free tier does provide once a match starts) and
 // head-to-head remain.
 
-function matchDetailCacheKey(fdMatchId: number): string {
-  return `match-detail-${fdMatchId}`;
+// Lineups come from API-Football. Its free plan blocks the WC-2026 season query,
+// but NOT the live endpoint — so we find the live fixture id via
+// /api/afl/fixtures?live=all and then pull /api/afl/fixtures/lineups for it.
+// (football-data.org's free tier returns no lineups at all.) Lineups are
+// available roughly an hour before kickoff through full time.
+
+function normTeam(s: string): string {
+  return s.toLowerCase().replace(/[^a-z]/g, '');
 }
 
-// Raw shape returned by football-data.org /v4/matches/{id}
-interface FDMatchDetail {
-  homeTeam: {
-    lineup?: Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
-    bench?:  Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
-  };
-  awayTeam: {
-    lineup?: Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
-    bench?:  Array<{ id: number; name: string; shirtNumber?: number; position?: string }>;
-  };
+interface AflLiveFixture {
+  fixture: { id: number };
+  teams: { home: { name: string }; away: { name: string } };
 }
 
-function parseDetail(raw: FDMatchDetail): MatchDetailData {
-  const home = raw.homeTeam ?? {};
-  const away = raw.awayTeam ?? {};
-
-  const homeLineup: TeamLineup = {
-    lineup: (home.lineup ?? []).map((p) => ({
-      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
-    })),
-    bench: (home.bench ?? []).map((p) => ({
-      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
-    })),
-  };
-
-  const awayLineup: TeamLineup = {
-    lineup: (away.lineup ?? []).map((p) => ({
-      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
-    })),
-    bench: (away.bench ?? []).map((p) => ({
-      id: p.id, name: p.name, shirtNumber: p.shirtNumber, position: p.position,
-    })),
-  };
-
-  return { homeLineup, awayLineup };
+interface AflLineupTeam {
+  team: { name: string };
+  startXI?: Array<{ player: { id: number; name: string; number?: number; pos?: string } }>;
+  substitutes?: Array<{ player: { id: number; name: string; number?: number; pos?: string } }>;
 }
 
-// Hook: fetch & cache match detail from /api/match/{fdMatchId}
-function useMatchDetail(fdMatchId: number | undefined): { state: DetailState; detail: MatchDetailData | null } {
+function mapAflTeam(raw: AflLineupTeam | undefined): TeamLineup {
+  const map = (arr?: AflLineupTeam['startXI']): PlayerEntry[] =>
+    (arr ?? []).map((e, i) => ({
+      id: e.player.id ?? i,
+      name: e.player.name,
+      shirtNumber: e.player.number,
+      position: e.player.pos,
+    }));
+  return { lineup: map(raw?.startXI), bench: map(raw?.substitutes) };
+}
+
+function lineupCacheKey(team1: string, team2: string): string {
+  const [a, b] = [normTeam(team1), normTeam(team2)].sort();
+  return `afl-lineup-${a}-${b}`;
+}
+
+// Hook: find the live WC fixture for these two teams, then fetch its lineups.
+function useMatchLineups(team1: string, team2: string): { state: DetailState; detail: MatchDetailData | null } {
   const [state, setState] = useState<DetailState>('idle');
   const [detail, setDetail] = useState<MatchDetailData | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!fdMatchId || fetchedRef.current) return;
+    if (fetchedRef.current) return;
     fetchedRef.current = true;
 
-    // Check persistent cache first — completed match data never changes.
-    const cacheKey = matchDetailCacheKey(fdMatchId);
+    const cacheKey = lineupCacheKey(team1, team2);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      try {
-        setDetail(JSON.parse(cached) as MatchDetailData);
-        setState('loaded');
-        return;
-      } catch {
-        // Corrupt cache — fall through to fetch.
-      }
+      try { setDetail(JSON.parse(cached) as MatchDetailData); setState('loaded'); return; } catch { /* corrupt */ }
     }
 
+    const n1 = normTeam(team1);
+    const n2 = normTeam(team2);
     setState('loading');
 
-    fetch(`/api/match/${fdMatchId}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<FDMatchDetail>;
-      })
-      .then((raw) => {
-        const parsed = parseDetail(raw);
-        // Only cache when we have actual lineup data (pre-match the arrays are empty).
-        const hasData =
-          parsed.homeLineup.lineup.length > 0 ||
-          parsed.awayLineup.lineup.length > 0;
-        if (hasData) {
-          localStorage.setItem(cacheKey, JSON.stringify(parsed));
-        }
-        setDetail(parsed);
-        setState('loaded');
-      })
-      .catch(() => {
-        setState('error');
+    (async () => {
+      // 1. Find the live fixture id for this pairing.
+      const liveRes = await fetch('/api/afl/fixtures?live=all');
+      if (!liveRes.ok) { setState('error'); return; }
+      const liveData = await liveRes.json();
+      const fixtures: AflLiveFixture[] = liveData.response ?? [];
+      const fx = fixtures.find((f) => {
+        const h = normTeam(f.teams?.home?.name ?? '');
+        const a = normTeam(f.teams?.away?.name ?? '');
+        return (h === n1 && a === n2) || (h === n2 && a === n1);
       });
-  }, [fdMatchId]);
+      if (!fx) { setDetail(null); setState('loaded'); return; } // not currently live
+
+      // 2. Fetch lineups for that fixture.
+      const luRes = await fetch(`/api/afl/fixtures/lineups?fixture=${fx.fixture.id}`);
+      if (!luRes.ok) { setState('error'); return; }
+      const luData = await luRes.json();
+      const teams: AflLineupTeam[] = luData.response ?? [];
+      if (teams.length < 2) { setDetail(null); setState('loaded'); return; }
+
+      // Assign home/away by name (don't trust array order).
+      const homeRaw = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
+      const awayRaw = teams.find((tm) => tm !== homeRaw) ?? teams[1];
+      const parsed: MatchDetailData = {
+        homeLineup: mapAflTeam(homeRaw),
+        awayLineup: mapAflTeam(awayRaw),
+      };
+      const hasData = parsed.homeLineup.lineup.length > 0 || parsed.awayLineup.lineup.length > 0;
+      if (hasData) localStorage.setItem(cacheKey, JSON.stringify(parsed));
+      setDetail(parsed);
+      setState('loaded');
+    })().catch(() => setState('error'));
+  }, [team1, team2]);
 
   return { state, detail };
 }
@@ -645,19 +648,13 @@ function PlayerList({ players, t }: { players: PlayerEntry[]; t: (k: Translation
 function LineupsPanel({
   homeTeam,
   awayTeam,
-  fdMatchId,
   t,
 }: {
   homeTeam: string;
   awayTeam: string;
-  fdMatchId: number | undefined;
   t: (k: TranslationKey) => string;
 }) {
-  const { state, detail } = useMatchDetail(fdMatchId);
-
-  if (!fdMatchId) {
-    return <div className="text-xs text-neutral-400 py-1">{t('lineupsNoData')}</div>;
-  }
+  const { state, detail } = useMatchLineups(homeTeam, awayTeam);
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -925,7 +922,6 @@ export function MatchRow({
             <LineupsPanel
               homeTeam={match.team1}
               awayTeam={match.team2}
-              fdMatchId={match.fdMatchId}
               t={t}
             />
           )}

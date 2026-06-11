@@ -25,6 +25,7 @@ const AFL_BASE = 'https://v3.football.api-sports.io';
 
 // Endpoints permitted through this proxy (exact path match after /api/afl/).
 const ALLOWED_ENDPOINTS = new Set([
+  'fixtures',            // live fixtures (?live=all) — the only WC-2026 window on the free plan
   'fixtures/lineups',
   'fixtures/statistics',
   'fixtures/events',
@@ -34,25 +35,30 @@ const ALLOWED_ENDPOINTS = new Set([
   'teams',
 ]);
 
-// Endpoints whose data is historical/immutable (past fixtures, head-to-head
-// records). These get a 1-year immutable edge cache so each unique query is
-// fetched from API-Football roughly once, then served from Vercel's CDN —
-// critical for staying within the free-tier 100 req/day budget.
+// Head-to-head records are historical and never change — cache them for a year
+// at the edge so each team-pair is fetched upstream at most once.
 const IMMUTABLE_ENDPOINTS = new Set([
+  'fixtures/headtohead',
+]);
+
+// Live / per-match endpoints change during a game (score, minute, lineups,
+// substitutions, events). Keep their cache short so the live view stays fresh
+// and an empty pre-match fetch doesn't get pinned. The client localStorage-
+// caches a non-empty lineup once it has one, so repeat views don't re-hit.
+const LIVE_ENDPOINTS = new Set([
+  'fixtures',
   'fixtures/lineups',
   'fixtures/statistics',
   'fixtures/events',
   'fixtures/players',
-  'fixtures/headtohead',
 ]);
 
 function cacheControlFor(endpoint: string): string {
   if (IMMUTABLE_ENDPOINTS.has(endpoint)) {
-    // Browser: 1 day. Edge/CDN (s-maxage): 1 year, served stale while
-    // revalidating, marked immutable. Combined with the client's permanent
-    // localStorage cache this means a given team-pair / fixture is fetched
-    // upstream at most once.
     return 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800, immutable';
+  }
+  if (LIVE_ENDPOINTS.has(endpoint)) {
+    return 'public, max-age=10, s-maxage=20, stale-while-revalidate=30';
   }
   // teams / predictions can change over time — 1 day everywhere.
   return 'public, max-age=86400';
