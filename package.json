@@ -11,7 +11,8 @@
     "fetch-fixtures": "node scripts/fetch-fixtures.mjs",
     "fetch-afl-fixtures": "node scripts/fetch-afl-fixtures.mjs",
     "fetch-afl-teams": "node scripts/fetch-afl-teams.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:cache": "node scripts/test-cache.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.4.0",

@@ -29,8 +29,10 @@ export interface Match {
   minute?: number;
   /** football-data.org integer match ID — populated once live scores have been fetched */
   fdMatchId?: number;
-  /** API-Football fixture id — populated for live matches; lets lineups/stats fetch by id */
+  /** API-Football fixture id — populated for live matches; lineups/stats fallback */
   aflFixtureId?: number;
+  /** ESPN event id — primary id for lineups/stats (free, uncapped) */
+  espnEventId?: string;
   /** Club competition team crest URLs (undefined for WC/national-team matches) */
   crest1?: string;
   crest2?: string;

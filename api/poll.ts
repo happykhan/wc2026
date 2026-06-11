@@ -165,6 +165,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const fdKey = process.env.FOOTBALL_DATA_KEY;
   const aflKey = process.env.AFL_API_KEY;
 
+  const prior = await readBlob();
+
+  // Idle-skip: if we already have a cached schedule and NO match is near (from
+  // ~90 min before kickoff to ~1h after the window), do nothing and hit zero
+  // APIs. The poller only works during the hours around actual matches.
+  if (prior && prior.matches.length) {
+    const near = prior.matches.some((m) => {
+      if (!m.utcDate) return false;
+      const k = Date.parse(m.utcDate);
+      return nowMs >= k - 90 * 60000 && nowMs <= k + (LIVE_WINDOW_MIN + 60) * 60000;
+    });
+    if (!near) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json({ ok: true, skipped: 'idle', matchCount: prior.matches.length, updatedAt: prior.updatedAt });
+    }
+  }
+
   // 1. football-data base — schedule + ids + team names (cheap, not metered hard).
   let matches: FDMatch[] = [];
   if (fdKey) {
@@ -173,8 +190,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (up.ok) matches = ((await up.json()) as { matches?: FDMatch[] }).matches ?? [];
     } catch { /* keep going */ }
   }
-
-  const prior = await readBlob();
+  // First run (no cache) still needs a base even if "idle".
+  if (matches.length === 0 && prior) matches = prior.matches;
   const priorById = new Map((prior?.matches ?? []).map((m) => [m.id, m]));
 
   // Which dates need an ESPN check? Only matches live now, or just finished and

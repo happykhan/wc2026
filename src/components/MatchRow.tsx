@@ -510,88 +510,90 @@ interface TeamLineup {
 }
 
 interface MatchDetailData {
+  source: string | null;
   homeLineup: TeamLineup;
   awayLineup: TeamLineup;
+  stats: StatRow[];
 }
 
 type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
-
-// Note: a "Match statistics" tab used to live here, but football-data.org's
-// free tier never returns per-match statistics, so it always showed "no data".
-// Removed — lineups (which the free tier does provide once a match starts) and
-// head-to-head remain.
-
-// Lineups come from API-Football. Its free plan blocks the WC-2026 season query,
-// but NOT the live endpoint — so we find the live fixture id via
-// /api/afl/fixtures?live=all and then pull /api/afl/fixtures/lineups for it.
-// (football-data.org's free tier returns no lineups at all.) Lineups are
-// available roughly an hour before kickoff through full time.
 
 function normTeam(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, '');
 }
 
-interface AflLineupTeam {
-  team: { name: string };
-  startXI?: Array<{ player: { id: number; name: string; number?: number; pos?: string } }>;
-  substitutes?: Array<{ player: { id: number; name: string; number?: number; pos?: string } }>;
+// Shape returned by our /api/matchdetail endpoint (ESPN with API-Football
+// fallback, normalised server-side into one shape).
+interface MdPlayer { id: number; name: string; number?: number; position?: string }
+interface MdTeam { name: string; formation?: string; startXI: MdPlayer[]; bench: MdPlayer[]; stats: Record<string, string> }
+
+function mdToLineup(t: MdTeam | undefined): TeamLineup {
+  const map = (a?: MdPlayer[]): PlayerEntry[] =>
+    (a ?? []).map((p, i) => ({ id: p.id || i, name: p.name, shirtNumber: p.number, position: p.position }));
+  return { lineup: map(t?.startXI), bench: map(t?.bench) };
 }
 
-function mapAflTeam(raw: AflLineupTeam | undefined): TeamLineup {
-  const map = (arr?: AflLineupTeam['startXI']): PlayerEntry[] =>
-    (arr ?? []).map((e, i) => ({
-      id: e.player.id ?? i,
-      name: e.player.name,
-      shirtNumber: e.player.number,
-      position: e.player.pos,
-    }));
-  return { lineup: map(raw?.startXI), bench: map(raw?.substitutes) };
-}
-
-// Hook: fetch lineups by the API-Football fixture id (supplied by /api/scores
-// for live matches). No id → match isn't live → no data, and crucially NO API
-// call, so we never spend quota on matches that can't have lineups.
-function useMatchLineups(
+// Hook: lineups + stats for a match via /api/matchdetail, keyed by the ESPN
+// event id (primary) or API-Football fixture id (fallback) the poller attached.
+// No id → not live / not available → no data and NO upstream call. Shows cached
+// values instantly, then refreshes every 3 min while open (edge-cached upstream).
+function useMatchDetail(
   homeTeam: string,
+  awayTeam: string,
+  espnEventId: string | undefined,
   aflFixtureId: number | undefined,
 ): { state: DetailState; detail: MatchDetailData | null } {
   const [state, setState] = useState<DetailState>('idle');
   const [detail, setDetail] = useState<MatchDetailData | null>(null);
-  const fetchedRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (!aflFixtureId) { setState('loaded'); setDetail(null); return; }
-    if (fetchedRef.current === aflFixtureId) return;
-    fetchedRef.current = aflFixtureId;
+    if (!espnEventId && !aflFixtureId) { setState('loaded'); setDetail(null); return; }
 
-    const cacheKey = `afl-lineup-fx-${aflFixtureId}`;
+    let cancelled = false;
+    const cacheKey = `md-${espnEventId ?? 'afl' + aflFixtureId}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      try { setDetail(JSON.parse(cached) as MatchDetailData); setState('loaded'); return; } catch { /* corrupt */ }
+      try { setDetail(JSON.parse(cached) as MatchDetailData); setState('loaded'); } catch { /* corrupt */ }
+    } else {
+      setState('loading');
     }
 
     const n1 = normTeam(homeTeam);
-    setState('loading');
+    const load = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (espnEventId) params.set('espn', espnEventId);
+        if (aflFixtureId) params.set('afl', String(aflFixtureId));
+        const r = await fetch(`/api/matchdetail?${params.toString()}`);
+        if (!r.ok) return;
+        const j = (await r.json()) as { source: string | null; teams: MdTeam[] };
+        const teams = j.teams ?? [];
+        if (teams.length < 2) { if (!cancelled && !cached) setState('loaded'); return; }
+        const homeT = teams.find((tm) => normTeam(tm.name) === n1) ?? teams[0];
+        const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
+        const stats: StatRow[] = STAT_ORDER
+          .filter((k) => homeT.stats[k] != null || awayT.stats[k] != null)
+          .map((k) => ({ type: k, home: homeT.stats[k] ?? null, away: awayT.stats[k] ?? null }));
+        const md: MatchDetailData = {
+          source: j.source,
+          homeLineup: mdToLineup(homeT),
+          awayLineup: mdToLineup(awayT),
+          stats,
+        };
+        if (cancelled) return;
+        const hasData = md.homeLineup.lineup.length > 0 || md.awayLineup.lineup.length > 0 || md.stats.length > 0;
+        if (hasData) localStorage.setItem(cacheKey, JSON.stringify(md));
+        setDetail(md);
+        setState('loaded');
+      } catch {
+        if (!cancelled && !cached) setState('error');
+      }
+    };
 
-    (async () => {
-      const luRes = await fetch(`/api/afl/fixtures/lineups?fixture=${aflFixtureId}`);
-      if (!luRes.ok) { setState('error'); return; }
-      const teams: AflLineupTeam[] = (await luRes.json()).response ?? [];
-      if (teams.length < 2) { setDetail(null); setState('loaded'); return; }
-
-      // Assign home/away by name (don't trust array order).
-      const homeRaw = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
-      const awayRaw = teams.find((tm) => tm !== homeRaw) ?? teams[1];
-      const parsed: MatchDetailData = {
-        homeLineup: mapAflTeam(homeRaw),
-        awayLineup: mapAflTeam(awayRaw),
-      };
-      const hasData = parsed.homeLineup.lineup.length > 0 || parsed.awayLineup.lineup.length > 0;
-      if (hasData) localStorage.setItem(cacheKey, JSON.stringify(parsed));
-      setDetail(parsed);
-      setState('loaded');
-    })().catch(() => setState('error'));
-  }, [homeTeam, aflFixtureId]);
+    void load();
+    const id = setInterval(() => void load(), 180_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [homeTeam, awayTeam, espnEventId, aflFixtureId]);
 
   return { state, detail };
 }
@@ -628,15 +630,17 @@ function PlayerList({ players, t }: { players: PlayerEntry[]; t: (k: Translation
 function LineupsPanel({
   homeTeam,
   awayTeam,
+  espnEventId,
   aflFixtureId,
   t,
 }: {
   homeTeam: string;
   awayTeam: string;
+  espnEventId?: string;
   aflFixtureId?: number;
   t: (k: TranslationKey) => string;
 }) {
-  const { state, detail } = useMatchLineups(homeTeam, aflFixtureId);
+  const { state, detail } = useMatchDetail(homeTeam, awayTeam, espnEventId, aflFixtureId);
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -692,8 +696,8 @@ function LineupsPanel({
 }
 
 // ---------------------------------------------------------------------------
-// Statistics panel — live match stats from API-Football (possession, shots,
-// corners, fouls, cards, xG…), via the live fixture id (same path as lineups).
+// Statistics panel — possession, shots, corners, fouls, cards, pass accuracy
+// from /api/matchdetail (ESPN primary, API-Football fallback). Canonical keys.
 // ---------------------------------------------------------------------------
 
 interface StatRow {
@@ -702,90 +706,25 @@ interface StatRow {
   away: string | number | null;
 }
 
-interface AflStatTeam {
-  team: { name: string };
-  statistics?: Array<{ type: string; value: string | number | null }>;
-}
-
-// API-Football stat type → existing i18n key.
+// Canonical stat key → existing i18n key.
 const STAT_LABEL_KEYS: Record<string, TranslationKey> = {
-  'Ball Possession': 'statPossession',
-  'Total Shots': 'statShots',
-  'Shots on Goal': 'statShotsOnGoal',
-  'Shots off Goal': 'statShotsOffGoal',
-  'Corner Kicks': 'statCorners',
-  'Fouls': 'statFouls',
-  'Offsides': 'statOffsides',
-  'Yellow Cards': 'statYellowCards',
-  'Red Cards': 'statRedCards',
-  'Goalkeeper Saves': 'statSaves',
+  possession: 'statPossession',
+  shots: 'statShots',
+  shotsOnTarget: 'statShotsOnGoal',
+  corners: 'statCorners',
+  fouls: 'statFouls',
+  offsides: 'statOffsides',
+  yellowCards: 'statYellowCards',
+  redCards: 'statRedCards',
+  saves: 'statSaves',
 };
 const STAT_RAW_LABELS: Record<string, string> = {
-  'Passes %': 'Pass accuracy',
-  'expected_goals': 'Expected goals (xG)',
+  passAccuracy: 'Pass accuracy',
 };
 const STAT_ORDER = [
-  'Ball Possession', 'Total Shots', 'Shots on Goal', 'Corner Kicks',
-  'Fouls', 'Offsides', 'Yellow Cards', 'Red Cards', 'Goalkeeper Saves',
-  'Passes %', 'expected_goals',
+  'possession', 'shots', 'shotsOnTarget', 'corners', 'fouls',
+  'offsides', 'yellowCards', 'redCards', 'saves', 'passAccuracy',
 ];
-
-// Stats fetch by the API-Football fixture id (from /api/scores, live only).
-// No id → not live → no data and NO API call. While live, shows any cached
-// values instantly then refreshes every 3 min (the proxy edge-caches 5 min,
-// so this stays well within the 100-req/day free budget).
-function useMatchStats(
-  homeTeam: string,
-  aflFixtureId: number | undefined,
-): { state: DetailState; rows: StatRow[] | null } {
-  const [state, setState] = useState<DetailState>('idle');
-  const [rows, setRows] = useState<StatRow[] | null>(null);
-
-  useEffect(() => {
-    if (!aflFixtureId) { setState('loaded'); setRows(null); return; }
-
-    let cancelled = false;
-    const cacheKey = `afl-stats-fx-${aflFixtureId}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try { setRows(JSON.parse(cached) as StatRow[]); setState('loaded'); } catch { /* corrupt */ }
-    } else {
-      setState('loading');
-    }
-
-    const n1 = normTeam(homeTeam);
-
-    const load = async () => {
-      try {
-        const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${aflFixtureId}`);
-        if (!stRes.ok) return;
-        const teams: AflStatTeam[] = (await stRes.json()).response ?? [];
-        if (teams.length < 2) { if (!cancelled && !cached) setState('loaded'); return; }
-
-        const homeT = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
-        const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
-        const valOf = (tm: AflStatTeam, type: string) =>
-          (tm.statistics ?? []).find((s) => s.type === type)?.value ?? null;
-        const built = STAT_ORDER
-          .map((type) => ({ type, home: valOf(homeT, type), away: valOf(awayT, type) }))
-          .filter((r) => r.home !== null || r.away !== null);
-
-        if (cancelled || built.length === 0) return;
-        localStorage.setItem(cacheKey, JSON.stringify(built));
-        setRows(built);
-        setState('loaded');
-      } catch {
-        if (!cancelled && !cached) setState('error');
-      }
-    };
-
-    void load();
-    const id = setInterval(() => void load(), 300_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [homeTeam, aflFixtureId]);
-
-  return { state, rows };
-}
 
 function toStatNum(v: string | number | null): number {
   if (typeof v === 'number') return v;
@@ -803,8 +742,9 @@ function StatBar({ value, max, side }: { value: number; max: number; side: 'home
   );
 }
 
-function StatsPanel({ homeTeam, aflFixtureId, t }: { homeTeam: string; aflFixtureId?: number; t: (k: TranslationKey) => string }) {
-  const { state, rows } = useMatchStats(homeTeam, aflFixtureId);
+function StatsPanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t }: { homeTeam: string; awayTeam: string; espnEventId?: string; aflFixtureId?: number; t: (k: TranslationKey) => string }) {
+  const { state, detail } = useMatchDetail(homeTeam, awayTeam, espnEventId, aflFixtureId);
+  const rows = detail?.stats ?? null;
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -827,7 +767,7 @@ function StatsPanel({ homeTeam, aflFixtureId, t }: { homeTeam: string; aflFixtur
         {rows.map((row) => {
           const labelKey = STAT_LABEL_KEYS[row.type];
           const label = labelKey ? t(labelKey) : (STAT_RAW_LABELS[row.type] ?? row.type);
-          const isPct = row.type === 'Ball Possession' || row.type === 'Passes %';
+          const isPct = row.type === 'possession' || row.type === 'passAccuracy';
           const hv = toStatNum(row.home);
           const av = toStatNum(row.away);
           const max = isPct ? 100 : Math.max(hv, av, 1);
@@ -1074,6 +1014,7 @@ export function MatchRow({
             <LineupsPanel
               homeTeam={match.team1}
               awayTeam={match.team2}
+              espnEventId={match.espnEventId}
               aflFixtureId={match.aflFixtureId}
               t={t}
             />
@@ -1081,6 +1022,8 @@ export function MatchRow({
           {detailTab === 'stats' && (
             <StatsPanel
               homeTeam={match.team1}
+              awayTeam={match.team2}
+              espnEventId={match.espnEventId}
               aflFixtureId={match.aflFixtureId}
               t={t}
             />

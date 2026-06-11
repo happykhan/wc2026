@@ -41,6 +41,7 @@ export default function App() {
         minute: live.minute,
         fdMatchId: live.fdMatchId,
         aflFixtureId: live.aflFixtureId,
+        espnEventId: live.espnEventId,
       };
     });
   }, [scores]);
