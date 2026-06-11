@@ -102,15 +102,11 @@ function espnMinute(ev: EspnEvent): number | null {
   return m ? parseInt(m[1], 10) : null;
 }
 
-function utcDatesAround(nowMs: number): string[] {
-  const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10).replace(/-/g, '');
-  const day = 86400000;
-  return [fmt(nowMs - day), fmt(nowMs), fmt(nowMs + day)];
-}
-
-async function fetchEspnEvents(nowMs: number): Promise<EspnEvent[]> {
+// ESPN bans on burst, not on a daily count — so only call it for the date(s)
+// of matches that are actually live or just finished, never on a fixed clock.
+async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
   const out: EspnEvent[] = [];
-  for (const d of utcDatesAround(nowMs)) {
+  for (const d of dates) {
     try {
       const r = await fetch(`${ESPN_SCOREBOARD}?dates=${d}`);
       if (r.ok) out.push(...(((await r.json()) as { events?: EspnEvent[] }).events ?? []));
@@ -179,37 +175,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const prior = await readBlob();
+  const priorById = new Map((prior?.matches ?? []).map((m) => [m.id, m]));
 
-  // 2. PRIMARY live overlay: ESPN (free, uncapped).
+  // Which dates need an ESPN check? Only matches live now, or just finished and
+  // we don't yet have a final score for them. Otherwise ESPN is not called.
+  const needDates = new Set<string>();
+  for (const m of matches) {
+    if (!m.utcDate) continue;
+    const k = Date.parse(m.utcDate);
+    const liveNow = nowMs >= k && nowMs <= k + LIVE_WINDOW_MIN * 60000;
+    const p = priorById.get(m.id);
+    const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
+    const haveEspnId = !!m.espnEventId || !!p?.espnEventId;
+    // After the window, one last check to capture the final score + the ESPN
+    // event id (needed for lineups/stats) — then we stop touching ESPN.
+    const justEnded = nowMs > k + LIVE_WINDOW_MIN * 60000 && nowMs <= k + (LIVE_WINDOW_MIN + 60) * 60000 && (!haveFinal || !haveEspnId);
+    if (liveNow || justEnded) needDates.add(m.utcDate.slice(0, 10).replace(/-/g, ''));
+  }
+
+  // 2. PRIMARY live overlay: ESPN (free, uncapped) — only when needed.
   let usedEspn = false;
-  try {
-    const events = await fetchEspnEvents(nowMs);
-    const byPair = new Map<string, { ev: EspnEvent; hName?: string; hScore: number; aScore: number }>();
-    for (const ev of events) {
-      const comp = ev.competitions?.[0];
-      const h = comp?.competitors?.find((c) => c.homeAway === 'home');
-      const a = comp?.competitors?.find((c) => c.homeAway === 'away');
-      if (!h?.team?.displayName || !a?.team?.displayName) continue;
-      byPair.set(pairKey(h.team.displayName, a.team.displayName), {
-        ev, hName: h.team.displayName,
-        hScore: parseInt(h.score ?? '', 10), aScore: parseInt(a.score ?? '', 10),
-      });
-    }
-    for (const m of matches) {
-      const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
-      if (!hit) continue;
-      const status = espnStatus(hit.ev);
-      if (!status) continue;
-      const reversed = normTeam(m.homeTeam?.name) !== normTeam(hit.hName);
-      const hs = Number.isNaN(hit.hScore) ? null : hit.hScore;
-      const as = Number.isNaN(hit.aScore) ? null : hit.aScore;
-      m.status = status;
-      m.minute = espnMinute(hit.ev);
-      m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
-      m.espnEventId = hit.ev.id;
-      usedEspn = true;
-    }
-  } catch { /* ESPN best-effort; fall through to fallbacks */ }
+  let espnCount = 0;
+  let espnMatched = 0;
+  const espnSample: string[] = [];
+  if (needDates.size > 0) {
+    try {
+      const events = await fetchEspnDates([...needDates]);
+      espnCount = events.length;
+      const byPair = new Map<string, { ev: EspnEvent; hName?: string; hScore: number; aScore: number }>();
+      for (const ev of events) {
+        const comp = ev.competitions?.[0];
+        const h = comp?.competitors?.find((c) => c.homeAway === 'home');
+        const a = comp?.competitors?.find((c) => c.homeAway === 'away');
+        if (!h?.team?.displayName || !a?.team?.displayName) continue;
+        if (espnSample.length < 4) espnSample.push(`${h.team.displayName} ${h.score}-${a.score} ${a.team.displayName} [${ev.status?.type?.name}]`);
+        byPair.set(pairKey(h.team.displayName, a.team.displayName), {
+          ev, hName: h.team.displayName,
+          hScore: parseInt(h.score ?? '', 10), aScore: parseInt(a.score ?? '', 10),
+        });
+      }
+      for (const m of matches) {
+        const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
+        if (!hit) continue;
+        const status = espnStatus(hit.ev);
+        if (!status) continue;
+        const reversed = normTeam(m.homeTeam?.name) !== normTeam(hit.hName);
+        const hs = Number.isNaN(hit.hScore) ? null : hit.hScore;
+        const as = Number.isNaN(hit.aScore) ? null : hit.aScore;
+        m.status = status;
+        m.minute = espnMinute(hit.ev);
+        m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
+        m.espnEventId = hit.ev.id;
+        usedEspn = true;
+        espnMatched++;
+      }
+    } catch { /* ESPN best-effort; fall through to fallbacks */ }
+  }
 
   // 3. FALLBACK: API-Football, only if ESPN gave us nothing and a match is live.
   const anyLive = isAnyLive(matches, nowMs);
@@ -256,7 +277,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 4. Never let a blank fetch erase a score we already had. Carry prior forward.
   if (prior) {
-    const priorById = new Map(prior.matches.map((m) => [m.id, m]));
     for (const m of matches) {
       const p = priorById.get(m.id);
       if (!p) continue;
@@ -296,9 +316,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     allowOverwrite: true,
   });
 
+  const opener = matches.find((m) => /mexico/i.test(m.homeTeam?.name ?? ''));
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({
-    ok: true, usedEspn, didAfl, rateLimited, anyLive,
-    gapMin: Math.round(gapMin * 10) / 10, live, matchCount: matches.length, updatedAt: data.updatedAt,
+    ok: true, usedEspn, espnDates: [...needDates], espnCount, espnMatched, espnSample,
+    didAfl, rateLimited, anyLive, gapMin: Math.round(gapMin * 10) / 10, live,
+    matchCount: matches.length, updatedAt: data.updatedAt,
+    openerSample: opener ? { status: opener.status, score: opener.score?.fullTime, espnEventId: opener.espnEventId } : null,
   });
 }
