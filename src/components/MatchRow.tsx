@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, MapPin, Share2, Copy, Check, ChevronDown, ChevronUp, Users, CalendarPlus } from 'lucide-react';
+import { Star, MapPin, Share2, Copy, Check, ChevronDown, ChevronUp, Users, BarChart2, CalendarPlus } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import aflTeamIds from '../data/aflTeamIds.json';
 import { getChannelsForCountry } from '../data/tvChannels';
@@ -83,7 +83,7 @@ function downloadMatchICS(match: Match, countryCode: string): void {
 }
 
 // Tab options for the expanded detail panel.
-type DetailTab = 'h2h' | 'lineups';
+type DetailTab = 'h2h' | 'lineups' | 'stats';
 
 // ---------------------------------------------------------------------------
 // Status badge
@@ -709,6 +709,165 @@ function LineupsPanel({
 }
 
 // ---------------------------------------------------------------------------
+// Statistics panel — live match stats from API-Football (possession, shots,
+// corners, fouls, cards, xG…), via the live fixture id (same path as lineups).
+// ---------------------------------------------------------------------------
+
+interface StatRow {
+  type: string;
+  home: string | number | null;
+  away: string | number | null;
+}
+
+interface AflStatTeam {
+  team: { name: string };
+  statistics?: Array<{ type: string; value: string | number | null }>;
+}
+
+// API-Football stat type → existing i18n key.
+const STAT_LABEL_KEYS: Record<string, TranslationKey> = {
+  'Ball Possession': 'statPossession',
+  'Total Shots': 'statShots',
+  'Shots on Goal': 'statShotsOnGoal',
+  'Shots off Goal': 'statShotsOffGoal',
+  'Corner Kicks': 'statCorners',
+  'Fouls': 'statFouls',
+  'Offsides': 'statOffsides',
+  'Yellow Cards': 'statYellowCards',
+  'Red Cards': 'statRedCards',
+  'Goalkeeper Saves': 'statSaves',
+};
+const STAT_RAW_LABELS: Record<string, string> = {
+  'Passes %': 'Pass accuracy',
+  'expected_goals': 'Expected goals (xG)',
+};
+const STAT_ORDER = [
+  'Ball Possession', 'Total Shots', 'Shots on Goal', 'Corner Kicks',
+  'Fouls', 'Offsides', 'Yellow Cards', 'Red Cards', 'Goalkeeper Saves',
+  'Passes %', 'expected_goals',
+];
+
+function statsCacheKey(team1: string, team2: string): string {
+  const [a, b] = [normTeam(team1), normTeam(team2)].sort();
+  return `afl-stats-${a}-${b}`;
+}
+
+function useMatchStats(team1: string, team2: string): { state: DetailState; rows: StatRow[] | null } {
+  const [state, setState] = useState<DetailState>('idle');
+  const [rows, setRows] = useState<StatRow[] | null>(null);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    const cacheKey = statsCacheKey(team1, team2);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try { setRows(JSON.parse(cached) as StatRow[]); setState('loaded'); return; } catch { /* corrupt */ }
+    }
+
+    const n1 = normTeam(team1);
+    const n2 = normTeam(team2);
+    setState('loading');
+
+    (async () => {
+      const liveRes = await fetch('/api/afl/fixtures?live=all');
+      if (!liveRes.ok) { setState('error'); return; }
+      const fixtures: AflLiveFixture[] = (await liveRes.json()).response ?? [];
+      const fx = fixtures.find((f) => {
+        const h = normTeam(f.teams?.home?.name ?? '');
+        const a = normTeam(f.teams?.away?.name ?? '');
+        return (h === n1 && a === n2) || (h === n2 && a === n1);
+      });
+      if (!fx) { setRows(null); setState('loaded'); return; } // not live
+
+      const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${fx.fixture.id}`);
+      if (!stRes.ok) { setState('error'); return; }
+      const teams: AflStatTeam[] = (await stRes.json()).response ?? [];
+      if (teams.length < 2) { setRows(null); setState('loaded'); return; }
+
+      const homeT = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
+      const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
+      const valOf = (tm: AflStatTeam, type: string) =>
+        (tm.statistics ?? []).find((s) => s.type === type)?.value ?? null;
+      const built = STAT_ORDER
+        .map((type) => ({ type, home: valOf(homeT, type), away: valOf(awayT, type) }))
+        .filter((r) => r.home !== null || r.away !== null);
+
+      if (built.length) localStorage.setItem(cacheKey, JSON.stringify(built));
+      setRows(built);
+      setState('loaded');
+    })().catch(() => setState('error'));
+  }, [team1, team2]);
+
+  return { state, rows };
+}
+
+function toStatNum(v: string | number | null): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') return parseFloat(v.replace('%', '')) || 0;
+  return 0;
+}
+
+function StatBar({ value, max, side }: { value: number; max: number; side: 'home' | 'away' }) {
+  const pct = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
+  return (
+    <div
+      className={['h-1.5 rounded-full bg-[var(--accent)] transition-all', side === 'away' ? 'ml-auto' : ''].join(' ')}
+      style={{ width: `${pct}%` }}
+    />
+  );
+}
+
+function StatsPanel({ homeTeam, awayTeam, t }: { homeTeam: string; awayTeam: string; t: (k: TranslationKey) => string }) {
+  const { state, rows } = useMatchStats(homeTeam, awayTeam);
+
+  if (state === 'loading' || state === 'idle') {
+    return (
+      <div className="text-xs text-neutral-400 flex items-center gap-2 py-1">
+        <span className="inline-block w-3 h-3 rounded-full border-2 border-neutral-300 border-t-[var(--accent)] animate-spin" />
+        {t('statsLoading')}
+      </div>
+    );
+  }
+  if (state === 'error') return <div className="text-xs text-neutral-400 py-1">{t('statsError')}</div>;
+  if (!rows || rows.length === 0) return <div className="text-xs text-neutral-400 py-1">{t('statsNoData')}</div>;
+
+  return (
+    <div>
+      <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <BarChart2 size={12} />
+        {t('matchStats')}
+      </div>
+      <div className="space-y-2">
+        {rows.map((row) => {
+          const labelKey = STAT_LABEL_KEYS[row.type];
+          const label = labelKey ? t(labelKey) : (STAT_RAW_LABELS[row.type] ?? row.type);
+          const isPct = row.type === 'Ball Possession' || row.type === 'Passes %';
+          const hv = toStatNum(row.home);
+          const av = toStatNum(row.away);
+          const max = isPct ? 100 : Math.max(hv, av, 1);
+          return (
+            <div key={row.type}>
+              <div className="flex items-center text-xs text-neutral-700 dark:text-neutral-300">
+                <span className="w-12 tabular-nums font-semibold">{row.home ?? '-'}</span>
+                <span className="flex-1 text-center text-[11px] text-neutral-400 dark:text-neutral-500">{label}</span>
+                <span className="w-12 tabular-nums font-semibold text-right">{row.away ?? '-'}</span>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <div className="flex-1"><StatBar value={hv} max={max} side="home" /></div>
+                <div className="flex-1"><StatBar value={av} max={max} side="away" /></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -911,6 +1070,17 @@ export function MatchRow({
             >
               {t('lineups')}
             </button>
+            <button
+              onClick={() => setDetailTab('stats')}
+              className={[
+                'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                detailTab === 'stats'
+                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200',
+              ].join(' ')}
+            >
+              {t('matchStats')}
+            </button>
           </div>
 
           {/* Tab content */}
@@ -919,6 +1089,13 @@ export function MatchRow({
           )}
           {detailTab === 'lineups' && (
             <LineupsPanel
+              homeTeam={match.team1}
+              awayTeam={match.team2}
+              t={t}
+            />
+          )}
+          {detailTab === 'stats' && (
+            <StatsPanel
               homeTeam={match.team1}
               awayTeam={match.team2}
               t={t}
