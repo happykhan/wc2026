@@ -752,53 +752,62 @@ function statsCacheKey(team1: string, team2: string): string {
   return `afl-stats-${a}-${b}`;
 }
 
+// Stats refresh live: shows any cached values instantly, then re-fetches on
+// open and every 30s while the Stats tab is open (the proxy edge-caches 20s).
 function useMatchStats(team1: string, team2: string): { state: DetailState; rows: StatRow[] | null } {
   const [state, setState] = useState<DetailState>('idle');
   const [rows, setRows] = useState<StatRow[] | null>(null);
-  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-
+    let cancelled = false;
     const cacheKey = statsCacheKey(team1, team2);
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
-      try { setRows(JSON.parse(cached) as StatRow[]); setState('loaded'); return; } catch { /* corrupt */ }
+      try { setRows(JSON.parse(cached) as StatRow[]); setState('loaded'); } catch { /* corrupt */ }
+    } else {
+      setState('loading');
     }
 
     const n1 = normTeam(team1);
     const n2 = normTeam(team2);
-    setState('loading');
 
-    (async () => {
-      const liveRes = await fetch('/api/afl/fixtures?live=all');
-      if (!liveRes.ok) { setState('error'); return; }
-      const fixtures: AflLiveFixture[] = (await liveRes.json()).response ?? [];
-      const fx = fixtures.find((f) => {
-        const h = normTeam(f.teams?.home?.name ?? '');
-        const a = normTeam(f.teams?.away?.name ?? '');
-        return (h === n1 && a === n2) || (h === n2 && a === n1);
-      });
-      if (!fx) { setRows(null); setState('loaded'); return; } // not live
+    const load = async () => {
+      try {
+        const liveRes = await fetch('/api/afl/fixtures?live=all');
+        if (!liveRes.ok) return;
+        const fixtures: AflLiveFixture[] = (await liveRes.json()).response ?? [];
+        const fx = fixtures.find((f) => {
+          const h = normTeam(f.teams?.home?.name ?? '');
+          const a = normTeam(f.teams?.away?.name ?? '');
+          return (h === n1 && a === n2) || (h === n2 && a === n1);
+        });
+        if (!fx) { if (!cancelled && !cached) setState('loaded'); return; } // not live; keep any cache
 
-      const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${fx.fixture.id}`);
-      if (!stRes.ok) { setState('error'); return; }
-      const teams: AflStatTeam[] = (await stRes.json()).response ?? [];
-      if (teams.length < 2) { setRows(null); setState('loaded'); return; }
+        const stRes = await fetch(`/api/afl/fixtures/statistics?fixture=${fx.fixture.id}`);
+        if (!stRes.ok) return;
+        const teams: AflStatTeam[] = (await stRes.json()).response ?? [];
+        if (teams.length < 2) return;
 
-      const homeT = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
-      const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
-      const valOf = (tm: AflStatTeam, type: string) =>
-        (tm.statistics ?? []).find((s) => s.type === type)?.value ?? null;
-      const built = STAT_ORDER
-        .map((type) => ({ type, home: valOf(homeT, type), away: valOf(awayT, type) }))
-        .filter((r) => r.home !== null || r.away !== null);
+        const homeT = teams.find((tm) => normTeam(tm.team?.name ?? '') === n1) ?? teams[0];
+        const awayT = teams.find((tm) => tm !== homeT) ?? teams[1];
+        const valOf = (tm: AflStatTeam, type: string) =>
+          (tm.statistics ?? []).find((s) => s.type === type)?.value ?? null;
+        const built = STAT_ORDER
+          .map((type) => ({ type, home: valOf(homeT, type), away: valOf(awayT, type) }))
+          .filter((r) => r.home !== null || r.away !== null);
 
-      if (built.length) localStorage.setItem(cacheKey, JSON.stringify(built));
-      setRows(built);
-      setState('loaded');
-    })().catch(() => setState('error'));
+        if (cancelled || built.length === 0) return;
+        localStorage.setItem(cacheKey, JSON.stringify(built));
+        setRows(built);
+        setState('loaded');
+      } catch {
+        if (!cancelled && !cached) setState('error');
+      }
+    };
+
+    void load();
+    const id = setInterval(() => void load(), 30_000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [team1, team2]);
 
   return { state, rows };
