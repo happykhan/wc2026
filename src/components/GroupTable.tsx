@@ -6,20 +6,16 @@ import { computeStandings } from '../data/standings';
 interface GroupTableProps {
   group: string;
   matches: Match[];
-  spoilerMode: boolean;
   t: (k: TranslationKey) => string;
 }
 
-export function GroupTable({ group, matches, spoilerMode, t }: GroupTableProps) {
-  const standings = computeStandings(matches, spoilerMode);
+export function GroupTable({ group, matches, t }: GroupTableProps) {
+  const standings = computeStandings(matches);
 
   return (
     <div className="rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-700">
       <div className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-between">
         <span className="font-semibold text-sm text-neutral-700 dark:text-neutral-200">{group}</span>
-        {!spoilerMode && (
-          <span className="text-xs text-neutral-400 italic">{t('spoilerEnableHint')}</span>
-        )}
       </div>
       <table className="w-full text-sm">
         <thead>

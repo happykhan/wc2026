@@ -123,20 +123,19 @@ function StatusBadge({ status, minute, t }: { status: Match['status']; minute?: 
 
 function TeamNameInline({
   name,
-  spoilerMode,
   tbd,
   align,
   showFlag = true,
   crest,
 }: {
   name: string;
-  spoilerMode: boolean;
   tbd: string;
   align: 'left' | 'right';
   showFlag?: boolean;
   crest?: string;
 }) {
-  if (!spoilerMode && isKnockoutTeam(name)) {
+  // Undecided knockout slots ("2A", "W73") show as TBD in the schedule.
+  if (isKnockoutTeam(name)) {
     return <span className="text-neutral-400 italic text-sm truncate">{tbd}</span>;
   }
   const flag = showFlag && !crest ? getTeamFlag(name) : null;
@@ -741,7 +740,7 @@ export function MatchRow({
   // For club competitions broadcast rights are unknown — always show "check local listings"
   const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode, match.team1, match.team2);
   const channelLabels = abbreviateChannels(channels);
-  const showScore = prefs.spoilerMode && (match.status === 'ft' || match.status === 'live' || match.status === 'ht');
+  const showScore = match.status === 'ft' || match.status === 'live' || match.status === 'ht';
 
   const localTime = formatMatchTime(match.utcDate, timezone);
 
@@ -767,7 +766,7 @@ export function MatchRow({
 
         {/* Left — home team, right-aligned */}
         <div className="flex-1 flex justify-end items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team1} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="right" showFlag={!isClubComp} crest={match.crest1} />
+          <TeamNameInline name={match.team1} tbd={t('tbd')} align="right" showFlag={!isClubComp} crest={match.crest1} />
         </div>
 
         {/* Centre — fixed width, time/score + optional status chip */}
@@ -788,7 +787,7 @@ export function MatchRow({
 
         {/* Right — away team, left-aligned */}
         <div className="flex-1 flex justify-start items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team2} spoilerMode={prefs.spoilerMode} tbd={t('tbd')} align="left" showFlag={!isClubComp} crest={match.crest2} />
+          <TeamNameInline name={match.team2} tbd={t('tbd')} align="left" showFlag={!isClubComp} crest={match.crest2} />
         </div>
       </div>
 

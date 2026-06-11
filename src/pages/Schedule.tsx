@@ -82,11 +82,6 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, prefs.timezone]);
 
-  const todayMatches = useMemo(
-    () => matches.filter((m) => isMatchToday(m.utcDate, prefs.timezone)),
-    [matches, prefs.timezone]
-  );
-
   const hasFavourites = prefs.favouriteMatches.length > 0;
 
   // All unique date keys in sorted order (for swipe navigation)
@@ -163,29 +158,6 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
 
   return (
     <div className="space-y-6">
-      {/* Today's matches callout */}
-      {todayMatches.length > 0 && !filters.date && !filters.favouritesOnly && (
-        <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-[var(--accent)] uppercase tracking-wide">
-            {t('todayGames')}
-          </h2>
-          <div className="space-y-2">
-            {todayMatches.map((m) => (
-              <MatchRow
-                key={m.id}
-                match={m}
-                prefs={prefs}
-                t={t}
-                onToggleFavourite={onToggleFavourite}
-                timezone={prefs.timezone}
-                isToday={true}
-                isClubComp={isClubComp}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Filters + export */}
       <div className="flex flex-wrap gap-3 items-start justify-between">
         <FilterBar

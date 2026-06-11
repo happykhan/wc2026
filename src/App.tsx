@@ -24,8 +24,8 @@ export default function App() {
 
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
 
-  // Fetch live scores from the WC Cloudflare Worker.
-  const { scores } = useLiveScores(prefs.spoilerMode, processedMatches);
+  // Fetch live scores (always on — scores/results are shown by default).
+  const { scores } = useLiveScores(true, processedMatches);
 
   // Merge live scores into the static fixture list.
   const matches = useMemo(() => {
@@ -53,7 +53,6 @@ export default function App() {
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <Header
         prefs={prefs}
-        setPrefs={setPrefs}
         page={page}
         setPage={setPage}
         t={t}
@@ -71,20 +70,10 @@ export default function App() {
           />
         )}
         {page === 'groups' && (
-          <Groups
-            matches={matches}
-            prefs={prefs}
-            t={t}
-            onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
-          />
+          <Groups matches={matches} t={t} />
         )}
         {page === 'bracket' && (
-          <Bracket
-            matches={matches}
-            prefs={prefs}
-            t={t}
-            onToggleSpoilers={() => setPrefs({ spoilerMode: true })}
-          />
+          <Bracket matches={matches} prefs={prefs} t={t} />
         )}
         {page === 'settings' && (
           <Settings

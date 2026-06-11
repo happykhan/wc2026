@@ -55,7 +55,7 @@ const ROUND_ORDER: { round: string; key: string; title: string }[] = [
   { round: 'Final',                key: 'final', title: 'Final' },
 ];
 
-export function buildBracket(allMatches: Match[], spoilerMode: boolean): BracketRound[] {
+export function buildBracket(allMatches: Match[]): BracketRound[] {
   // 1. Resolve group winners / runners-up (index 0 = 1st, 1 = 2nd) for any
   //    group that has finished all its matches.
   const groupMatches = allMatches.filter((m) => m.phase === 'group' && m.group);
@@ -68,14 +68,12 @@ export function buildBracket(allMatches: Match[], spoilerMode: boolean): Bracket
 
   // group letter (e.g. "A") → [winnerName, runnerUpName] when complete.
   const groupResult = new Map<string, string[]>();
-  if (spoilerMode) {
-    for (const [group, ms] of byGroup) {
-      const complete = ms.length > 0 && ms.every((m) => m.status === 'ft');
-      if (!complete) continue;
-      const standings = computeStandings(ms, spoilerMode);
-      const letter = group.replace(/^Group\s+/i, '').trim();
-      groupResult.set(letter, [standings[0]?.team, standings[1]?.team].filter(Boolean) as string[]);
-    }
+  for (const [group, ms] of byGroup) {
+    const complete = ms.length > 0 && ms.every((m) => m.status === 'ft');
+    if (!complete) continue;
+    const standings = computeStandings(ms);
+    const letter = group.replace(/^Group\s+/i, '').trim();
+    groupResult.set(letter, [standings[0]?.team, standings[1]?.team].filter(Boolean) as string[]);
   }
 
   // 2. Walk knockout matches in num order, resolving each slot.
@@ -123,7 +121,6 @@ export function buildBracket(allMatches: Match[], spoilerMode: boolean): Bracket
     const team2 = resolveTeam(m.team2);
     let winner: 1 | 2 | undefined;
     if (
-      spoilerMode &&
       m.status === 'ft' &&
       m.score1 !== undefined &&
       m.score2 !== undefined &&
@@ -138,8 +135,8 @@ export function buildBracket(allMatches: Match[], spoilerMode: boolean): Bracket
       utcDate: m.utcDate,
       team1,
       team2,
-      score1: spoilerMode ? m.score1 : undefined,
-      score2: spoilerMode ? m.score2 : undefined,
+      score1: m.score1,
+      score2: m.score2,
       status: m.status,
       winner,
     };
@@ -164,8 +161,8 @@ export function buildBracket(allMatches: Match[], spoilerMode: boolean): Bracket
           utcDate: m.utcDate,
           team1: resolveTeam(m.team1),
           team2: resolveTeam(m.team2),
-          score1: spoilerMode ? m.score1 : undefined,
-          score2: spoilerMode ? m.score2 : undefined,
+          score1: m.score1,
+          score2: m.score2,
           status: m.status,
           winner: undefined,
         });

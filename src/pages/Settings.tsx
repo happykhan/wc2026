@@ -253,26 +253,6 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
         </Section>
       )}
 
-      {/* Spoiler mode */}
-      <Section title={t('spoilerMode')}>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setPrefs({ spoilerMode: !prefs.spoilerMode })}
-            className={[
-              'relative w-10 h-6 rounded-full transition-colors',
-              prefs.spoilerMode ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600',
-            ].join(' ')}
-          >
-            <span className={[
-              'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
-              prefs.spoilerMode ? 'translate-x-4' : 'translate-x-0.5',
-            ].join(' ')} />
-          </button>
-          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-            {prefs.spoilerMode ? t('spoilerOnDetail') : t('spoilerOffDetail')}
-          </span>
-        </div>
-      </Section>
     </div>
   );
 }

@@ -10,7 +10,6 @@ interface BracketProps {
   matches: Match[];
   prefs: UserPreferences;
   t: (k: TranslationKey) => string;
-  onToggleSpoilers: () => void;
 }
 
 function TeamLine({
@@ -80,11 +79,8 @@ function BracketCard({ m, language }: { m: BracketMatch; language: string }) {
   );
 }
 
-export function Bracket({ matches, prefs, t, onToggleSpoilers }: BracketProps) {
-  const rounds = useMemo(
-    () => buildBracket(matches, prefs.spoilerMode),
-    [matches, prefs.spoilerMode]
-  );
+export function Bracket({ matches, prefs, t }: BracketProps) {
+  const rounds = useMemo(() => buildBracket(matches), [matches]);
 
   if (rounds.length === 0) {
     return (
@@ -96,19 +92,6 @@ export function Bracket({ matches, prefs, t, onToggleSpoilers }: BracketProps) {
 
   return (
     <div className="space-y-4">
-      {!prefs.spoilerMode && (
-        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
-          {t('spoilerBannerOff')}{' '}
-          <button
-            onClick={onToggleSpoilers}
-            className="underline font-medium hover:opacity-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-          >
-            {t('spoilerEnableHint')}
-          </button>{' '}
-          {t('spoilerBannerOffSuffix')}
-        </div>
-      )}
-
       {/* Horizontally scrollable column layout — reads as a bracket, works on
           mobile via overflow-x. Vertical gaps grow per round so pairs roughly
           align with their next-round match. */}

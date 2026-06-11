@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, Settings, LayoutList, Trophy, Sun, Moon, Monitor } from 'lucide-react';
+import { Settings, LayoutList, Trophy, Sun, Moon, Monitor } from 'lucide-react';
 import type { UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
@@ -8,7 +8,6 @@ type Page = 'schedule' | 'groups' | 'bracket' | 'settings';
 
 interface HeaderProps {
   prefs: UserPreferences;
-  setPrefs: (p: Partial<UserPreferences>) => void;
   page: Page;
   setPage: (p: Page) => void;
   t: (k: TranslationKey) => string;
@@ -33,7 +32,6 @@ const DARK_MODE_META: Record<DarkModePreference, { icon: React.ReactNode; label:
 
 export function Header({
   prefs,
-  setPrefs,
   page,
   setPage,
   t,
@@ -65,23 +63,6 @@ export function Header({
 
         {/* Right controls */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Spoiler toggle */}
-          <button
-            onClick={() => setPrefs({ spoilerMode: !prefs.spoilerMode })}
-            className={[
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-              prefs.spoilerMode
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400',
-            ].join(' ')}
-            title={prefs.spoilerMode ? t('spoilerToggleOn') : t('spoilerToggleOff')}
-          >
-            {prefs.spoilerMode ? <Eye size={13} /> : <EyeOff size={13} />}
-            <span className="hidden sm:inline">
-              {t('spoilerMode')}: {prefs.spoilerMode ? t('spoilerOn') : t('spoilerOff')}
-            </span>
-          </button>
-
           {/* Dark-mode toggle — cycles: system → dark → light → system */}
           <button
             onClick={onToggleDarkMode}
