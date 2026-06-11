@@ -40,10 +40,11 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
     return Array.from(new Set(matches.filter((m) => m.group).map((m) => m.group!))).sort();
   }, [isClubComp, matches]);
 
-  // Swipe-between-days state
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const touchStartX = useRef<number | null>(null);
+  // Swipe-between-days — drag the list via a ref so we don't re-render every
+  // (touch)move (re-rendering 100+ cards per move was the source of the jank).
+  const listRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
   const swipeThreshold = 50;
 
   const filtered = useMemo(() => {
@@ -116,32 +117,49 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
     }
   }, [activeDateIndex, allDateKeys, prefs.timezone]);
 
+  const resetDrag = useCallback(() => {
+    const el = listRef.current;
+    if (el) {
+      el.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+      el.style.transform = 'translateX(0)';
+      el.style.opacity = '1';
+    }
+  }, []);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    setSwipeOffset(0);
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    dragging.current = false;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    setSwipeOffset(e.touches[0].clientX - touchStartX.current);
+    if (!touchStart.current) return;
+    const dx = e.touches[0].clientX - touchStart.current.x;
+    const dy = e.touches[0].clientY - touchStart.current.y;
+    // Decide direction once: if it's a vertical scroll, let the page handle it.
+    if (!dragging.current) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) { touchStart.current = null; return; }
+      dragging.current = true;
+    }
+    const el = listRef.current;
+    if (el) {
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${dx * 0.25}px)`;
+      el.style.opacity = String(1 - Math.min(Math.abs(dx) / 700, 0.25));
+    }
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
-    if (touchStartX.current === null) return;
-    const delta = swipeOffset;
-    touchStartX.current = null;
-
-    if (Math.abs(delta) >= swipeThreshold) {
-      setIsAnimating(true);
-      navigateDay(delta < 0 ? 1 : -1);
-      setTimeout(() => {
-        setSwipeOffset(0);
-        setIsAnimating(false);
-      }, 200);
-    } else {
-      setSwipeOffset(0);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const start = touchStart.current;
+    const wasDragging = dragging.current;
+    touchStart.current = null;
+    dragging.current = false;
+    resetDrag();
+    if (wasDragging && start) {
+      const dx = e.changedTouches[0].clientX - start.x;
+      if (Math.abs(dx) >= swipeThreshold) navigateDay(dx < 0 ? 1 : -1);
     }
-  }, [swipeOffset, navigateDay]);
+  }, [navigateDay, resetDrag]);
 
   return (
     <div className="space-y-6">
@@ -188,11 +206,8 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
         </div>
       ) : (
         <div
-          className="space-y-8 touch-pan-y select-none"
-          style={{
-            transform: swipeOffset !== 0 ? `translateX(${swipeOffset * 0.3}px)` : undefined,
-            transition: isAnimating ? 'transform 0.2s ease-out' : undefined,
-          }}
+          ref={listRef}
+          className="space-y-8 touch-pan-y select-none will-change-transform"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

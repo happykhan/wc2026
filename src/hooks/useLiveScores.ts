@@ -67,8 +67,8 @@ function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['
 
 // Build a normalised key from a team name so we can fuzzy-match FD results
 // against our static fixture data (which may use slightly different spellings).
-function normTeam(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
+function normTeam(name: string | null | undefined): string {
+  return (name ?? '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
 async function fetchFromFootballData(
@@ -84,8 +84,11 @@ async function fetchFromFootballData(
   const fdMatches: FDMatch[] = data.matches ?? [];
 
   for (const fdm of fdMatches) {
-    const fdHome = normTeam(fdm.homeTeam.name);
-    const fdAway = normTeam(fdm.awayTeam.name);
+    const fdHome = normTeam(fdm.homeTeam?.name);
+    const fdAway = normTeam(fdm.awayTeam?.name);
+    // Knockout fixtures arrive with null team names (TBD) — skip them so one
+    // null doesn't abort the whole mapping and wipe out the live scores.
+    if (!fdHome || !fdAway) continue;
 
     // Match FD results back to our internal IDs via team-name fuzzy match.
     const match = local.find(
