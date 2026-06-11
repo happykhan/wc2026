@@ -780,7 +780,7 @@ function useMatchStats(
     };
 
     void load();
-    const id = setInterval(() => void load(), 180_000);
+    const id = setInterval(() => void load(), 300_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [homeTeam, aflFixtureId]);
 

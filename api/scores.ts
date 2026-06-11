@@ -110,10 +110,11 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   }
 
   // API-Football's free plan is 100 req/day. The edge cache means one upstream
-  // call serves everyone in the window — 3 min while live, 10 min idle — which
-  // keeps a full match day comfortably inside the budget. (live=all returns all
-  // live matches in one call, and lineups/stats reuse the fixture id from here.)
-  const sMaxAge = anyLive ? 180 : 600;
+  // call serves everyone in the window — 5 min while live (~12 calls/hour of
+  // live football), 10 min idle — keeping even a heavy match day inside budget.
+  // (live=all returns every live match in one call, and lineups/stats reuse the
+  // fixture id from here, so this is the ONLY recurring upstream call.)
+  const sMaxAge = anyLive ? 300 : 600;
   res.setHeader('Cache-Control', `public, max-age=60, s-maxage=${sMaxAge}, stale-while-revalidate=300`);
   return res.status(200).json({ live: anyLive, matches, standings: [] });
 }
