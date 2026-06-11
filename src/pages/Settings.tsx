@@ -4,6 +4,7 @@ import { THEMES, getThemeForTeam } from '../data/teamColors';
 import { allTeams } from '../data/processFixtures';
 import type { Match } from '../types';
 import type { TranslationKey } from '../data/i18n';
+import { DEFAULT_TV_CHANNELS } from '../data/tvChannels';
 
 interface SettingsProps {
   prefs: UserPreferences;
@@ -32,24 +33,8 @@ const LANGUAGES = [
   { code: 'de', label: 'Deutsch' },
 ];
 
-const COUNTRIES = [
-  { code: 'GB', label: 'United Kingdom' },
-  { code: 'US', label: 'United States' },
-  { code: 'AU', label: 'Australia' },
-  { code: 'CA', label: 'Canada' },
-  { code: 'DE', label: 'Germany' },
-  { code: 'FR', label: 'France' },
-  { code: 'ES', label: 'Spain' },
-  { code: 'PT', label: 'Portugal' },
-  { code: 'NL', label: 'Netherlands' },
-  { code: 'BE', label: 'Belgium' },
-  { code: 'AR', label: 'Argentina' },
-  { code: 'BR', label: 'Brazil' },
-  { code: 'MX', label: 'Mexico' },
-  { code: 'ZA', label: 'South Africa' },
-  { code: 'JP', label: 'Japan' },
-  { code: 'OTHER', label: 'Other' },
-];
+// Every territory we have broadcaster data for is selectable.
+const COUNTRY_CODES = Object.keys(DEFAULT_TV_CHANNELS);
 
 // Localised country name via the platform's Intl data (no need to hand-translate
 // every country). Falls back to the English label if Intl is unavailable.
@@ -144,11 +129,13 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
           onChange={(e) => setPrefs({ countryCode: e.target.value })}
           className="select-field"
         >
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.code === 'OTHER' ? t('countryOther') : localizedCountry(c.code, prefs.language, c.label)}
-            </option>
-          ))}
+          {COUNTRY_CODES
+            .map((code) => ({ code, name: localizedCountry(code, prefs.language, code) }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((c) => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          <option value="OTHER">{t('countryOther')}</option>
         </select>
       </Section>
 
