@@ -54,7 +54,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <Header
-        prefs={prefs}
         page={page}
         setPage={setPage}
         t={t}

@@ -1,27 +1,17 @@
 import React from 'react';
 import { Settings, LayoutList, Trophy, Sun, Moon, Monitor } from 'lucide-react';
-import type { UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import type { DarkModePreference } from '../hooks/useTheme';
 
 type Page = 'schedule' | 'groups' | 'bracket' | 'settings';
 
 interface HeaderProps {
-  prefs: UserPreferences;
   page: Page;
   setPage: (p: Page) => void;
   t: (k: TranslationKey) => string;
   darkMode: DarkModePreference;
   onToggleDarkMode: () => void;
 }
-
-const FLAG_MAP: Record<string, string> = {
-  England: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  France: '🇫🇷', Germany: '🇩🇪', Brazil: '🇧🇷', Argentina: '🇦🇷',
-  Spain: '🇪🇸', Portugal: '🇵🇹', Netherlands: '🇳🇱', Belgium: '🇧🇪',
-  USA: '🇺🇸', Mexico: '🇲🇽', Japan: '🇯🇵', Australia: '🇦🇺',
-  'South Korea': '🇰🇷', Morocco: '🇲🇦', Senegal: '🇸🇳',
-};
 
 // Icon and tooltip for each dark-mode state
 const DARK_MODE_META: Record<DarkModePreference, { icon: React.ReactNode; label: string }> = {
@@ -31,16 +21,12 @@ const DARK_MODE_META: Record<DarkModePreference, { icon: React.ReactNode; label:
 };
 
 export function Header({
-  prefs,
   page,
   setPage,
   t,
   darkMode,
   onToggleDarkMode,
 }: HeaderProps) {
-  const teamFlag = prefs.favouriteTeams[0]
-    ? (FLAG_MAP[prefs.favouriteTeams[0]] ?? null)
-    : null;
   const dmMeta = DARK_MODE_META[darkMode];
 
   return (
@@ -55,7 +41,6 @@ export function Header({
           <span className="font-semibold text-neutral-900 dark:text-neutral-100 text-sm hidden sm:inline">
             {t('worldCup')} 2026
           </span>
-          {teamFlag && <span className="text-lg" title="Your team">{teamFlag}</span>}
         </div>
 
         {/* Nav */}
