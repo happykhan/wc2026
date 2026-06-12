@@ -217,6 +217,10 @@ function CountdownInline({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey)
 // page (and its OG image) can render without a server-side data lookup.
 // ---------------------------------------------------------------------------
 
+// Always share the custom domain so previews show worldcup.happykhan.com,
+// regardless of which host the app was opened on.
+const CANONICAL_ORIGIN = 'https://worldcup.happykhan.com';
+
 function matchShareUrl(match: Match, timezone: string, language: string): string {
   const params = new URLSearchParams({
     h: match.team1,
@@ -225,7 +229,7 @@ function matchShareUrl(match: Match, timezone: string, language: string): string
     d: formatMatchDate(match.utcDate, timezone, language),
     v: match.city || match.venue,
   });
-  return `${window.location.origin}/match/${match.id}?${params.toString()}`;
+  return `${CANONICAL_ORIGIN}/match/${match.id}?${params.toString()}`;
 }
 
 // ---------------------------------------------------------------------------

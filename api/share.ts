@@ -76,6 +76,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
   const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
   const origin = `${proto}://${host}`;
+  // Public-facing canonical (what previews show); internal fetches use `origin`.
+  const canonical = 'https://worldcup.happykhan.com';
 
   const hasMatch = home && away;
   const sc = hasMatch ? await lookupScore(origin, home, away) : null;
@@ -95,10 +97,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     : 'Full World Cup 2026 schedule, live scores, group tables and the knockout bracket.';
 
   const ogImage = hasMatch
-    ? `${origin}/api/og?h=${encodeURIComponent(home)}&a=${encodeURIComponent(away)}` +
+    ? `${canonical}/api/og?h=${encodeURIComponent(home)}&a=${encodeURIComponent(away)}` +
       `&meta=${encodeURIComponent(metaLine)}&venue=${encodeURIComponent(venue)}` +
       (sc ? `&score=${encodeURIComponent(scoreStr)}` : '')
-    : `${origin}/api/og`;
+    : `${canonical}/api/og`;
 
   // Real browsers continue into the app; if we know the match, deep-link to it.
   const appUrl = id ? `/?match=${encodeURIComponent(id)}` : '/';
@@ -116,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <meta property="og:image" content="${esc(ogImage)}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="${esc(origin)}/match/${esc(id)}">
+<meta property="og:url" content="${esc(canonical)}/match/${esc(id)}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
