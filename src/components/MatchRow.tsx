@@ -521,8 +521,13 @@ interface MatchDetailData {
 
 type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
 
+const TEAM_ALIASES: Record<string, string> = {
+  czechrepublic: 'czechia', unitedstates: 'usa', korearepublic: 'southkorea',
+  iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire', capeverde: 'caboverde',
+};
 function normTeam(s: string): string {
-  return s.toLowerCase().replace(/[^a-z]/g, '');
+  const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');
+  return TEAM_ALIASES[n] ?? n;
 }
 
 // Shape returned by our /api/matchdetail endpoint (ESPN with API-Football

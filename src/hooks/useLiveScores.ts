@@ -71,8 +71,19 @@ function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['
 
 // Build a normalised key from a team name so we can fuzzy-match FD results
 // against our static fixture data (which may use slightly different spellings).
+// Different feeds spell national teams differently (Czechia vs Czech Republic,
+// etc.) — fold the variants to one token so score merges don't silently miss.
+const TEAM_ALIASES: Record<string, string> = {
+  czechrepublic: 'czechia',
+  unitedstates: 'usa',
+  korearepublic: 'southkorea',
+  iranislamicrepublic: 'iran',
+  ivorycoast: 'cotedivoire',
+  capeverde: 'caboverde',
+};
 function normTeam(name: string | null | undefined): string {
-  return (name ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  const n = (name ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  return TEAM_ALIASES[n] ?? n;
 }
 
 async function fetchFromFootballData(
