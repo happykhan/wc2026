@@ -215,7 +215,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120');
     return res.status(200).json({ source: null, teams: [], events: [] });
   }
-  // One upstream call per ~2 min serves all viewers; client pins finished matches.
-  res.setHeader('Cache-Control', 'public, max-age=120, s-maxage=180, stale-while-revalidate=600');
+  // One upstream call per ~75s serves all viewers (edge-cached, so ESPN is never
+  // hammered regardless of traffic); client pins finished matches.
+  res.setHeader('Cache-Control', 'public, max-age=45, s-maxage=75, stale-while-revalidate=300');
   return res.status(200).json(detail);
 }

@@ -595,7 +595,7 @@ function useMatchDetail(
     };
 
     void load();
-    const id = setInterval(() => void load(), 180_000);
+    const id = setInterval(() => void load(), 75_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [homeTeam, awayTeam, espnEventId, aflFixtureId]);
 
