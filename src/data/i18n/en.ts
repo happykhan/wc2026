@@ -37,6 +37,7 @@ export const en = {
   filterByGroup: 'Filter by group',
   filterByDate: 'Filter by date',
   clearFilters: 'Clear filters',
+  filters: 'Filters',
   team: 'Team',
   played: 'P',
   won: 'W',

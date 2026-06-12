@@ -37,6 +37,7 @@ export const fr = {
   filterByGroup: 'Filtrer par groupe',
   filterByDate: 'Filtrer par date',
   clearFilters: 'Effacer les filtres',
+  filters: 'Filtres',
   team: 'Équipe',
   played: 'J',
   won: 'G',

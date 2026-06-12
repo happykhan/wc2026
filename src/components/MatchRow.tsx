@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, MapPin, Share2, Copy, Check, ChevronDown, ChevronUp, Users, BarChart2, Clock, CalendarPlus } from 'lucide-react';
+import { Star, MapPin, Tv, Share2, Copy, Check, ChevronDown, ChevronUp, Users, BarChart2, Clock, CalendarPlus } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import aflTeamIds from '../data/aflTeamIds.json';
 import { getChannelsForCountry } from '../data/tvChannels';
@@ -922,89 +922,67 @@ export function MatchRow({
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Row 2 — channels · venue · countdown (centered, one line)           */}
+      {/* Row 2 — stage · venue · countdown, with star + expand on the right.  */}
+      {/* TV channels move to the expanded panel to keep the card clean.       */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-500 leading-none">
-        {channelLabels.length > 0 ? (
-          <span>{channelLabels.join(' · ')}</span>
-        ) : (
-          <span className="italic">{t('unknownChannels')}</span>
-        )}
-        {venueName && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span className="truncate max-w-[8rem]">{venueName}</span>
-          </>
-        )}
-        {match.status === 'upcoming' && (
-          <CountdownInline utcDate={match.utcDate} t={t} />
-        )}
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Row 3 — group/round badge (left) + star · share · expand (right)    */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="flex items-center gap-1">
-        {/* Group / round badge */}
-        {match.group ? (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium mr-auto whitespace-nowrap">
-            {match.group.replace('Group ', 'Group ')}
-          </span>
-        ) : (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium whitespace-nowrap mr-auto">
-            {match.round}
-          </span>
-        )}
+      <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-500 leading-none">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center pl-7">
+          {(match.group || match.round) && (
+            <span className="font-medium text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+              {match.group ?? match.round}
+            </span>
+          )}
+          {(match.group || match.round) && venueName && <span aria-hidden="true">·</span>}
+          {venueName && <span className="truncate max-w-[9rem]">{venueName}</span>}
+          {match.status === 'upcoming' && (
+            <>
+              <span aria-hidden="true">·</span>
+              <CountdownInline utcDate={match.utcDate} t={t} />
+            </>
+          )}
+        </div>
 
         {/* Favourite star */}
         <button
           onClick={() => onToggleFavourite(match.id)}
           className={[
-            'flex-shrink-0 p-1.5 rounded-lg transition-colors',
-            isFav
-              ? 'text-amber-400 hover:text-amber-500'
-              : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-400',
+            'flex-shrink-0 p-1 rounded-lg transition-colors',
+            isFav ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-400',
           ].join(' ')}
           aria-label={isFav ? t('removeFromFavourites') : t('addToFavourites')}
         >
-          <Star size={15} fill={isFav ? 'currentColor' : 'none'} />
+          <Star size={14} fill={isFav ? 'currentColor' : 'none'} />
         </button>
-
-        {/* Copy to clipboard */}
-        <CopyButton
-          match={match}
-          timezone={timezone}
-          language={prefs.language}
-          t={t}
-        />
-
-        {/* Share */}
-        <ShareButton
-          match={match}
-          timezone={timezone}
-          language={prefs.language}
-          t={t}
-        />
 
         {/* Expand / collapse */}
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="flex-shrink-0 p-1.5 rounded-lg transition-colors text-neutral-300 dark:text-neutral-600 hover:text-[var(--accent)]"
+          className="flex-shrink-0 p-1 rounded-lg transition-colors text-neutral-300 dark:text-neutral-600 hover:text-[var(--accent)]"
           aria-label={expanded ? t('collapse') : t('expand')}
         >
-          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
       </div>
 
       {/* Expanded panel */}
       {expanded && (
         <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
-          {/* Venue detail on mobile + per-match ICS button */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex md:hidden items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+          {/* Venue + where to watch */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+            <span className="flex items-center gap-1.5">
               <MapPin size={12} className="flex-shrink-0" />
-              <span>{match.venue || match.city}</span>
-            </div>
+              {match.venue || match.city}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Tv size={12} className="flex-shrink-0" />
+              {channelLabels.length > 0 ? channelLabels.join(' · ') : <span className="italic">{t('unknownChannels')}</span>}
+            </span>
+          </div>
+
+          {/* Actions: copy · share · add to calendar */}
+          <div className="flex items-center gap-1.5">
+            <CopyButton match={match} timezone={timezone} language={prefs.language} t={t} />
+            <ShareButton match={match} timezone={timezone} language={prefs.language} t={t} />
             <button
               onClick={() => downloadMatchICS(match, prefs.countryCode)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 transition-colors ml-auto"
