@@ -15,6 +15,7 @@ export interface LiveScore {
   score2?: number;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
   minute?: number;
+  minuteAt?: number; // epoch ms when `minute` was captured (for client-side ticking)
 }
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ interface FDMatch {
 // Shape written by wc_scores_poller.py
 interface WCScoresResponse {
   fetchedAt: string;
+  updatedAt?: string; // when the poller captured this data (minute anchor)
   live: boolean;
   matches: FDMatch[];
   standings: unknown[];
@@ -87,6 +89,8 @@ async function fetchFromFootballData(
 
   const data: WCScoresResponse = await res.json();
   const fdMatches: FDMatch[] = data.matches ?? [];
+  // When the poller captured this minute, so the client can tick it forward.
+  const minuteAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
 
   for (const fdm of fdMatches) {
     const fdHome = normTeam(fdm.homeTeam?.name);
@@ -110,6 +114,7 @@ async function fetchFromFootballData(
       score2: fdm.score.fullTime.away ?? undefined,
       status: mapStatus(fdm.status, fdm.minute),
       minute: fdm.minute ?? undefined,
+      minuteAt,
     });
   }
 

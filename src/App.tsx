@@ -39,6 +39,7 @@ export default function App() {
         score2: live.score2,
         status: live.status,
         minute: live.minute,
+        minuteAt: live.minuteAt,
         fdMatchId: live.fdMatchId,
         aflFixtureId: live.aflFixtureId,
         espnEventId: live.espnEventId,

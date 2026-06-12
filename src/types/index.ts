@@ -27,6 +27,8 @@ export interface Match {
   score2?: number;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
   minute?: number;
+  /** epoch ms when `minute` was captured — lets the client tick the live clock forward */
+  minuteAt?: number;
   /** football-data.org integer match ID — populated once live scores have been fetched */
   fdMatchId?: number;
   /** API-Football fixture id — populated for live matches; lineups/stats fallback */

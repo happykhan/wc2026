@@ -20,9 +20,9 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       res.setHeader('Cache-Control', 'public, max-age=30');
       return res.status(200).json(EMPTY_RESPONSE);
     }
-    const data = (await r.json()) as { live?: boolean; matches?: unknown[] };
+    const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string };
     res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
-    return res.status(200).json({ live: data.live ?? false, matches: data.matches ?? [], standings: [] });
+    return res.status(200).json({ live: data.live ?? false, matches: data.matches ?? [], standings: [], updatedAt: data.updatedAt });
   } catch {
     res.setHeader('Cache-Control', 'public, max-age=30');
     return res.status(200).json(EMPTY_RESPONSE);

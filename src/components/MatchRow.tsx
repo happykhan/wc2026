@@ -90,12 +90,25 @@ type DetailTab = 'h2h' | 'lineups' | 'stats' | 'timeline';
 // Status badge
 // ---------------------------------------------------------------------------
 
-function StatusBadge({ status, minute, t }: { status: Match['status']; minute?: number; t: (k: TranslationKey) => string }) {
+function StatusBadge({ status, minute, minuteAt, t }: { status: Match['status']; minute?: number; minuteAt?: number; t: (k: TranslationKey) => string }) {
+  // Advance the live clock locally from the captured minute so it keeps ticking
+  // between the poller's (Blob-throttled) writes instead of looking frozen.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (status !== 'live') return;
+    const id = setInterval(() => tick((n) => n + 1), 20000);
+    return () => clearInterval(id);
+  }, [status]);
+
   if (status === 'live') {
+    const shown =
+      minute != null && minuteAt
+        ? minute + Math.min(Math.floor((Date.now() - minuteAt) / 60000), 8)
+        : minute;
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white animate-pulse">
         <span className="w-1.5 h-1.5 rounded-full bg-white" />
-        {minute ? `${minute}'` : t('live')}
+        {shown != null ? `${shown}'` : t('live')}
       </span>
     );
   }
@@ -893,7 +906,7 @@ export function MatchRow({
             </span>
           )}
           {match.status !== 'upcoming' && (
-            <StatusBadge status={match.status} minute={match.minute} t={t} />
+            <StatusBadge status={match.status} minute={match.minute} minuteAt={match.minuteAt} t={t} />
           )}
         </div>
 
