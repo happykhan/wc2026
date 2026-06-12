@@ -4,6 +4,7 @@ import { Star, MapPin, Tv, Share2, Copy, Check, ChevronDown, ChevronUp, Users, B
 import type { Match, UserPreferences } from '../types';
 import aflTeamIds from '../data/aflTeamIds.json';
 import { getChannelsForCountry } from '../data/tvChannels';
+import { normTeam } from '../data/teamMatch';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { getTeamFlag } from '../data/teamFlags';
 import type { TranslationKey } from '../data/i18n';
@@ -497,16 +498,7 @@ interface MatchDetailData {
 
 type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
 
-// KEEP IN SYNC with the copies in api/poll.ts, api/share.ts, useLiveScores.ts.
-const TEAM_ALIASES: Record<string, string> = {
-  czechrepublic: 'czechia', capeverdeislands: 'capeverde', congodr: 'drcongo',
-  curacoa: 'curacao', curaao: 'curacao', unitedstates: 'usa',
-  korearepublic: 'southkorea', iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire',
-};
-function normTeam(s: string): string {
-  const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');
-  return TEAM_ALIASES[n] ?? n;
-}
+// normTeam (with feed aliases) is the shared, test-guarded one — see teamMatch.ts.
 
 // Shape returned by our /api/matchdetail endpoint (ESPN with API-Football
 // fallback, normalised server-side into one shape).

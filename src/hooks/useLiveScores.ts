@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { normTeam } from '../data/teamMatch';
 
 // Poll intervals: faster when spoilers are on (user wants live info),
 // slower otherwise to be polite to the API.
@@ -73,23 +74,7 @@ function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['
 // against our static fixture data (which may use slightly different spellings).
 // Different feeds spell national teams differently (Czechia vs Czech Republic,
 // etc.) — fold the variants to one token so score merges don't silently miss.
-// KEEP IN SYNC with api/poll.ts, api/share.ts, src/components/MatchRow.tsx.
-// Audited against all 48 WC2026 team names vs the feed 2026-06-12.
-const TEAM_ALIASES: Record<string, string> = {
-  czechrepublic: 'czechia',
-  capeverdeislands: 'capeverde',
-  congodr: 'drcongo',
-  curacoa: 'curacao',
-  curaao: 'curacao',
-  unitedstates: 'usa',
-  korearepublic: 'southkorea',
-  iranislamicrepublic: 'iran',
-  ivorycoast: 'cotedivoire',
-};
-function normTeam(name: string | null | undefined): string {
-  const n = (name ?? '').toLowerCase().replace(/[^a-z]/g, '');
-  return TEAM_ALIASES[n] ?? n;
-}
+// Team-name matching (with feed aliases) lives in teamMatch.ts (test-guarded).
 
 async function fetchFromFootballData(
   local: Array<{ id: string; team1: string; team2: string }>
