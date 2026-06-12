@@ -43,6 +43,7 @@ interface FDMatch {
   utcDate: string;
   status: FDMatchStatus;
   minute?: number | null;
+  minuteAt?: string; // ISO — when `minute` last changed (anchor for client clock)
   aflFixtureId?: number;
   espnEventId?: string;
   score: {
@@ -89,8 +90,8 @@ async function fetchFromFootballData(
 
   const data: WCScoresResponse = await res.json();
   const fdMatches: FDMatch[] = data.matches ?? [];
-  // When the poller captured this minute, so the client can tick it forward.
-  const minuteAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
+  // Fallback anchor (whole-blob capture time) when a match has no per-minute stamp.
+  const blobAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
 
   for (const fdm of fdMatches) {
     const fdHome = normTeam(fdm.homeTeam?.name);
@@ -114,7 +115,7 @@ async function fetchFromFootballData(
       score2: fdm.score.fullTime.away ?? undefined,
       status: mapStatus(fdm.status, fdm.minute),
       minute: fdm.minute ?? undefined,
-      minuteAt,
+      minuteAt: fdm.minuteAt ? Date.parse(fdm.minuteAt) : blobAt,
     });
   }
 

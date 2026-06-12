@@ -92,10 +92,11 @@ type DetailTab = 'h2h' | 'lineups' | 'stats' | 'timeline';
 
 function StatusBadge({ status, minute, minuteAt, t }: { status: Match['status']; minute?: number; minuteAt?: number; t: (k: TranslationKey) => string }) {
   // Run a live MM:SS clock that ticks every second. The feed only carries whole
-  // minutes (ESPN's clock is minute-granular), so we extrapolate the seconds from
-  // when the minute was captured. +30s centres the unavoidable 0–60s sampling lag
-  // (otherwise the badge always trails the TV clock); the 120s cap stops a stalled
-  // poller from letting the clock run away.
+  // minutes (ESPN's clock is minute-granular), so we extrapolate seconds from
+  // `minuteAt` (when that minute was first observed). +30s centres the unavoidable
+  // 0–60s sampling lag (otherwise the badge always trails the TV clock). The anchor
+  // holds steady while the minute plateaus (e.g. 90' through stoppage), so the
+  // clock counts up smoothly; the 15-min cap only guards a stalled poller.
   const [, tick] = useState(0);
   useEffect(() => {
     if (status !== 'live') return;
@@ -106,7 +107,7 @@ function StatusBadge({ status, minute, minuteAt, t }: { status: Match['status'];
   if (status === 'live') {
     let label: string;
     if (minute != null && minuteAt) {
-      const ext = Math.min(Math.max(0, Date.now() - minuteAt), 120_000);
+      const ext = Math.min(Math.max(0, Date.now() - minuteAt), 900_000);
       const sec = Math.round(minute * 60 + ext / 1000 + 30);
       label = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
     } else {

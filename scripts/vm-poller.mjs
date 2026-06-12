@@ -49,7 +49,10 @@ const hasScore = (s) => !!s?.fullTime && (s.fullTime.home != null || s.fullTime.
 
 const espnStatus = (ev) => {
   const t = ev.status?.type; if (!t) return null;
-  if (t.state === 'post' || t.completed) return 'FINISHED';
+  // Right at the whistle ESPN reports state='in' + name=STATUS_FULL_TIME for a
+  // minute or two before flipping to state='post' — treat those as finished so
+  // the live clock stops immediately instead of ticking past the final whistle.
+  if (t.state === 'post' || t.completed || /FULL_TIME|FINAL|\bFT\b|ENDED|AFTER_/i.test(t.name || '')) return 'FINISHED';
   if (t.state === 'in') return t.name === 'STATUS_HALFTIME' ? 'PAUSED' : 'IN_PLAY';
   return null;
 };
@@ -132,6 +135,19 @@ async function main() {
         if (p.espnEventId && !m.espnEventId) m.espnEventId = p.espnEventId;
       }
     }
+  }
+
+  // Per-match minute anchor: stamp WHEN each live match's minute last changed and
+  // carry it forward while the minute is unchanged. The client extrapolates a
+  // smooth MM:SS clock from this — anchoring on minute-change (not the blob's
+  // updatedAt, which advances every poll) means the clock keeps counting up
+  // through stoppage (when the feed minute plateaus at 90') instead of jumping
+  // backwards each poll.
+  const nowIso = new Date(now).toISOString();
+  for (const m of matches) {
+    if (m.status !== 'IN_PLAY' || m.minute == null) continue;
+    const p = priorOf(m);
+    m.minuteAt = p && p.minuteAt && p.minute === m.minute ? p.minuteAt : nowIso;
   }
 
   const live = matches.some((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED');
