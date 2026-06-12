@@ -22,6 +22,9 @@ export default function handler(req: Request): Response {
   const away = (searchParams.get('a') || 'TBD').slice(0, 40);
   const meta = (searchParams.get('meta') || '').slice(0, 80);
   const venue = (searchParams.get('venue') || '').slice(0, 60);
+  const score = (searchParams.get('score') || '').slice(0, 12); // e.g. "2-1"
+  const [sh, sa] = score.split('-');
+  const hasScore = score.includes('-') && sh !== '' && sa !== '';
 
   return new ImageResponse(
     h(
@@ -70,7 +73,15 @@ export default function handler(req: Request): Response {
           { style: { fontSize: 64, fontWeight: 800, flex: 1, textAlign: 'right', display: 'flex', justifyContent: 'flex-end' } },
           home
         ),
-        h('div', { style: { fontSize: 40, color: '#8893a7', fontWeight: 600, display: 'flex' } }, 'v'),
+        hasScore
+          ? h(
+              'div',
+              { style: { fontSize: 72, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 18 } },
+              h('span', { style: { display: 'flex' } }, sh),
+              h('span', { style: { color: '#8893a7', fontSize: 48, display: 'flex' } }, '–'),
+              h('span', { style: { display: 'flex' } }, sa)
+            )
+          : h('div', { style: { fontSize: 40, color: '#8893a7', fontWeight: 600, display: 'flex' } }, 'v'),
         h(
           'div',
           { style: { fontSize: 64, fontWeight: 800, flex: 1, textAlign: 'left', display: 'flex' } },
