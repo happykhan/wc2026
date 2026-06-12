@@ -830,6 +830,8 @@ export function MatchRow({
   const [expanded, setExpanded] = useState(initialExpanded);
   const rootRef = useRef<HTMLDivElement>(null);
   const isFav = prefs.favouriteMatches.includes(match.id);
+  // A match featuring the user's followed team gets their accent colour edge.
+  const followedTeam = !isClubComp && (prefs.favouriteTeams.includes(match.team1) || prefs.favouriteTeams.includes(match.team2));
 
   // When opened from a shared link, scroll this card into view once.
   useEffect(() => {
@@ -860,6 +862,7 @@ export function MatchRow({
         isToday
           ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/30'
           : 'bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800',
+        followedTeam ? 'border-l-[3px] border-l-[var(--accent)]' : '',
         isFav ? 'ring-1 ring-amber-400' : '',
       ].join(' ')}
     >

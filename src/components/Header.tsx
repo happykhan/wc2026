@@ -31,6 +31,8 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm border-b border-neutral-200 dark:border-neutral-800">
+      {/* Team-colour strip (uses the selected team theme's two colours) */}
+      <div className="h-1 bg-gradient-to-r from-[var(--accent-primary)] via-[var(--accent)] to-[var(--accent-secondary)]" />
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
         {/* App title — official FIFA World Cup 26 emblem (on a white chip so it
             stays legible in dark mode) */}
