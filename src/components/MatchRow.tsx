@@ -211,30 +211,6 @@ function CountdownInline({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey)
 // "BBC One", "BBC Two" → "BBC"; "ITV1", "ITV4" → "ITV"; max 2 unique tokens
 // ---------------------------------------------------------------------------
 
-function abbreviateChannels(channels: string[]): string[] {
-  const abbrev = (ch: string): string => {
-    return ch
-      .replace(/\bone\b|\btwo\b|\bthree\b|\bfour\b|\bfive\b/gi, '')
-      .replace(/\d+/g, '')
-      .trim()
-      .split(/\s+/)
-      [0]
-      .toUpperCase();
-  };
-
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const ch of channels) {
-    const a = abbrev(ch);
-    if (!seen.has(a)) {
-      seen.add(a);
-      result.push(a);
-    }
-    if (result.length === 2) break;
-  }
-  return result;
-}
-
 // ---------------------------------------------------------------------------
 // Share URL — /match/:id carries display fields as query params so the share
 // page (and its OG image) can render without a server-side data lookup.
@@ -521,9 +497,11 @@ interface MatchDetailData {
 
 type DetailState = 'idle' | 'loading' | 'loaded' | 'error';
 
+// KEEP IN SYNC with the copies in api/poll.ts, api/share.ts, useLiveScores.ts.
 const TEAM_ALIASES: Record<string, string> = {
-  czechrepublic: 'czechia', unitedstates: 'usa', korearepublic: 'southkorea',
-  iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire', capeverde: 'caboverde',
+  czechrepublic: 'czechia', capeverdeislands: 'capeverde', congodr: 'drcongo',
+  curacoa: 'curacao', curaao: 'curacao', unitedstates: 'usa',
+  korearepublic: 'southkorea', iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire',
 };
 function normTeam(s: string): string {
   const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');
@@ -874,7 +852,7 @@ export function MatchRow({
   const [detailTab, setDetailTab] = useState<DetailTab>(knownTeams ? 'h2h' : 'lineups');
   // For club competitions broadcast rights are unknown — always show "check local listings"
   const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode, match.team1, match.team2);
-  const channelLabels = abbreviateChannels(channels);
+  const primaryChannel = channels[0]; // the main TV channel to tune into (e.g. ITV1, BBC One)
   const showScore = match.status === 'ft' || match.status === 'live' || match.status === 'ht';
 
   const localTime = formatMatchTime(match.utcDate, timezone);
@@ -927,8 +905,8 @@ export function MatchRow({
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Row 2 — stage · venue · countdown, with star + expand on the right.  */}
-      {/* TV channels move to the expanded panel to keep the card clean.       */}
+      {/* Row 2 — stage · venue · channel · countdown, star + expand right.    */}
+      {/* The primary channel (which one to tune into) shows above the fold.   */}
       {/* ------------------------------------------------------------------ */}
       <div className="flex items-center gap-1.5 text-xs text-neutral-400 dark:text-neutral-500 leading-none">
         <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center pl-7">
@@ -938,7 +916,15 @@ export function MatchRow({
             </span>
           )}
           {(match.group || match.round) && venueName && <span aria-hidden="true">·</span>}
-          {venueName && <span className="truncate max-w-[9rem]">{venueName}</span>}
+          {venueName && <span className="truncate max-w-[8rem]">{venueName}</span>}
+          {primaryChannel && (
+            <>
+              {(match.group || match.round || venueName) && <span aria-hidden="true">·</span>}
+              <span className="inline-flex items-center gap-1 font-semibold text-[var(--accent)] whitespace-nowrap">
+                <Tv size={11} className="flex-shrink-0" />{primaryChannel}
+              </span>
+            </>
+          )}
           {match.status === 'upcoming' && (
             <>
               <span aria-hidden="true">·</span>
@@ -980,7 +966,7 @@ export function MatchRow({
             </span>
             <span className="flex items-center gap-1.5">
               <Tv size={12} className="flex-shrink-0" />
-              {channelLabels.length > 0 ? channelLabels.join(' · ') : <span className="italic">{t('unknownChannels')}</span>}
+              {channels.length > 0 ? channels.join(' · ') : <span className="italic">{t('unknownChannels')}</span>}
             </span>
           </div>
 
