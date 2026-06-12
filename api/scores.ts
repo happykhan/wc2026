@@ -1,28 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { list } from '@vercel/blob';
 
 // ---------------------------------------------------------------------------
 // /api/scores — reads the pre-computed scores blob written by /api/poll.
 //
-// This endpoint makes NO upstream API call, ever. The live APIs are only hit by
-// /api/poll (cron + secret + adaptive throttle), so no amount of user or test
-// traffic can spend the API-Football daily quota. Shape is unchanged for the
-// client: { live, matches, standings }.
+// Fetches the blob's FIXED public URL directly (a plain GET — NOT a metered
+// Blob "advanced operation"). No list() — list/put are the only ops that count
+// against the free Blob quota, so this endpoint costs nothing there no matter
+// how much traffic it gets. Makes zero live-API calls. Shape unchanged:
+//   { live, matches, standings }
 // ---------------------------------------------------------------------------
 
-const BLOB_PATH = 'scores.json';
+const BLOB_SCORES_URL = 'https://7sf2hc7k23vnev4a.public.blob.vercel-storage.com/scores.json';
 const EMPTY_RESPONSE = { live: false, matches: [], standings: [] };
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
-    const { blobs } = await list({ prefix: BLOB_PATH });
-    const blob = blobs.find((b) => b.pathname === BLOB_PATH);
-    if (!blob) {
-      // Poller hasn't run yet — short cache so we pick it up soon.
-      res.setHeader('Cache-Control', 'public, max-age=30');
-      return res.status(200).json(EMPTY_RESPONSE);
-    }
-    const r = await fetch(blob.url, { cache: 'no-store' });
+    const r = await fetch(`${BLOB_SCORES_URL}?t=${Math.floor(Date.now() / 30000)}`);
     if (!r.ok) {
       res.setHeader('Cache-Control', 'public, max-age=30');
       return res.status(200).json(EMPTY_RESPONSE);

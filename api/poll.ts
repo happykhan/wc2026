@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { put, list } from '@vercel/blob';
+import { put } from '@vercel/blob';
 
 // ---------------------------------------------------------------------------
 // /api/poll — the ONLY thing that ever calls the live data sources. A cron hits
@@ -22,6 +22,7 @@ const FD_URL = 'https://api.football-data.org/v4/competitions/WC/matches';
 const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 const AFL_LIVE_URL = 'https://v3.football.api-sports.io/fixtures?live=all';
 const BLOB_PATH = 'scores.json';
+const BLOB_SCORES_URL = 'https://7sf2hc7k23vnev4a.public.blob.vercel-storage.com/scores.json';
 const LIVE_WINDOW_MIN = 150;
 const DAILY_SCORE_BUDGET = 70;
 const MIN_GAP_MIN = 2;
@@ -115,12 +116,10 @@ async function fetchEspnDates(dates: string[]): Promise<EspnEvent[]> {
   return out;
 }
 
+// Read via the FIXED public URL — a plain GET, not a metered list() op.
 async function readBlob(): Promise<StoredScores | null> {
   try {
-    const { blobs } = await list({ prefix: BLOB_PATH });
-    const b = blobs.find((x) => x.pathname === BLOB_PATH);
-    if (!b) return null;
-    const r = await fetch(b.url, { cache: 'no-store' });
+    const r = await fetch(`${BLOB_SCORES_URL}?t=${Date.now()}`, { cache: 'no-store' });
     if (!r.ok) return null;
     return (await r.json()) as StoredScores;
   } catch {
@@ -212,20 +211,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 2. PRIMARY live overlay: ESPN (free, uncapped) — only when needed.
   let usedEspn = false;
-  let espnCount = 0;
-  let espnMatched = 0;
-  const espnSample: string[] = [];
   if (needDates.size > 0) {
     try {
       const events = await fetchEspnDates([...needDates]);
-      espnCount = events.length;
       const byPair = new Map<string, { ev: EspnEvent; hName?: string; hScore: number; aScore: number }>();
       for (const ev of events) {
         const comp = ev.competitions?.[0];
         const h = comp?.competitors?.find((c) => c.homeAway === 'home');
         const a = comp?.competitors?.find((c) => c.homeAway === 'away');
         if (!h?.team?.displayName || !a?.team?.displayName) continue;
-        if (espnSample.length < 4) espnSample.push(`${h.team.displayName} ${h.score}-${a.score} ${a.team.displayName} [${ev.status?.type?.name}]`);
         byPair.set(pairKey(h.team.displayName, a.team.displayName), {
           ev, hName: h.team.displayName,
           hScore: parseInt(h.score ?? '', 10), aScore: parseInt(a.score ?? '', 10),
@@ -244,7 +238,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
         m.espnEventId = hit.ev.id;
         usedEspn = true;
-        espnMatched++;
       }
     } catch { /* ESPN best-effort; fall through to fallbacks */ }
   }
@@ -317,28 +310,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const live = matches.some((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED');
-  const data: StoredScores = {
-    updatedAt: new Date(nowMs).toISOString(),
-    lastAflFetch,
-    live,
-    matches,
-    standings: [],
-  };
 
-  await put(BLOB_PATH, JSON.stringify(data), {
-    access: 'public',
-    addRandomSuffix: false,
-    contentType: 'application/json',
-    cacheControlMaxAge: 30,
-    allowOverwrite: true,
-  });
+  // put() is a metered Blob op, so only WRITE when something meaningful changed
+  // (a score, a status, or the live minute — and the minute at most every 5 min).
+  // Idle ticks already returned early above, so this keeps Blob writes to a
+  // trickle even during matches.
+  const sig = (ms: FDMatch[] | undefined) =>
+    JSON.stringify((ms ?? []).map((m) => [m.id, m.status, m.score?.fullTime?.home ?? null, m.score?.fullTime?.away ?? null, m.minute ?? null]));
+  const scoreSig = (ms: FDMatch[] | undefined) =>
+    JSON.stringify((ms ?? []).map((m) => [m.id, m.status, m.score?.fullTime?.home ?? null, m.score?.fullTime?.away ?? null]));
+  const lastPutMs = prior?.updatedAt ? Date.parse(prior.updatedAt) : 0;
+  const scoreChanged = !prior || scoreSig(matches) !== scoreSig(prior.matches);
+  const minuteStale = live && nowMs - lastPutMs > 5 * 60000 && sig(matches) !== sig(prior?.matches);
+  const wrote = scoreChanged || minuteStale;
 
-  const opener = matches.find((m) => /mexico/i.test(m.homeTeam?.name ?? ''));
+  if (wrote) {
+    const data: StoredScores = { updatedAt: new Date(nowMs).toISOString(), lastAflFetch, live, matches, standings: [] };
+    await put(BLOB_PATH, JSON.stringify(data), {
+      access: 'public', addRandomSuffix: false, contentType: 'application/json',
+      cacheControlMaxAge: 30, allowOverwrite: true,
+    });
+  }
+
   res.setHeader('Cache-Control', 'no-store');
   return res.status(200).json({
-    ok: true, usedEspn, espnDates: [...needDates], espnCount, espnMatched, espnSample,
-    didAfl, rateLimited, anyLive, gapMin: Math.round(gapMin * 10) / 10, live,
-    matchCount: matches.length, updatedAt: data.updatedAt,
-    openerSample: opener ? { status: opener.status, score: opener.score?.fullTime, espnEventId: opener.espnEventId } : null,
+    ok: true, wrote, scoreChanged, minuteStale, usedEspn, didAfl, rateLimited, anyLive,
+    live, matchCount: matches.length, updatedAt: (wrote ? new Date(nowMs).toISOString() : prior?.updatedAt) ?? null,
   });
 }
