@@ -91,24 +91,31 @@ type DetailTab = 'h2h' | 'lineups' | 'stats' | 'timeline';
 // ---------------------------------------------------------------------------
 
 function StatusBadge({ status, minute, minuteAt, t }: { status: Match['status']; minute?: number; minuteAt?: number; t: (k: TranslationKey) => string }) {
-  // Advance the live clock locally from the captured minute so it keeps ticking
-  // between the poller's (Blob-throttled) writes instead of looking frozen.
+  // Run a live MM:SS clock that ticks every second. The feed only carries whole
+  // minutes (ESPN's clock is minute-granular), so we extrapolate the seconds from
+  // when the minute was captured. +30s centres the unavoidable 0–60s sampling lag
+  // (otherwise the badge always trails the TV clock); the 120s cap stops a stalled
+  // poller from letting the clock run away.
   const [, tick] = useState(0);
   useEffect(() => {
     if (status !== 'live') return;
-    const id = setInterval(() => tick((n) => n + 1), 20000);
+    const id = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, [status]);
 
   if (status === 'live') {
-    const shown =
-      minute != null && minuteAt
-        ? minute + Math.min(Math.floor((Date.now() - minuteAt) / 60000), 8)
-        : minute;
+    let label: string;
+    if (minute != null && minuteAt) {
+      const ext = Math.min(Math.max(0, Date.now() - minuteAt), 120_000);
+      const sec = Math.round(minute * 60 + ext / 1000 + 30);
+      label = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    } else {
+      label = minute != null ? `${minute}'` : t('live');
+    }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white animate-pulse">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white animate-pulse tabular-nums">
         <span className="w-1.5 h-1.5 rounded-full bg-white" />
-        {shown != null ? `${shown}'` : t('live')}
+        {label}
       </span>
     );
   }
