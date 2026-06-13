@@ -89,7 +89,15 @@ async function main() {
     const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
     const haveEspn = !!m.espnEventId || !!p?.espnEventId;
     const justEnded = now > k + LIVE_WINDOW_MIN * 60000 && now <= k + (LIVE_WINDOW_MIN + 60) * 60000 && (!haveFinal || !haveEspn);
-    if (liveNow || justEnded) needDates.add(m.utcDate.slice(0, 10).replace(/-/g, ''));
+    // ESPN files each game under its US-LOCAL date, not UTC — a 01:00 UTC kickoff
+    // (US evening) is listed under the PREVIOUS calendar day. So fetch the match's
+    // UTC date ±1 day; team-pair matching ignores the extra events harmlessly.
+    if (liveNow || justEnded) {
+      for (const off of [-1, 0, 1]) {
+        const dt = new Date(k + off * 86400000);
+        needDates.add(`${dt.getUTCFullYear()}${String(dt.getUTCMonth() + 1).padStart(2, '0')}${String(dt.getUTCDate()).padStart(2, '0')}`);
+      }
+    }
   }
 
   let usedEspn = false;
