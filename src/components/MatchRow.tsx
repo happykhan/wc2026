@@ -9,6 +9,7 @@ import { isKnockoutTeam } from '../data/processFixtures';
 import { getTeamFlag } from '../data/teamFlags';
 import type { TranslationKey } from '../data/i18n';
 import { formatMatchTime, formatMatchDate, secondsUntil, formatCountdown } from '../utils/time';
+import { liveClockLabel } from '../utils/liveClock';
 
 interface MatchRowProps {
   match: Match;
@@ -105,14 +106,12 @@ function StatusBadge({ status, minute, minuteAt, t }: { status: Match['status'];
   }, [status]);
 
   if (status === 'live') {
-    let label: string;
-    if (minute != null && minuteAt) {
-      const ext = Math.min(Math.max(0, Date.now() - minuteAt), 900_000);
-      const sec = Math.round(minute * 60 + ext / 1000 + 30);
-      label = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-    } else {
-      label = minute != null ? `${minute}'` : t('live');
-    }
+    const label =
+      minute != null && minuteAt
+        ? liveClockLabel(minute, minuteAt, Date.now())
+        : minute != null
+          ? `${minute}'`
+          : t('live');
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500 text-white animate-pulse tabular-nums">
         <span className="w-1.5 h-1.5 rounded-full bg-white" />

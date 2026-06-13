@@ -5,6 +5,7 @@
 // Replaces the Vercel Blob cache — no metered service, unlimited local writes.
 import fs from 'fs';
 import path from 'path';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings } from './pollerLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -38,26 +39,6 @@ function buildBase() {
   });
 }
 
-const TEAM_ALIASES = {
-  czechrepublic: 'czechia', capeverdeislands: 'capeverde', congodr: 'drcongo',
-  curacoa: 'curacao', curaao: 'curacao', unitedstates: 'usa',
-  korearepublic: 'southkorea', iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire',
-};
-const norm = (s) => { const n = (s || '').toLowerCase().replace(/[^a-z]/g, ''); return TEAM_ALIASES[n] ?? n; };
-const pairKey = (a, b) => [norm(a), norm(b)].sort().join('|');
-const hasScore = (s) => !!s?.fullTime && (s.fullTime.home != null || s.fullTime.away != null);
-
-const espnStatus = (ev) => {
-  const t = ev.status?.type; if (!t) return null;
-  // Right at the whistle ESPN reports state='in' + name=STATUS_FULL_TIME for a
-  // minute or two before flipping to state='post' — treat those as finished so
-  // the live clock stops immediately instead of ticking past the final whistle.
-  if (t.state === 'post' || t.completed || /FULL_TIME|FINAL|\bFT\b|ENDED|AFTER_/i.test(t.name || '')) return 'FINISHED';
-  if (t.state === 'in') return t.name === 'STATUS_HALFTIME' ? 'PAUSED' : 'IN_PLAY';
-  return null;
-};
-const espnMinute = (ev) => { const m = ev.status?.displayClock?.match(/(\d+)/); return m ? parseInt(m[1], 10) : null; };
-
 function readPrior() { try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { return null; } }
 
 async function fetchEspnDates(dates) {
@@ -89,15 +70,9 @@ async function main() {
     const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
     const haveEspn = !!m.espnEventId || !!p?.espnEventId;
     const justEnded = now > k + LIVE_WINDOW_MIN * 60000 && now <= k + (LIVE_WINDOW_MIN + 60) * 60000 && (!haveFinal || !haveEspn);
-    // ESPN files each game under its US-LOCAL date, not UTC — a 01:00 UTC kickoff
-    // (US evening) is listed under the PREVIOUS calendar day. So fetch the match's
-    // UTC date ±1 day; team-pair matching ignores the extra events harmlessly.
-    if (liveNow || justEnded) {
-      for (const off of [-1, 0, 1]) {
-        const dt = new Date(k + off * 86400000);
-        needDates.add(`${dt.getUTCFullYear()}${String(dt.getUTCMonth() + 1).padStart(2, '0')}${String(dt.getUTCDate()).padStart(2, '0')}`);
-      }
-    }
+    // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
+    // ±1 day; team-pair matching ignores the extra events harmlessly.
+    if (liveNow || justEnded) for (const d of espnDateStrings(k)) needDates.add(d);
   }
 
   let usedEspn = false;

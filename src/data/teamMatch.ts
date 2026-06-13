@@ -16,7 +16,9 @@ export const TEAM_ALIASES: Record<string, string> = {
   unitedstates: 'usa',             // feed "United States" ↔ our "USA"
   korearepublic: 'southkorea',     // defensive (ESPN naming)
   iranislamicrepublic: 'iran',
-  ivorycoast: 'cotedivoire',       // ↔ ESPN "Côte d'Ivoire"
+  ivorycoast: 'cotedivoire',       // our "Ivory Coast"
+  ctedivoire: 'cotedivoire',       // ESPN "Côte d'Ivoire" — accents are stripped to
+                                   // "ctedivoire", which must fold to the same token
 };
 
 export function normTeam(name: string | null | undefined): string {

@@ -63,7 +63,7 @@ interface WCScoresResponse {
   standings: unknown[];
 }
 
-function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['status'] {
+export function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['status'] {
   if (fdStatus === 'IN_PLAY') {
     // Treat the pause around 45 min as half-time
     return minute !== undefined && minute !== null && minute >= 45 && minute <= 50 ? 'ht' : 'live';
