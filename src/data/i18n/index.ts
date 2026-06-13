@@ -1,9 +1,10 @@
 import type { Locale } from 'date-fns';
-import { enUS, fr as frLocale, es as esLocale, de as deLocale } from 'date-fns/locale';
+import { enUS, fr as frLocale, es as esLocale, de as deLocale, ptBR as ptLocale } from 'date-fns/locale';
 import { en } from './en';
 import { fr } from './fr';
 import { es } from './es';
 import { de } from './de';
+import { pt } from './pt';
 
 export type TranslationKey = keyof typeof en;
 
@@ -26,6 +27,7 @@ export const LANGUAGES: LanguageDef[] = [
   { code: 'fr', label: 'Français', translations: fr, dateLocale: frLocale },
   { code: 'es', label: 'Español', translations: es, dateLocale: esLocale },
   { code: 'de', label: 'Deutsch', translations: de, dateLocale: deLocale },
+  { code: 'pt', label: 'Português', translations: pt, dateLocale: ptLocale },
 ];
 
 const byCode = new Map(LANGUAGES.map((l) => [l.code, l]));
