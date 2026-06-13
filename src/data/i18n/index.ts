@@ -1,5 +1,5 @@
 import type { Locale } from 'date-fns';
-import { enUS, fr as frLocale, es as esLocale, de as deLocale, ptBR as ptLocale, it as itLocale, ja as jaLocale, ko as koLocale } from 'date-fns/locale';
+import { enUS, fr as frLocale, es as esLocale, de as deLocale, ptBR as ptLocale, it as itLocale, ja as jaLocale, ko as koLocale, ar as arLocale } from 'date-fns/locale';
 import { en } from './en';
 import { fr } from './fr';
 import { es } from './es';
@@ -8,6 +8,7 @@ import { pt } from './pt';
 import { it } from './it';
 import { ja } from './ja';
 import { ko } from './ko';
+import { ar } from './ar';
 
 export type TranslationKey = keyof typeof en;
 
@@ -23,6 +24,8 @@ export interface LanguageDef {
   label: string;
   translations: typeof en;
   dateLocale: Locale;
+  /** Right-to-left script (Arabic, …) — the app flips `dir` on <html>. */
+  rtl?: boolean;
 }
 
 export const LANGUAGES: LanguageDef[] = [
@@ -34,6 +37,7 @@ export const LANGUAGES: LanguageDef[] = [
   { code: 'it', label: 'Italiano', translations: it, dateLocale: itLocale },
   { code: 'ja', label: '日本語', translations: ja, dateLocale: jaLocale },
   { code: 'ko', label: '한국어', translations: ko, dateLocale: koLocale },
+  { code: 'ar', label: 'العربية', translations: ar, dateLocale: arLocale, rtl: true },
 ];
 
 const byCode = new Map(LANGUAGES.map((l) => [l.code, l]));
@@ -46,6 +50,11 @@ export function getTranslations(lang: string): typeof en {
 
 export function getDateLocale(lang: string): Locale {
   return resolve(lang).dateLocale;
+}
+
+/** Whether the language uses a right-to-left script (e.g. Arabic). */
+export function isRtlLanguage(lang: string): boolean {
+  return resolve(lang).rtl ?? false;
 }
 
 export { en };

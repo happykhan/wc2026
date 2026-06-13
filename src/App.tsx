@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePreferences } from './hooks/usePreferences';
 import { useTheme } from './hooks/useTheme';
 import { useLiveScores } from './hooks/useLiveScores';
 import { processedMatches } from './data/processFixtures';
-import { getTranslations } from './data/i18n';
+import { getTranslations, isRtlLanguage } from './data/i18n';
 import { Header } from './components/Header';
 import { Schedule } from './pages/Schedule';
 import { Groups } from './pages/Groups';
@@ -50,6 +50,12 @@ export default function App() {
   const t = useMemo(() => {
     const translations = getTranslations(prefs.language);
     return (key: keyof typeof translations) => translations[key] ?? key;
+  }, [prefs.language]);
+
+  // Flip the document direction for right-to-left languages (Arabic).
+  useEffect(() => {
+    document.documentElement.dir = isRtlLanguage(prefs.language) ? 'rtl' : 'ltr';
+    document.documentElement.lang = prefs.language.split('-')[0].toLowerCase();
   }, [prefs.language]);
 
   return (
