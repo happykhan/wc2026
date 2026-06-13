@@ -27,6 +27,20 @@ const COMMON_TIMEZONES = [
   'Pacific/Auckland',
 ];
 
+// Current UTC offset (minutes) for a zone, so the picker can sort west→east
+// instead of by an arbitrary array order.
+function tzOffsetMinutes(tz: string): number {
+  try {
+    const parts = new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'shortOffset' }).formatToParts(new Date());
+    const name = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+0';
+    const m = name.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!m) return 0;
+    return (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + (m[3] ? parseInt(m[3], 10) : 0));
+  } catch {
+    return 0;
+  }
+}
+
 const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'fr', label: 'Français' },
@@ -155,9 +169,12 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
           <option value={prefs.timezone}>
             {timezoneLabel(prefs.timezone, prefs.language)} · {t('currentTimezone')}
           </option>
-          {COMMON_TIMEZONES.filter((tz) => tz !== prefs.timezone).map((tz) => (
-            <option key={tz} value={tz}>{timezoneLabel(tz, prefs.language)}</option>
-          ))}
+          {COMMON_TIMEZONES
+            .filter((tz) => tz !== prefs.timezone)
+            .sort((a, b) => tzOffsetMinutes(a) - tzOffsetMinutes(b))
+            .map((tz) => (
+              <option key={tz} value={tz}>{timezoneLabel(tz, prefs.language)}</option>
+            ))}
         </select>
       </Section>
 
