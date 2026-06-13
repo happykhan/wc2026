@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { normTeam } from '../src/data/teamMatch';
 
 // ---------------------------------------------------------------------------
 // /api/share — per-match share page (reached via the /match/:id rewrite).
@@ -26,6 +25,26 @@ function esc(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// Vercel bundles each serverless function in isolation, so it can't import the
+// frontend's canonical map (src/data/teamMatch) at runtime — this is a self-
+// contained mirror. aliasParity.test.ts asserts it stays identical to the others.
+export const TEAM_ALIASES: Record<string, string> = {
+  czechrepublic: 'czechia',
+  capeverdeislands: 'capeverde',
+  congodr: 'drcongo',
+  curacoa: 'curacao',
+  curaao: 'curacao',
+  unitedstates: 'usa',
+  korearepublic: 'southkorea',
+  iranislamicrepublic: 'iran',
+  ivorycoast: 'cotedivoire',
+  ctedivoire: 'cotedivoire',
+};
+function normTeam(s: string): string {
+  const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');
+  return TEAM_ALIASES[n] ?? n;
 }
 
 interface ScoreInfo { sh: number | null; sa: number | null; label: string; live: boolean }

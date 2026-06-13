@@ -1,14 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { TEAM_ALIASES, normTeam } from './teamMatch';
 import { TEAM_ALIASES as POLLER_ALIASES, norm as pollerNorm } from '../../scripts/pollerLib.mjs';
+import { TEAM_ALIASES as SHARE_ALIASES } from '../../api/share';
 
-// The team-alias map is mirrored across two runtimes: the bundled frontend
-// (teamMatch.ts) and the raw-node VM poller (pollerLib.mjs). They cannot share a
-// module, so this test fails the build if they ever drift — the exact class of
-// bug that caused the Czechia / Cape Verde score-merge failures.
+// The team-alias map is mirrored across three runtimes that can't share a module:
+// the bundled frontend (teamMatch.ts), the raw-node VM poller (pollerLib.mjs), and
+// the isolated Vercel function (api/share.ts). This test fails the build if any of
+// them drift — the exact class of bug that caused the Czechia / Cape Verde / Côte
+// d'Ivoire score-merge failures.
 describe('team-alias parity across runtimes', () => {
-  it('the frontend and poller alias maps are identical', () => {
+  it('poller and share maps are identical to the canonical frontend map', () => {
     expect(POLLER_ALIASES).toEqual(TEAM_ALIASES);
+    expect(SHARE_ALIASES).toEqual(TEAM_ALIASES);
   });
 
   it('both implementations normalise the same way', () => {
