@@ -73,3 +73,21 @@ export function getTeamFlag(teamName: string): string {
   if (!iso) return '';
   return isoToFlag(iso);
 }
+
+// Localised display name for a national team. English keeps the curated short
+// names used everywhere else (USA, DR Congo, South Korea); other languages use
+// the platform's Intl region names (USA → Estados Unidos, Curaçao → Curazao).
+// England & Scotland share the GB code, so Intl would mislabel them — keep their
+// own names. Group names ("Group A") are NOT team names and stay English.
+export function localizedTeamName(teamName: string, language: string): string {
+  const lang = (language || 'en').slice(0, 2).toLowerCase();
+  if (lang === 'en') return teamName;
+  if (teamName === 'England' || teamName === 'Scotland') return teamName;
+  const iso = teamISOCodes[teamName];
+  if (!iso) return teamName;
+  try {
+    return new Intl.DisplayNames([language], { type: 'region' }).of(iso) ?? teamName;
+  } catch {
+    return teamName;
+  }
+}

@@ -60,7 +60,7 @@ export const es = {
   countryAndTv: 'País y canales de TV',
   countryLabel: 'Tu país (configura la información de canales de TV)',
   currentTimezone: 'actual',
-  followTeamDescription: 'Elige un equipo para marcar automáticamente todos sus partidos y aplicar un tema de colores a juego.',
+  followTeamDescription: 'Elige un equipo para marcar automáticamente todos sus partidos.',
   selectTeam: 'Selecciona un equipo...',
   searchTeamsPlaceholder: 'Buscar equipos…',
   themeDefault: 'Por defecto',

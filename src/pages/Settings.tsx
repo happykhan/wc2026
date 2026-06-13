@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { UserPreferences } from '../types';
 import { THEMES } from '../data/teamColors';
-import { getTeamFlag } from '../data/teamFlags';
+import { getTeamFlag, localizedTeamName } from '../data/teamFlags';
 import { allTeams } from '../data/processFixtures';
 import type { Match } from '../types';
 import type { TranslationKey } from '../data/i18n';
@@ -121,18 +121,20 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
   // Teams for the theme picker: only those we have colours for, starred ones first
   // (for quick access — nothing auto-applies), then alphabetical, filtered by search.
   const starred = new Set(prefs.favouriteTeams);
+  const teamLabel = (tm: string) => localizedTeamName(tm, prefs.language);
   const themeTeams = allTeams
     .filter((tm) => THEMES[tm])
     .sort((a, b) => {
       const sa = starred.has(a) ? 0 : 1;
       const sb = starred.has(b) ? 0 : 1;
       if (sa !== sb) return sa - sb;
-      return (THEMES[a]?.name ?? a).localeCompare(THEMES[b]?.name ?? b);
+      return teamLabel(a).localeCompare(teamLabel(b));
     })
     .filter((tm) => {
       const q = themeQuery.trim().toLowerCase();
       if (!q) return true;
-      return (THEMES[tm]?.name ?? tm).toLowerCase().includes(q) || tm.toLowerCase().includes(q);
+      // Match the localised label, the English label, and the raw key.
+      return teamLabel(tm).toLowerCase().includes(q) || tm.toLowerCase().includes(q);
     });
 
   return (
@@ -210,9 +212,11 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
             className="select-field"
           >
             <option value="">{t('selectTeam')}</option>
-            {allTeams.map((team) => (
-              <option key={team} value={team}>{team}</option>
-            ))}
+            {[...allTeams]
+              .sort((a, b) => localizedTeamName(a, prefs.language).localeCompare(localizedTeamName(b, prefs.language)))
+              .map((team) => (
+                <option key={team} value={team}>{localizedTeamName(team, prefs.language)}</option>
+              ))}
           </select>
           {followedTeams.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -221,7 +225,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
                   key={team}
                   className="inline-flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-medium"
                 >
-                  ★ {team}
+                  ★ {localizedTeamName(team, prefs.language)}
                   <button
                     onClick={() => handleUnfollowTeam(team)}
                     aria-label={`${t('unfollowTeam')} ${team}`}
@@ -266,7 +270,7 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
                 key={team}
                 themeKey={team}
                 flag={getTeamFlag(team)}
-                label={THEMES[team]?.name ?? team}
+                label={localizedTeamName(team, prefs.language)}
                 active={prefs.teamTheme === team}
                 onClick={() => setPrefs({ teamTheme: team })}
               />
