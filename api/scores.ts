@@ -15,13 +15,13 @@ const EMPTY_RESPONSE = { live: false, matches: [], standings: [] };
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
-    const r = await fetch(`${VM_SCORES_URL}?t=${Math.floor(Date.now() / 30000)}`);
+    const r = await fetch(`${VM_SCORES_URL}?t=${Math.floor(Date.now() / 15000)}`);
     if (!r.ok) {
       res.setHeader('Cache-Control', 'public, max-age=30');
       return res.status(200).json(EMPTY_RESPONSE);
     }
     const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string };
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120');
+    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=20, stale-while-revalidate=40');
     return res.status(200).json({ live: data.live ?? false, matches: data.matches ?? [], standings: [], updatedAt: data.updatedAt });
   } catch {
     res.setHeader('Cache-Control', 'public, max-age=30');

@@ -3,7 +3,7 @@ import { normTeam } from '../data/teamMatch';
 
 // Poll intervals: faster when spoilers are on (user wants live info),
 // slower otherwise to be polite to the API.
-const POLL_ACTIVE = 60_000;    // 60 s — matches in progress or spoilers enabled
+const POLL_ACTIVE = 25_000;    // 25 s — a match is in progress (goals show fast)
 const POLL_IDLE   = 5 * 60_000; // 5 min — spoilers off / no live action
 
 export interface LiveScore {
