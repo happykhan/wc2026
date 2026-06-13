@@ -62,6 +62,7 @@ export const en = {
   currentTimezone: 'current',
   followTeamDescription: 'Pick a team to automatically star all their matches and apply a matching colour theme.',
   selectTeam: 'Select a team...',
+  searchTeamsPlaceholder: 'Search teams…',
   themeDefault: 'Default',
   themeRedWhite: 'Red & White',
   themeBlueWhite: 'Blue & White',

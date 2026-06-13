@@ -62,6 +62,7 @@ export const es = {
   currentTimezone: 'actual',
   followTeamDescription: 'Elige un equipo para marcar automáticamente todos sus partidos y aplicar un tema de colores a juego.',
   selectTeam: 'Selecciona un equipo...',
+  searchTeamsPlaceholder: 'Buscar equipos…',
   themeDefault: 'Por defecto',
   themeRedWhite: 'Rojo y blanco',
   themeBlueWhite: 'Azul y blanco',

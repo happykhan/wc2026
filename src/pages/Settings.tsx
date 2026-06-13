@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { UserPreferences } from '../types';
-import { THEMES, getThemeForTeam } from '../data/teamColors';
+import { THEMES } from '../data/teamColors';
+import { getTeamFlag } from '../data/teamFlags';
 import { allTeams } from '../data/processFixtures';
 import type { Match } from '../types';
 import type { TranslationKey } from '../data/i18n';
@@ -46,18 +47,6 @@ function localizedCountry(code: string, language: string, fallback: string): str
   }
 }
 
-// Theme colour names are translated via i18n keys (Intl can't help here).
-const THEME_LABEL_KEYS: Record<string, TranslationKey> = {
-  'red-white': 'themeRedWhite',
-  'blue-white': 'themeBlueWhite',
-  'green-gold': 'themeGreenGold',
-  'yellow-blue': 'themeYellowBlue',
-  'orange-black': 'themeOrangeBlack',
-  'tricolor': 'themeTricolour',
-  'green-white': 'themeGreenWhite',
-  'white-dark': 'themeWhiteDark',
-};
-
 // Localized city names for timezones where the city differs by language.
 // Anything not listed falls back to the de-underscored IANA city name.
 const TZ_CITY: Record<string, Partial<Record<string, string>>> = {
@@ -91,13 +80,13 @@ function timezoneLabel(tz: string, language: string): string {
 }
 
 export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t, isClubComp = false }: SettingsProps) {
+  const [themeQuery, setThemeQuery] = useState('');
+
   const handleFollowTeam = (team: string) => {
     const matchIds = matches
       .filter((m) => m.team1 === team || m.team2 === team)
       .map((m) => m.id);
     followTeam(team, matchIds);
-    const theme = getThemeForTeam(team);
-    setPrefs({ teamTheme: theme });
   };
 
   const handleUnfollowTeam = (team: string) => {
@@ -114,6 +103,23 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
       .map((m) => m.id);
     return teamMatchIds.some((id) => prefs.favouriteMatches.includes(id));
   });
+
+  // Teams for the theme picker: only those we have colours for, starred ones first
+  // (for quick access — nothing auto-applies), then alphabetical, filtered by search.
+  const starred = new Set(prefs.favouriteTeams);
+  const themeTeams = allTeams
+    .filter((tm) => THEMES[tm])
+    .sort((a, b) => {
+      const sa = starred.has(a) ? 0 : 1;
+      const sb = starred.has(b) ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return (THEMES[a]?.name ?? a).localeCompare(THEMES[b]?.name ?? b);
+    })
+    .filter((tm) => {
+      const q = themeQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (THEMES[tm]?.name ?? tm).toLowerCase().includes(q) || tm.toLowerCase().includes(q);
+    });
 
   return (
     <div className="max-w-lg space-y-6">
@@ -217,25 +223,42 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
         </Section>
       )}
 
-      {/* Team theme — WC only */}
+      {/* Team theme — WC only. Pick a nation to recolour the app in their kit. */}
       {!isClubComp && (
         <Section title={t('teamTheme')}>
-          <div className="grid grid-cols-3 gap-2">
-            <ThemeCard
-              themeKey="default"
-              label={t('themeDefault')}
-              active={!prefs.teamTheme || prefs.teamTheme === 'default'}
-              onClick={() => setPrefs({ teamTheme: null })}
-            />
-            {Object.entries(THEMES).filter(([k]) => k !== 'default').map(([key, theme]) => (
+          <input
+            type="search"
+            value={themeQuery}
+            onChange={(e) => setThemeQuery(e.target.value)}
+            placeholder={t('searchTeamsPlaceholder')}
+            aria-label={t('searchTeamsPlaceholder')}
+            className="select-field mb-2"
+          />
+          <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
+            {!themeQuery.trim() && (
               <ThemeCard
-                key={key}
-                themeKey={key}
-                label={THEME_LABEL_KEYS[key] ? t(THEME_LABEL_KEYS[key]) : theme.name}
-                active={prefs.teamTheme === key}
-                onClick={() => setPrefs({ teamTheme: key })}
+                themeKey="default"
+                flag="🎨"
+                label={t('themeDefault')}
+                active={!prefs.teamTheme || prefs.teamTheme === 'default'}
+                onClick={() => setPrefs({ teamTheme: null })}
+              />
+            )}
+            {themeTeams.map((team) => (
+              <ThemeCard
+                key={team}
+                themeKey={team}
+                flag={getTeamFlag(team)}
+                label={THEMES[team]?.name ?? team}
+                active={prefs.teamTheme === team}
+                onClick={() => setPrefs({ teamTheme: team })}
               />
             ))}
+            {themeTeams.length === 0 && (
+              <p className="col-span-3 py-4 text-center text-sm text-neutral-400 dark:text-neutral-500">
+                {t('noMatches')}
+              </p>
+            )}
           </div>
         </Section>
       )}
@@ -255,8 +278,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ThemeCard({ themeKey, label, active, onClick }: {
+// Pure white reads as an invisible swatch on the (white) card — wash it to a
+// light grey so the kit colour is still visible.
+function washWhite(hex: string): string {
+  const h = hex.toLowerCase();
+  return h === '#ffffff' || h === '#fff' ? '#e5e7eb' : hex;
+}
+
+function ThemeCard({ themeKey, flag, label, active, onClick }: {
   themeKey: string;
+  flag?: string;
   label: string;
   active: boolean;
   onClick: () => void;
@@ -266,19 +297,20 @@ function ThemeCard({ themeKey, label, active, onClick }: {
     <button
       onClick={onClick}
       className={[
-        'flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-colors text-xs font-medium',
+        'flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-colors text-xs font-medium',
         active
           ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
           : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-300 dark:hover:border-neutral-600',
       ].join(' ')}
     >
+      <span className="text-xl leading-none h-6 flex items-center" aria-hidden="true">{flag || '🎨'}</span>
       {/* Split swatch: left half = home kit, right half = away kit */}
       <div
-        className="w-10 h-5 rounded-full overflow-hidden flex"
+        className="w-10 h-4 rounded-full overflow-hidden flex ring-1 ring-black/5 dark:ring-white/10"
         title={`Home: ${theme.primary} / Away: ${theme.away ?? theme.secondary}`}
       >
-        <div className="w-1/2 h-full" style={{ background: theme.primary }} />
-        <div className="w-1/2 h-full" style={{ background: theme.away ?? (theme.secondary === '#ffffff' ? '#e5e7eb' : theme.secondary) }} />
+        <div className="w-1/2 h-full" style={{ background: washWhite(theme.primary) }} />
+        <div className="w-1/2 h-full" style={{ background: washWhite(theme.away ?? theme.secondary) }} />
       </div>
       <span className="text-center leading-tight">{label}</span>
     </button>

@@ -62,6 +62,7 @@ export const fr = {
   currentTimezone: 'actuel',
   followTeamDescription: 'Choisissez une équipe pour mettre automatiquement en favori tous ses matchs et appliquer un thème de couleurs correspondant.',
   selectTeam: 'Sélectionnez une équipe...',
+  searchTeamsPlaceholder: 'Rechercher une équipe…',
   themeDefault: 'Par défaut',
   themeRedWhite: 'Rouge et blanc',
   themeBlueWhite: 'Bleu et blanc',
