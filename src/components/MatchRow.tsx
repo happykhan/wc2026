@@ -244,15 +244,10 @@ function CountdownInline({ utcDate, t }: { utcDate: Date; t: (k: TranslationKey)
 // regardless of which host the app was opened on.
 const CANONICAL_ORIGIN = 'https://worldcup.happykhan.com';
 
-function matchShareUrl(match: Match, timezone: string, language: string): string {
-  const params = new URLSearchParams({
-    h: match.team1,
-    a: match.team2,
-    s: match.group || match.round,
-    d: formatMatchDate(match.utcDate, timezone, language),
-    v: match.city || match.venue,
-  });
-  return `${CANONICAL_ORIGIN}/match/${match.id}?${params.toString()}`;
+// Clean shareable link — /api/share resolves the match details (teams, stage,
+// date, venue) from the build-time match-index by id, so no query string needed.
+function matchShareUrl(match: Match): string {
+  return `${CANONICAL_ORIGIN}/match/${match.id}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -279,7 +274,7 @@ function ShareButton({
     const date = formatMatchDate(match.utcDate, timezone, language);
     const title = `\u{1F3C6} ${match.team1} vs ${match.team2}`;
     const text = `Kicks off ${time} on ${date}`;
-    const url = matchShareUrl(match, timezone, language);
+    const url = matchShareUrl(match);
 
     if (navigator.share) {
       try {
@@ -338,7 +333,7 @@ function CopyButton({
   const handleCopy = useCallback(async () => {
     const time = formatMatchTime(match.utcDate, timezone, hour12);
     const date = formatMatchDate(match.utcDate, timezone, language);
-    const url = matchShareUrl(match, timezone, language);
+    const url = matchShareUrl(match);
     const summary = `\u{1F3C6} ${match.team1} vs ${match.team2}\nKicks off ${time} on ${date}\n${url}`;
     try {
       await navigator.clipboard.writeText(summary);
