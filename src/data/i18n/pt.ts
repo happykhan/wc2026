@@ -121,4 +121,9 @@ export const pt = {
   eventsNoData: 'Nenhum evento ainda',
   eventsError: 'Não foi possível carregar os eventos',
   about: 'Sobre',
+  aboutDescription: 'Um companheiro não oficial e sem anúncios para a Copa do Mundo da FIFA 2026. Inclui o calendário completo, placares ao vivo, escalações e estatísticas, e onde assistir, no seu fuso horário e idioma.',
+  aboutBuiltBy: 'Criado por',
+  aboutRole: 'cientista, desenvolvedor de software e fã de futebol',
+  aboutSource: 'Código no GitHub',
+  aboutDisclaimer: 'Código aberto (MIT). Não afiliado nem endossado pela FIFA.',
 };

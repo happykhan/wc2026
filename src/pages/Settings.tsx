@@ -287,12 +287,9 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
       {/* About */}
       <Section title={t('about')}>
         <div className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+          <p>{t('aboutDescription')}</p>
           <p>
-            An unofficial, ad-free companion for the FIFA World Cup 2026 — full schedule,
-            live scores, lineups &amp; stats, and where to watch, in your timezone and language.
-          </p>
-          <p>
-            Built by{' '}
+            {t('aboutBuiltBy')}{' '}
             <a
               href="https://happykhan.com"
               target="_blank"
@@ -300,17 +297,14 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
               className="font-semibold text-[var(--accent)] hover:underline"
             >
               Nabil-Fareed Alikhan
-            </a>{' '}
-            — a scientist and tinkerer who builds tools for fun.
+            </a>
+            , {t('aboutRole')}.
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 font-medium">
             <a href="https://happykhan.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">happykhan.com</a>
-            <a href="https://github.com/happykhan/wc2026" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">Source on GitHub</a>
+            <a href="https://github.com/happykhan/wc2026" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">{t('aboutSource')}</a>
           </div>
-          <p className="text-xs text-neutral-400 dark:text-neutral-500">
-            Open source (MIT). Live data from ESPN&apos;s public endpoints. Not affiliated with
-            or endorsed by FIFA.
-          </p>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500">{t('aboutDisclaimer')}</p>
         </div>
       </Section>
 

@@ -1,5 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { inferHour12FromLocale, inferCountryFromLocale, inferTimezone } from './usePreferences';
+import { inferHour12FromLocale, inferCountryFromLocale, inferTimezone, pickPreferredLanguage } from './usePreferences';
+
+describe('pickPreferredLanguage (browser language preference)', () => {
+  const supported = new Set(['en', 'fr', 'es', 'de', 'pt']);
+
+  it('picks the first supported language from the ordered list', () => {
+    expect(pickPreferredLanguage(['ja', 'pt-BR', 'en'], supported)).toBe('pt-BR');
+    expect(pickPreferredLanguage(['de-AT', 'en'], supported)).toBe('de-AT');
+  });
+
+  it('falls back to English when none are supported', () => {
+    expect(pickPreferredLanguage(['ja', 'ko', 'zh'], supported)).toBe('en');
+    expect(pickPreferredLanguage([], supported)).toBe('en');
+  });
+
+  it('matches on the base subtag', () => {
+    expect(pickPreferredLanguage(['fr-CA'], supported)).toBe('fr-CA');
+  });
+});
 
 // These cover the "automatic" browser-derived defaults — the bits that read from
 // Intl / navigator at first load (clock format, country, timezone). They were
