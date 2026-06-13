@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { X, Search, SlidersHorizontal } from 'lucide-react';
 import type { FilterState } from '../types';
 import type { TranslationKey } from '../data/i18n';
+import { localizedTeamName } from '../data/teamFlags';
 
 interface FilterBarProps {
   filters: FilterState;
   setFilters: (f: FilterState) => void;
   teams: string[];
   groups: string[];
+  language: string;
   t: (k: TranslationKey) => string;
   showFavouritesTab: boolean;
 }
@@ -15,7 +17,7 @@ interface FilterBarProps {
 const pill =
   'px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 border-none outline-none focus:outline-[var(--accent)] cursor-pointer';
 
-export function FilterBar({ filters, setFilters, teams, groups, t, showFavouritesTab }: FilterBarProps) {
+export function FilterBar({ filters, setFilters, teams, groups, language, t, showFavouritesTab }: FilterBarProps) {
   const [open, setOpen] = useState(false);
   const advancedCount = [filters.team, filters.group, filters.date].filter(Boolean).length;
   const hasActiveFilters = advancedCount > 0 || filters.favouritesOnly || filters.search;
@@ -89,7 +91,9 @@ export function FilterBar({ filters, setFilters, teams, groups, t, showFavourite
 
           <select value={filters.team} onChange={(e) => setFilters({ ...filters, team: e.target.value })} className={pill}>
             <option value="">{t('filterByTeam')}</option>
-            {teams.map((team) => <option key={team} value={team}>{team}</option>)}
+            {[...teams]
+              .sort((a, b) => localizedTeamName(a, language).localeCompare(localizedTeamName(b, language)))
+              .map((team) => <option key={team} value={team}>{localizedTeamName(team, language)}</option>)}
           </select>
 
           <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-neutral-100 dark:bg-neutral-800/80 text-neutral-700 dark:text-neutral-300 cursor-pointer">

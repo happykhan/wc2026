@@ -166,6 +166,7 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
           setFilters={setFilters}
           teams={allTeams}
           groups={allGroups}
+          language={prefs.language}
           t={t}
           showFavouritesTab={hasFavourites}
         />
