@@ -887,11 +887,13 @@ export function MatchRow({
     <div
       className={[
         'group flex flex-col gap-1.5',
-        'px-3 py-2 rounded-xl transition-colors',
+        'px-3 py-2 rounded-xl transition-all shadow-sm hover:shadow-md',
         isToday
-          ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/30'
+          ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/40'
           : 'bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800',
-        followedTeam ? 'border-l-[3px] border-l-[var(--accent)]' : '',
+        // Accent left edge threads the team colour through every card; a followed
+        // team gets the full-strength bar.
+        followedTeam ? 'border-l-[4px] border-l-[var(--accent)]' : 'border-l-[3px] border-l-[var(--accent)]/50',
         isFav ? 'ring-1 ring-amber-400' : '',
       ].join(' ')}
     >
@@ -944,7 +946,7 @@ export function MatchRow({
           {primaryChannel && (
             <>
               {(match.group || match.round || venueName) && <span aria-hidden="true">·</span>}
-              <span className="inline-flex items-center gap-1 font-semibold text-[var(--accent)] whitespace-nowrap">
+              <span className="inline-flex items-center gap-1 font-semibold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                 <Tv size={11} className="flex-shrink-0" />{primaryChannel}
               </span>
             </>

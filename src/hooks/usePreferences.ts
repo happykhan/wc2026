@@ -5,7 +5,7 @@ import type { CompetitionCode } from '../types';
 const STORAGE_KEY = 'wc2026_prefs';
 
 const defaults: UserPreferences = {
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  timezone: inferTimezone(),
   hour12: inferHour12FromLocale(),
   countryCode: inferCountryFromLocale(),
   language: navigator.language || 'en',
@@ -16,18 +16,26 @@ const defaults: UserPreferences = {
   competition: 'WC' as CompetitionCode,
 };
 
-// Default the clock format to whatever the user's locale/OS uses (e.g. 12-hour in
-// the US, 24-hour in the UK) — they can flip it with the toggle on the main page.
-function inferHour12FromLocale(): boolean {
+// The browser auto-detection helpers. Parameterised (with sensible runtime
+// defaults) so they can be unit-tested deterministically per locale.
+
+/** The browser/OS IANA timezone, e.g. "Europe/London". */
+export function inferTimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+// Default the clock format to whatever the locale/OS uses (12-hour in the US,
+// 24-hour in the UK) — they can flip it with the toggle on the main page.
+export function inferHour12FromLocale(locale?: string): boolean {
   try {
-    return new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12 ?? false;
+    return new Intl.DateTimeFormat(locale, { hour: 'numeric' }).resolvedOptions().hour12 ?? false;
   } catch {
     return false;
   }
 }
 
-function inferCountryFromLocale(): string {
-  const locale = navigator.language || 'en-GB';
+/** ISO 3166-1 alpha-2 region from a BCP-47 locale tag (defaults to GB). */
+export function inferCountryFromLocale(locale: string = navigator.language || 'en-GB'): string {
   const parts = locale.split('-');
   if (parts.length >= 2) {
     const code = parts[parts.length - 1].toUpperCase();

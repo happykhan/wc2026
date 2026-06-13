@@ -217,7 +217,8 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
 
             return (
               <div key={dateKey} className="space-y-2">
-                <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+                  <span className="inline-block w-1 h-3.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
                   {label}
                 </h3>
                 <div className="space-y-2">
