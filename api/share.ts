@@ -76,17 +76,38 @@ async function lookupScore(origin: string, home: string, away: string): Promise<
   }
 }
 
+// Resolve a match's details from the build-time static index by id, so a clean
+// /match/<id> link needs no query params. Old links that still carry h/a/s/d/v
+// keep working via the fallback below.
+async function lookupMatch(
+  origin: string,
+  id: string,
+): Promise<{ h: string; a: string; s: string; d: string; v: string } | null> {
+  if (!id) return null;
+  try {
+    const r = await fetch(`${origin}/match-index.json`);
+    if (!r.ok) return null;
+    const idx = (await r.json()) as Record<string, { h: string; a: string; s: string; d: string; v: string }>;
+    return idx[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = first(req.query.id);
-  const home = first(req.query.h);
-  const away = first(req.query.a);
-  const stage = first(req.query.s);
-  const date = first(req.query.d);
-  const venue = first(req.query.v);
 
   const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
   const host = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
   const origin = `${proto}://${host}`;
+
+  // Prefer the server-resolved details (clean URL); fall back to legacy params.
+  const m = await lookupMatch(origin, id);
+  const home = m?.h || first(req.query.h);
+  const away = m?.a || first(req.query.a);
+  const stage = m?.s || first(req.query.s);
+  const date = m?.d || first(req.query.d);
+  const venue = m?.v || first(req.query.v);
   // Public-facing canonical (what previews show); internal fetches use `origin`.
   const canonical = 'https://worldcup.happykhan.com';
 
