@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { UserPreferences } from '../types';
 import type { CompetitionCode } from '../types';
+import { LANGUAGES } from '../data/i18n';
 
 const STORAGE_KEY = 'wc2026_prefs';
 
@@ -8,7 +9,7 @@ const defaults: UserPreferences = {
   timezone: inferTimezone(),
   hour12: inferHour12FromLocale(),
   countryCode: inferCountryFromLocale(),
-  language: navigator.language || 'en',
+  language: inferLanguage(),
   spoilerMode: false,
   favouriteMatches: [],
   favouriteTeams: [],
@@ -42,6 +43,29 @@ export function inferCountryFromLocale(locale: string = navigator.language || 'e
     if (code.length === 2) return code;
   }
   return 'GB';
+}
+
+// Walk the browser's ordered language preferences and pick the first whose base
+// (e.g. "pt" of "pt-BR") is a supported language; fall back to English. Pure, so
+// it's unit-tested directly.
+export function pickPreferredLanguage(browserLangs: readonly string[], supported: ReadonlySet<string>): string {
+  for (const lang of browserLangs) {
+    if (lang && supported.has(lang.split('-')[0].toLowerCase())) return lang;
+  }
+  return 'en';
+}
+
+function inferLanguage(): string {
+  const supported = new Set(LANGUAGES.map((l) => l.code));
+  const list =
+    typeof navigator === 'undefined'
+      ? []
+      : navigator.languages?.length
+        ? [...navigator.languages]
+        : navigator.language
+          ? [navigator.language]
+          : [];
+  return pickPreferredLanguage(list, supported);
 }
 
 function load(): UserPreferences {

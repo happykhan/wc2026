@@ -7,8 +7,8 @@ import { LANGUAGES, getTranslations, getDateLocale } from './index';
 describe('i18n locales', () => {
   const enKeys = Object.keys(LANGUAGES[0].translations).sort();
 
-  it('has the four expected languages registered', () => {
-    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de']);
+  it('has the expected languages registered', () => {
+    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de', 'pt']);
   });
 
   it('every language defines exactly the same keys (no missing, no stray)', () => {
@@ -27,7 +27,8 @@ describe('i18n locales', () => {
 
   it('resolves region-tagged and unknown languages sensibly', () => {
     expect(getTranslations('es-MX')).toBe(getTranslations('es'));
-    expect(getTranslations('pt')).toBe(getTranslations('en')); // unknown → English
+    expect(getTranslations('pt-BR')).toBe(getTranslations('pt')); // region-tagged → base
+    expect(getTranslations('zz')).toBe(getTranslations('en')); // unknown → English
     expect(getDateLocale('fr-CA')).toBe(getDateLocale('fr'));
   });
 });

@@ -55,19 +55,25 @@ function localizedCountry(code: string, language: string, fallback: string): str
   }
 }
 
-// Localized city names for timezones where the city differs by language.
-// Anything not listed falls back to the de-underscored IANA city name.
+// Localized city names for the timezones in COMMON_TIMEZONES. Intl has no
+// "city name" API, so this is hand-maintained: list a city only for the
+// languages where it differs from the English IANA city (the fallback below).
 const TZ_CITY: Record<string, Partial<Record<string, string>>> = {
-  'Europe/London': { es: 'Londres', fr: 'Londres' },
+  'Europe/London': { es: 'Londres', fr: 'Londres', pt: 'Londres' },
   'Europe/Paris': { es: 'París' },
-  'Europe/Berlin': { es: 'Berlín' },
-  'Europe/Lisbon': { es: 'Lisboa', fr: 'Lisbonne', de: 'Lissabon' },
-  'Europe/Rome': { es: 'Roma', de: 'Rom' },
-  'America/New_York': { es: 'Nueva York' },
-  'America/Mexico_City': { es: 'Ciudad de México', fr: 'Mexico', de: 'Mexiko-Stadt' },
-  'Asia/Tokyo': { es: 'Tokio', de: 'Tokio' },
-  'Asia/Seoul': { es: 'Seúl', fr: 'Séoul' },
-  'Asia/Riyadh': { es: 'Riad', fr: 'Riyad', de: 'Riad' },
+  'Europe/Berlin': { es: 'Berlín', pt: 'Berlim' },
+  'Europe/Lisbon': { es: 'Lisboa', fr: 'Lisbonne', de: 'Lissabon', pt: 'Lisboa' },
+  'Europe/Rome': { es: 'Roma', de: 'Rom', pt: 'Roma' },
+  'America/New_York': { es: 'Nueva York', pt: 'Nova Iorque' },
+  'America/Los_Angeles': { es: 'Los Ángeles' },
+  'America/Mexico_City': { es: 'Ciudad de México', fr: 'Mexico', de: 'Mexiko-Stadt', pt: 'Cidade do México' },
+  'America/Sao_Paulo': { en: 'São Paulo', es: 'São Paulo', fr: 'São Paulo', de: 'São Paulo', pt: 'São Paulo' },
+  'Asia/Tokyo': { es: 'Tokio', de: 'Tokio', pt: 'Tóquio' },
+  'Asia/Seoul': { es: 'Seúl', fr: 'Séoul', pt: 'Seul' },
+  'Asia/Shanghai': { es: 'Shanghái', de: 'Schanghai', pt: 'Xangai' },
+  'Asia/Dubai': { es: 'Dubái' },
+  'Asia/Riyadh': { es: 'Riad', fr: 'Riyad', de: 'Riad', pt: 'Riade' },
+  'Africa/Johannesburg': { es: 'Johannesburgo', pt: 'Joanesburgo' },
 };
 
 // Friendly, localized timezone label: "City (GMT±X)" instead of the raw IANA id.
@@ -277,6 +283,30 @@ export function Settings({ prefs, setPrefs, matches, followTeam, unfollowTeam, t
           </div>
         </Section>
       )}
+
+      {/* About */}
+      <Section title={t('about')}>
+        <div className="space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+          <p>{t('aboutDescription')}</p>
+          <p>
+            {t('aboutBuiltBy')}{' '}
+            <a
+              href="https://happykhan.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--accent)] hover:underline"
+            >
+              Nabil-Fareed Alikhan
+            </a>
+            , {t('aboutRole')}.
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 font-medium">
+            <a href="https://happykhan.com" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">happykhan.com</a>
+            <a href="https://github.com/happykhan/wc2026" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">{t('aboutSource')}</a>
+          </div>
+          <p className="text-xs text-neutral-400 dark:text-neutral-500">{t('aboutDisclaimer')}</p>
+        </div>
+      </Section>
 
     </div>
   );
