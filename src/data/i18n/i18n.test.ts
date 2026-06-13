@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LANGUAGES, getTranslations, getDateLocale } from './index';
+import { LANGUAGES, getTranslations, getDateLocale, isRtlLanguage } from './index';
 
 // tsc already forbids a locale from MISSING a key (each is typed as `typeof en`),
 // but it allows stray EXTRA keys — this catches those, plus empty values, so every
@@ -8,7 +8,14 @@ describe('i18n locales', () => {
   const enKeys = Object.keys(LANGUAGES[0].translations).sort();
 
   it('has the expected languages registered', () => {
-    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de', 'pt', 'it', 'ja', 'ko']);
+    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de', 'pt', 'it', 'ja', 'ko', 'ar']);
+  });
+
+  it('flags Arabic as right-to-left and the rest as left-to-right', () => {
+    expect(isRtlLanguage('ar')).toBe(true);
+    expect(isRtlLanguage('ar-EG')).toBe(true);
+    expect(isRtlLanguage('en')).toBe(false);
+    expect(isRtlLanguage('ja')).toBe(false);
   });
 
   it('every language defines exactly the same keys (no missing, no stray)', () => {
