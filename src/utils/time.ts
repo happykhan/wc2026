@@ -1,18 +1,5 @@
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
-import { enUS, fr, es, de } from 'date-fns/locale';
-import type { Locale } from 'date-fns';
-
-const localeMap: Record<string, Locale> = {
-  en: enUS,
-  fr,
-  es,
-  de,
-};
-
-function getLocale(language: string): Locale {
-  const short = language.split('-')[0].toLowerCase();
-  return localeMap[short] ?? enUS;
-}
+import { getDateLocale } from '../data/i18n';
 
 export function formatMatchTime(date: Date | string, timezone: string, hour12 = false): string {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -27,7 +14,7 @@ export function formatMatchDate(
 ): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const zoned = toZonedTime(d, timezone);
-  return tzFormat(zoned, 'EEEE d MMMM', { timeZone: timezone, locale: getLocale(language) });
+  return tzFormat(zoned, 'EEEE d MMMM', { timeZone: timezone, locale: getDateLocale(language) });
 }
 
 export function getDateKey(date: Date | string, timezone: string): string {

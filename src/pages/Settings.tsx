@@ -4,7 +4,7 @@ import { THEMES } from '../data/teamColors';
 import { getTeamFlag, localizedTeamName } from '../data/teamFlags';
 import { allTeams } from '../data/processFixtures';
 import type { Match } from '../types';
-import type { TranslationKey } from '../data/i18n';
+import { LANGUAGES, type TranslationKey } from '../data/i18n';
 import { DEFAULT_TV_CHANNELS } from '../data/tvChannels';
 
 interface SettingsProps {
@@ -41,12 +41,6 @@ function tzOffsetMinutes(tz: string): number {
   }
 }
 
-const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'fr', label: 'Français' },
-  { code: 'es', label: 'Español' },
-  { code: 'de', label: 'Deutsch' },
-];
 
 // Every territory we have broadcaster data for is selectable.
 const COUNTRY_CODES = Object.keys(DEFAULT_TV_CHANNELS);

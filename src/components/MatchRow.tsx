@@ -6,7 +6,7 @@ import aflTeamIds from '../data/aflTeamIds.json';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { normTeam } from '../data/teamMatch';
 import { isKnockoutTeam } from '../data/processFixtures';
-import { getTeamFlag } from '../data/teamFlags';
+import { getTeamFlag, localizedTeamName } from '../data/teamFlags';
 import type { TranslationKey } from '../data/i18n';
 import { formatMatchTime, formatMatchDate, secondsUntil, formatCountdown } from '../utils/time';
 import { liveClockLabel } from '../utils/liveClock';
@@ -147,12 +147,14 @@ function TeamNameInline({
   name,
   tbd,
   align,
+  language,
   showFlag = true,
   crest,
 }: {
   name: string;
   tbd: string;
   align: 'left' | 'right';
+  language: string;
   showFlag?: boolean;
   crest?: string;
 }) {
@@ -160,6 +162,7 @@ function TeamNameInline({
   if (isKnockoutTeam(name)) {
     return <span className="text-neutral-400 italic text-sm truncate">{tbd}</span>;
   }
+  // Match logic uses the canonical English name; only the displayed label is localised.
   const flag = showFlag && !crest ? getTeamFlag(name) : null;
   return (
     <span
@@ -169,7 +172,7 @@ function TeamNameInline({
         align === 'right' ? 'flex-row-reverse' : '',
       ].join(' ')}
     >
-      <span className="truncate">{name}</span>
+      <span className="truncate">{localizedTeamName(name, language)}</span>
       {crest && (
         <img
           src={crest}
@@ -905,7 +908,7 @@ export function MatchRow({
 
         {/* Left — home team, right-aligned */}
         <div className="flex-1 flex justify-end items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team1} tbd={t('tbd')} align="right" showFlag={!isClubComp} crest={match.crest1} />
+          <TeamNameInline name={match.team1} tbd={t('tbd')} align="right" language={prefs.language} showFlag={!isClubComp} crest={match.crest1} />
         </div>
 
         {/* Centre — fixed width, time/score + optional status chip */}
@@ -926,7 +929,7 @@ export function MatchRow({
 
         {/* Right — away team, left-aligned */}
         <div className="flex-1 flex justify-start items-center gap-1 min-w-0">
-          <TeamNameInline name={match.team2} tbd={t('tbd')} align="left" showFlag={!isClubComp} crest={match.crest2} />
+          <TeamNameInline name={match.team2} tbd={t('tbd')} align="left" language={prefs.language} showFlag={!isClubComp} crest={match.crest2} />
         </div>
       </div>
 
