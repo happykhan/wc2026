@@ -10,6 +10,7 @@ import { getTeamFlag } from '../data/teamFlags';
 import type { TranslationKey } from '../data/i18n';
 import { formatMatchTime, formatMatchDate, secondsUntil, formatCountdown } from '../utils/time';
 import { liveClockLabel } from '../utils/liveClock';
+import { localizedGroupName } from '../utils/labels';
 
 interface MatchRowProps {
   match: Match;
@@ -937,7 +938,7 @@ export function MatchRow({
         <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-center pl-7">
           {(match.group || match.round) && (
             <span className="font-medium text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-              {match.group ?? match.round}
+              {match.group ? localizedGroupName(match.group, t('group')) : match.round}
             </span>
           )}
           {(match.group || match.round) && venueName && <span aria-hidden="true">·</span>}

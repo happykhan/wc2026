@@ -3,6 +3,7 @@ import { X, Search, SlidersHorizontal } from 'lucide-react';
 import type { FilterState } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import { localizedTeamName } from '../data/teamFlags';
+import { localizedGroupName } from '../utils/labels';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -85,7 +86,7 @@ export function FilterBar({ filters, setFilters, teams, groups, language, t, sho
         <div className="flex flex-wrap gap-2 items-center pt-0.5">
           <select value={filters.group} onChange={(e) => setFilters({ ...filters, group: e.target.value })} className={pill}>
             <option value="">{t('filterByGroup')}</option>
-            {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+            {groups.map((g) => <option key={g} value={g}>{localizedGroupName(g, t('group'))}</option>)}
             <option value="knockout">{t('knockout')}</option>
           </select>
 

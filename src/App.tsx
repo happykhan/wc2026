@@ -73,7 +73,7 @@ export default function App() {
           />
         )}
         {page === 'groups' && (
-          <Groups matches={matches} t={t} />
+          <Groups matches={matches} language={prefs.language} t={t} />
         )}
         {page === 'bracket' && (
           <Bracket matches={matches} prefs={prefs} t={t} />
