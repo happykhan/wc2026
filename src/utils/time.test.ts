@@ -20,6 +20,18 @@ describe('formatMatchTime', () => {
     const d = new Date('2026-06-11T10:30:00Z');
     expect(formatMatchTime(d, 'UTC')).toBe('10:30');
   });
+
+  it('formats 12-hour clock with AM/PM when hour12 is true', () => {
+    expect(formatMatchTime('2026-06-11T18:00:00Z', 'Europe/London', true)).toBe('7:00 PM');
+  });
+
+  it('formats midnight as 12:00 AM in 12-hour mode', () => {
+    expect(formatMatchTime('2026-06-11T00:00:00Z', 'UTC', true)).toBe('12:00 AM');
+  });
+
+  it('defaults to 24-hour when hour12 is omitted', () => {
+    expect(formatMatchTime('2026-06-11T13:00:00Z', 'UTC')).toBe('13:00');
+  });
 });
 
 describe('formatMatchDate', () => {

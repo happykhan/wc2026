@@ -14,10 +14,10 @@ function getLocale(language: string): Locale {
   return localeMap[short] ?? enUS;
 }
 
-export function formatMatchTime(date: Date | string, timezone: string): string {
+export function formatMatchTime(date: Date | string, timezone: string, hour12 = false): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const zoned = toZonedTime(d, timezone);
-  return tzFormat(zoned, 'HH:mm', { timeZone: timezone });
+  return tzFormat(zoned, hour12 ? 'h:mm a' : 'HH:mm', { timeZone: timezone });
 }
 
 export function formatMatchDate(

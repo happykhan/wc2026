@@ -6,6 +6,7 @@ const STORAGE_KEY = 'wc2026_prefs';
 
 const defaults: UserPreferences = {
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  hour12: inferHour12FromLocale(),
   countryCode: inferCountryFromLocale(),
   language: navigator.language || 'en',
   spoilerMode: false,
@@ -14,6 +15,16 @@ const defaults: UserPreferences = {
   teamTheme: null,
   competition: 'WC' as CompetitionCode,
 };
+
+// Default the clock format to whatever the user's locale/OS uses (e.g. 12-hour in
+// the US, 24-hour in the UK) — they can flip it with the toggle on the main page.
+function inferHour12FromLocale(): boolean {
+  try {
+    return new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12 ?? false;
+  } catch {
+    return false;
+  }
+}
 
 function inferCountryFromLocale(): string {
   const locale = navigator.language || 'en-GB';

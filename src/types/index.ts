@@ -75,6 +75,8 @@ export const COMPETITIONS: Competition[] = [
 
 export interface UserPreferences {
   timezone: string;
+  /** true = 12-hour clock (2:00 PM), false = 24-hour (14:00) */
+  hour12: boolean;
   countryCode: string;
   language: string;
   spoilerMode: boolean;

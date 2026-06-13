@@ -66,6 +66,7 @@ export default function App() {
           <Schedule
             matches={matches}
             prefs={prefs}
+            setPrefs={setPrefs}
             t={t}
             onToggleFavourite={toggleFavouriteMatch}
             focusMatchId={focusMatchId}

@@ -261,17 +261,19 @@ function ShareButton({
   match,
   timezone,
   language,
+  hour12,
   t,
 }: {
   match: Match;
   timezone: string;
   language: string;
+  hour12: boolean;
   t: (k: TranslationKey) => string;
 }) {
   const [tooltip, setTooltip] = useState(false);
 
   const handleShare = useCallback(async () => {
-    const time = formatMatchTime(match.utcDate, timezone);
+    const time = formatMatchTime(match.utcDate, timezone, hour12);
     const date = formatMatchDate(match.utcDate, timezone, language);
     const title = `\u{1F3C6} ${match.team1} vs ${match.team2}`;
     const text = `Kicks off ${time} on ${date}`;
@@ -292,7 +294,7 @@ function ShareButton({
         // Clipboard not available — silently ignore
       }
     }
-  }, [match, timezone, language]);
+  }, [match, timezone, language, hour12]);
 
   return (
     <div className="relative flex-shrink-0">
@@ -320,17 +322,19 @@ function CopyButton({
   match,
   timezone,
   language,
+  hour12,
   t,
 }: {
   match: Match;
   timezone: string;
   language: string;
+  hour12: boolean;
   t: (k: TranslationKey) => string;
 }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
-    const time = formatMatchTime(match.utcDate, timezone);
+    const time = formatMatchTime(match.utcDate, timezone, hour12);
     const date = formatMatchDate(match.utcDate, timezone, language);
     const url = matchShareUrl(match, timezone, language);
     const summary = `\u{1F3C6} ${match.team1} vs ${match.team2}\nKicks off ${time} on ${date}\n${url}`;
@@ -341,7 +345,7 @@ function CopyButton({
     } catch {
       // Clipboard unavailable (e.g. insecure context) — silently ignore.
     }
-  }, [match, timezone, language]);
+  }, [match, timezone, language, hour12]);
 
   return (
     <div className="relative flex-shrink-0">
@@ -874,7 +878,7 @@ export function MatchRow({
   const primaryChannel = channels[0]; // the main TV channel to tune into (e.g. ITV1, BBC One)
   const showScore = match.status === 'ft' || match.status === 'live' || match.status === 'ht';
 
-  const localTime = formatMatchTime(match.utcDate, timezone);
+  const localTime = formatMatchTime(match.utcDate, timezone, prefs.hour12);
 
   // Meta line parts: channels, venue/city, countdown (for upcoming within 24 h)
   const venueName = match.city || match.venue;
@@ -992,8 +996,8 @@ export function MatchRow({
 
           {/* Actions: copy · share · add to calendar */}
           <div className="flex items-center gap-1.5">
-            <CopyButton match={match} timezone={timezone} language={prefs.language} t={t} />
-            <ShareButton match={match} timezone={timezone} language={prefs.language} t={t} />
+            <CopyButton match={match} timezone={timezone} language={prefs.language} hour12={prefs.hour12} t={t} />
+            <ShareButton match={match} timezone={timezone} language={prefs.language} hour12={prefs.hour12} t={t} />
             <button
               onClick={() => downloadMatchICS(match, prefs.countryCode)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 transition-colors ml-auto"

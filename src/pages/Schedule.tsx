@@ -10,6 +10,7 @@ import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../u
 interface ScheduleProps {
   matches: Match[];
   prefs: UserPreferences;
+  setPrefs: (p: Partial<UserPreferences>) => void;
   t: (k: TranslationKey) => string;
   onToggleFavourite: (id: string) => void;
   isClubComp?: boolean;
@@ -17,7 +18,7 @@ interface ScheduleProps {
   focusMatchId?: string;
 }
 
-export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = false, focusMatchId }: ScheduleProps) {
+export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClubComp = false, focusMatchId }: ScheduleProps) {
   const [filters, setFilters] = useState<FilterState>({
     team: '',
     group: '',
@@ -168,7 +169,28 @@ export function Schedule({ matches, prefs, t, onToggleFavourite, isClubComp = fa
           t={t}
           showFavouritesTab={hasFavourites}
         />
-        <ICSExport matches={matches} prefs={prefs} t={t} />
+        <div className="flex items-center gap-2">
+          {/* 12h / 24h clock toggle — flips kickoff times on every card */}
+          <div className="inline-flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden text-xs font-semibold" role="group" aria-label="Clock format">
+            <button
+              type="button"
+              onClick={() => setPrefs({ hour12: false })}
+              aria-pressed={!prefs.hour12}
+              className={`px-2.5 py-1.5 transition-colors ${!prefs.hour12 ? 'bg-[var(--accent)] text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+            >
+              24h
+            </button>
+            <button
+              type="button"
+              onClick={() => setPrefs({ hour12: true })}
+              aria-pressed={prefs.hour12}
+              className={`px-2.5 py-1.5 transition-colors ${prefs.hour12 ? 'bg-[var(--accent)] text-white' : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+            >
+              12h
+            </button>
+          </div>
+          <ICSExport matches={matches} prefs={prefs} t={t} />
+        </div>
       </div>
 
       {/* Match list — swipeable on mobile */}
