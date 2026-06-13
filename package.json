@@ -3,6 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "FIFA World Cup 2026 schedule, live scores, lineups & stats, and per-country TV guide — in your timezone and language. No paid APIs.",
+  "homepage": "https://worldcup.happykhan.com",
+  "repository": { "type": "git", "url": "https://github.com/happykhan/wc2026.git" },
+  "bugs": { "url": "https://github.com/happykhan/wc2026/issues" },
+  "license": "MIT",
+  "author": "Nabil-Fareed Alikhan",
+  "keywords": ["world-cup", "world-cup-2026", "football", "soccer", "live-scores", "fixtures", "react", "vite"],
   "scripts": {
     "dev": "vite",
     "build": "vitest run && tsc -b && vite build",
@@ -15,7 +22,6 @@
     "test:cache": "node scripts/test-cache.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.4.0",
     "@vercel/og": "^0.6.8",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
