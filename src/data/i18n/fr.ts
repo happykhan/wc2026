@@ -66,6 +66,7 @@ export const fr = {
   themeDefault: 'Par défaut',
   countryOther: 'Autre',
   worldCup: 'Coupe du Monde',
+  about: 'À propos',
   spoilerOnDetail: 'Activé — scores et résultats visibles',
   spoilerOffDetail: 'Désactivé — scores masqués',
   spoilerBannerOff: 'Les spoilers sont désactivés.',

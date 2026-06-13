@@ -66,6 +66,7 @@ export const de = {
   themeDefault: 'Standard',
   countryOther: 'Andere',
   worldCup: 'WM',
+  about: 'Über',
   spoilerOnDetail: 'An — Ergebnisse sichtbar',
   spoilerOffDetail: 'Aus — Ergebnisse verborgen',
   spoilerBannerOff: 'Spoiler sind deaktiviert.',
