@@ -8,7 +8,7 @@ describe('i18n locales', () => {
   const enKeys = Object.keys(LANGUAGES[0].translations).sort();
 
   it('has the expected languages registered', () => {
-    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de', 'pt']);
+    expect(LANGUAGES.map((l) => l.code)).toEqual(['en', 'fr', 'es', 'de', 'pt', 'it', 'ja', 'ko']);
   });
 
   it('every language defines exactly the same keys (no missing, no stray)', () => {
