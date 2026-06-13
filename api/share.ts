@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { normTeam } from '../src/data/teamMatch';
 
 // ---------------------------------------------------------------------------
 // /api/share — per-match share page (reached via the /match/:id rewrite).
@@ -25,15 +26,6 @@ function esc(s: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-const TEAM_ALIASES: Record<string, string> = {
-  czechrepublic: 'czechia', unitedstates: 'usa', korearepublic: 'southkorea',
-  iranislamicrepublic: 'iran', ivorycoast: 'cotedivoire',
-};
-function normTeam(s: string): string {
-  const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');
-  return TEAM_ALIASES[n] ?? n;
 }
 
 interface ScoreInfo { sh: number | null; sa: number | null; label: string; live: boolean }

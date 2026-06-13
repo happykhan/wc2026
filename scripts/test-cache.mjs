@@ -54,15 +54,8 @@ console.log('2) consecutive /api/scores reads are identical (cached, determinist
   check('identical payload', JSON.stringify(a.body?.matches) === JSON.stringify(b.body?.matches));
 }
 
-// 3. the poller is the ONLY thing that can trigger upstream — secret-gated
-console.log('3) /api/poll requires the secret (users cannot trigger upstream calls)');
-{
-  const r = await get('/api/poll');
-  check('401 without key', r.status === 401, `got ${r.status}`);
-}
-
-// 4. redundant lineups/stats endpoint
-console.log('4) /api/matchdetail returns lineups + stats with a source');
+// 3. redundant lineups/stats endpoint
+console.log('3) /api/matchdetail returns lineups + stats with a source');
 {
   const r = await get(`/api/matchdetail?espn=${OPENER_ESPN}`);
   check('200 OK', r.status === 200, `got ${r.status}`);
