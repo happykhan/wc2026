@@ -78,3 +78,40 @@ export const espnDateStrings = (kickoffMs) => {
   }
   return out;
 };
+
+// --- Live/backfill window predicates ---------------------------------------
+// The poller decides, per feed tier, whether a match is worth fetching. The
+// window arithmetic (live window + post-kickoff backfill window) was inlined
+// three times, once per tier, each a slightly different copy on the data path
+// that has caused every production incident. One tested definition here; each
+// tier composes its own rule from the parts.
+
+// Parse a match's kickoff and classify it against `now`. Returns kickoffMs=NaN
+// for a match with no/invalid utcDate (caller should treat that as out-of-window).
+//   liveNow:        within [kickoff, kickoff + windowMin] — actively in play
+//   ended:          past the live window
+//   withinBackfill: ended AND still inside the post-kickoff backfill window
+export const matchWindow = (utcDate, now, windowMin, backfillMs) => {
+  const kickoffMs = utcDate ? Date.parse(utcDate) : NaN;
+  if (Number.isNaN(kickoffMs)) return { kickoffMs: NaN, liveNow: false, ended: false, withinBackfill: false };
+  const liveEnd = kickoffMs + windowMin * 60000;
+  const liveNow = now >= kickoffMs && now <= liveEnd;
+  const ended = now > liveEnd;
+  const withinBackfill = ended && now <= liveEnd + backfillMs;
+  return { kickoffMs, liveNow, ended, withinBackfill };
+};
+
+// A status counts as "resolved" once a feed has given us live/finished state —
+// i.e. no further fallback tier needs to overwrite it this poll.
+export const isResolved = (status) => status === 'IN_PLAY' || status === 'PAUSED' || status === 'FINISHED';
+
+// Do we already have a confirmed FINAL score — from this poll's overlay (m) or a
+// carried-forward prior (p)? Used to decide whether a past match still needs
+// backfilling.
+export const haveFinalScore = (m, p) =>
+  (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
+
+// Feeds may list the two teams in the opposite order to our fixture. Compare the
+// home names (folded) and return {home, away} scores oriented to OUR home team.
+export const orient = (ourHome, feedHome, homeVal, awayVal) =>
+  norm(ourHome) !== norm(feedHome) ? { home: awayVal, away: homeVal } : { home: homeVal, away: awayVal };

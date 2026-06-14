@@ -1,5 +1,80 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient } from './pollerLib.mjs';
+
+const WIN = 150;                       // LIVE_WINDOW_MIN
+const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
+const K = Date.parse('2026-06-15T16:00:00Z');
+
+describe('poller: matchWindow', () => {
+  it('flags liveNow inside the live window, not ended/backfill', () => {
+    const w = matchWindow('2026-06-15T16:00:00Z', K + 30 * 60000, WIN, BF);
+    expect(w).toMatchObject({ liveNow: true, ended: false, withinBackfill: false });
+    expect(w.kickoffMs).toBe(K);
+  });
+  it('treats exactly kickoff and exactly the window edge as live', () => {
+    expect(matchWindow('2026-06-15T16:00:00Z', K, WIN, BF).liveNow).toBe(true);
+    expect(matchWindow('2026-06-15T16:00:00Z', K + WIN * 60000, WIN, BF).liveNow).toBe(true);
+  });
+  it('is not live before kickoff', () => {
+    expect(matchWindow('2026-06-15T16:00:00Z', K - 1, WIN, BF).liveNow).toBe(false);
+  });
+  it('ends past the live window and stays in backfill until the backfill window closes', () => {
+    const justAfter = matchWindow('2026-06-15T16:00:00Z', K + WIN * 60000 + 1, WIN, BF);
+    expect(justAfter).toMatchObject({ liveNow: false, ended: true, withinBackfill: true });
+    const edge = matchWindow('2026-06-15T16:00:00Z', K + WIN * 60000 + BF, WIN, BF);
+    expect(edge.withinBackfill).toBe(true);
+    const past = matchWindow('2026-06-15T16:00:00Z', K + WIN * 60000 + BF + 1, WIN, BF);
+    expect(past).toMatchObject({ ended: true, withinBackfill: false });
+  });
+  it('returns NaN kickoff / all-false for a missing or unparseable date', () => {
+    for (const d of [null, undefined, '', 'not-a-date']) {
+      const w = matchWindow(d, K, WIN, BF);
+      expect(Number.isNaN(w.kickoffMs)).toBe(true);
+      expect(w).toMatchObject({ liveNow: false, ended: false, withinBackfill: false });
+    }
+  });
+});
+
+describe('poller: isResolved', () => {
+  it('is true for live/paused/finished only', () => {
+    expect(isResolved('IN_PLAY')).toBe(true);
+    expect(isResolved('PAUSED')).toBe(true);
+    expect(isResolved('FINISHED')).toBe(true);
+    expect(isResolved('TIMED')).toBe(false);
+    expect(isResolved('SCHEDULED')).toBe(false);
+    expect(isResolved(undefined)).toBe(false);
+  });
+});
+
+describe('poller: haveFinalScore', () => {
+  const fin = { status: 'FINISHED', score: { fullTime: { home: 2, away: 1 } } };
+  it('is true when the current overlay is a finished, scored match', () => {
+    expect(haveFinalScore(fin, null)).toBe(true);
+  });
+  it('is true when only the carried-forward prior is finished+scored', () => {
+    expect(haveFinalScore({ status: 'TIMED', score: { fullTime: {} } }, fin)).toBe(true);
+  });
+  it('is false for finished-but-unscored, or non-finished', () => {
+    expect(haveFinalScore({ status: 'FINISHED', score: { fullTime: { home: null, away: null } } }, null)).toBe(false);
+    expect(haveFinalScore({ status: 'IN_PLAY', score: { fullTime: { home: 1, away: 0 } } }, null)).toBe(false);
+  });
+});
+
+describe('poller: orient (home/away swap when the feed reversed the teams)', () => {
+  it('keeps order when the feed home matches ours', () => {
+    expect(orient('Brazil', 'Brazil', 3, 1)).toEqual({ home: 3, away: 1 });
+  });
+  it('swaps when the feed listed our away team as home', () => {
+    expect(orient('Brazil', 'Argentina', 3, 1)).toEqual({ home: 1, away: 3 });
+  });
+  it('folds spelling variants before comparing (no false swap)', () => {
+    expect(orient('Türkiye', 'Turkey', 2, 0)).toEqual({ home: 2, away: 0 });
+    expect(orient('Czech Republic', 'Czechia', 1, 1)).toEqual({ home: 1, away: 1 });
+  });
+  it('passes nulls through in the chosen orientation', () => {
+    expect(orient('Brazil', 'Argentina', null, 2)).toEqual({ home: 2, away: null });
+  });
+});
 
 describe('poller: fdStatus (football-data fallback)', () => {
   it('maps football-data statuses to ours', () => {
