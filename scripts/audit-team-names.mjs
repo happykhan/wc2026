@@ -38,12 +38,40 @@ for (const d of [...dates].sort()) {
   }
 }
 
+let failed = false;
 const mismatches = [...espn.entries()].filter(([token]) => !ourTokens.has(token));
 console.log(`our teams: ${ourTeams.size} | ESPN real teams seen: ${espn.size}`);
 if (mismatches.length === 0) {
   console.log('✅ every ESPN team folds to a fixture team — no mismatches');
 } else {
+  failed = true;
   console.log('⚠️  MISMATCHES (add an alias for each):');
   for (const [token, nm] of mismatches) console.log(`   ${JSON.stringify(nm)} → "${token}"`);
-  process.exit(1);
 }
+
+// Snapshot-drift guard: the live ESPN display names must still equal the set
+// committed in src/data/espnNames.test.ts. Without this, ESPN could rename a
+// team to a spelling that still folds (so the "mismatch" check passes) while the
+// committed snapshot/aliases silently go stale — defeating the build-time guard.
+// If this fires, refresh ESPN_TEAM_NAMES in espnNames.test.ts to the live set.
+const liveNames = new Set(espn.values());
+const testSrc = fs.readFileSync(path.join(root, 'src/data/espnNames.test.ts'), 'utf8');
+const block = testSrc.match(/const ESPN_TEAM_NAMES = \[([\s\S]*?)\];/);
+if (!block) {
+  failed = true;
+  console.log('⚠️  could not locate ESPN_TEAM_NAMES in espnNames.test.ts');
+} else {
+  const snapNames = new Set([...block[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]));
+  const addedLive = [...liveNames].filter((n) => !snapNames.has(n));   // ESPN now sends, snapshot lacks
+  const goneLive = [...snapNames].filter((n) => !liveNames.has(n));    // snapshot has, ESPN no longer sends
+  if (addedLive.length === 0 && goneLive.length === 0) {
+    console.log(`✅ live ESPN names match the committed snapshot (${snapNames.size})`);
+  } else {
+    failed = true;
+    console.log('⚠️  SNAPSHOT DRIFT — refresh ESPN_TEAM_NAMES in src/data/espnNames.test.ts:');
+    if (addedLive.length) console.log('   live now sends (snapshot lacks):', JSON.stringify(addedLive));
+    if (goneLive.length) console.log('   snapshot has (live no longer sends):', JSON.stringify(goneLive));
+  }
+}
+
+if (failed) process.exit(1);
