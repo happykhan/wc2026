@@ -137,8 +137,12 @@ async function main() {
     const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
     const p = priorOf(m);
     const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
+    // Keep fetching until we also have the ESPN event id — it's what the
+    // lineups/stats/timeline panels load from. A score resolved by football-data
+    // alone has no event id, so the timeline would be empty without this.
+    const haveEspnId = !!m.espnEventId || !!p?.espnEventId;
     const ended = now > k + LIVE_WINDOW_MIN * 60000;
-    const needsBackfill = ended && !haveFinal && now <= k + LIVE_WINDOW_MIN * 60000 + BACKFILL_WINDOW_MS;
+    const needsBackfill = ended && (!haveFinal || !haveEspnId) && now <= k + LIVE_WINDOW_MIN * 60000 + BACKFILL_WINDOW_MS;
     // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
     // ±1 day; team-pair matching ignores the extra events harmlessly.
     if (liveNow || needsBackfill) for (const d of espnDateStrings(k)) needDates.add(d);
