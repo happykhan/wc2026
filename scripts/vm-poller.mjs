@@ -6,7 +6,8 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus } from './pollerLib.mjs';
+import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient } from './pollerLib.mjs';
+import { parseKickoffUtc } from './fixturesLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -82,16 +83,10 @@ async function fetchApiFootballLive() {
 function buildBase() {
   const fx = JSON.parse(fs.readFileSync(FIXTURES, 'utf8')).matches;
   return fx.map((m, i) => {
-    let utcDate = null;
-    const tm = (m.time || '').match(/(\d{1,2}):(\d{2})\s*UTC([+-]?\d+)?/);
-    if (m.date && tm) {
-      const [y, mo, d] = m.date.split('-').map(Number);
-      const off = tm[3] ? parseInt(tm[3], 10) : 0; // local zone = UTC{off}; UTC = local - off
-      utcDate = new Date(Date.UTC(y, mo - 1, d, parseInt(tm[1], 10) - off, parseInt(tm[2], 10))).toISOString();
-    }
+    const kickoff = parseKickoffUtc(m.date, m.time);
     return {
       id: `fx${i}`,
-      utcDate,
+      utcDate: kickoff ? kickoff.toISOString() : null,
       status: 'TIMED',
       minute: null,
       score: { fullTime: { home: null, away: null } },
@@ -132,20 +127,17 @@ async function main() {
   const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-kickoff
   const needDates = new Set();
   for (const m of matches) {
-    if (!m.utcDate) continue;
-    const k = Date.parse(m.utcDate);
-    const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
+    const { kickoffMs, liveNow, withinBackfill } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS);
+    if (Number.isNaN(kickoffMs)) continue;
     const p = priorOf(m);
-    const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
-    // Keep fetching until we also have the ESPN event id — it's what the
-    // lineups/stats/timeline panels load from. A score resolved by football-data
-    // alone has no event id, so the timeline would be empty without this.
+    // Keep fetching until we have BOTH a final score AND the ESPN event id — the
+    // id is what the lineups/stats/timeline panels load from. A score resolved by
+    // football-data alone has no event id, so the timeline would be empty.
     const haveEspnId = !!m.espnEventId || !!p?.espnEventId;
-    const ended = now > k + LIVE_WINDOW_MIN * 60000;
-    const needsBackfill = ended && (!haveFinal || !haveEspnId) && now <= k + LIVE_WINDOW_MIN * 60000 + BACKFILL_WINDOW_MS;
+    const needsBackfill = withinBackfill && (!haveFinalScore(m, p) || !haveEspnId);
     // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
     // ±1 day; team-pair matching ignores the extra events harmlessly.
-    if (liveNow || needsBackfill) for (const d of espnDateStrings(k)) needDates.add(d);
+    if (liveNow || needsBackfill) for (const d of espnDateStrings(kickoffMs)) needDates.add(d);
   }
 
   let usedEspn = false;
@@ -166,12 +158,11 @@ async function main() {
       const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
       if (!hit) continue;
       const st = espnStatus(hit.ev); if (!st) continue;
-      const reversed = norm(m.homeTeam?.name) !== norm(hit.hName);
       const hs = Number.isNaN(hit.hScore) ? null : hit.hScore;
       const as = Number.isNaN(hit.aScore) ? null : hit.aScore;
       m.status = st;
       m.minute = espnMinute(hit.ev);
-      m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
+      m.score = { fullTime: orient(m.homeTeam?.name, hit.hName, hs, as) };
       m.espnEventId = hit.ev.id;
       usedEspn = true;
     }
@@ -182,14 +173,10 @@ async function main() {
   // which is exactly how Australia 2-0 Türkiye was silently dropped.
   let usedFd = false;
   const unresolved = matches.filter((m) => {
-    if (!m.utcDate) return false;
-    const k = Date.parse(m.utcDate);
-    const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
-    const p = priorOf(m);
-    const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
-    const needsBackfill = now > k + LIVE_WINDOW_MIN * 60000 && !haveFinal && now <= k + LIVE_WINDOW_MIN * 60000 + BACKFILL_WINDOW_MS;
-    const resolvedNow = m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'FINISHED';
-    return (liveNow || needsBackfill) && !resolvedNow;
+    const { kickoffMs, liveNow, withinBackfill } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS);
+    if (Number.isNaN(kickoffMs)) return false;
+    const needsBackfill = withinBackfill && !haveFinalScore(m, priorOf(m));
+    return (liveNow || needsBackfill) && !isResolved(m.status);
   });
   if (unresolved.length) {
     const fdMatches = await fetchFootballData(needDates);
@@ -201,12 +188,11 @@ async function main() {
       const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
       if (!hit) continue;
       const st = fdStatus(hit.status); if (!st) continue;
-      const reversed = norm(m.homeTeam?.name) !== norm(hit.homeTeam?.name);
       const ft = hit.score?.fullTime ?? {};
       const hs = ft.home ?? null, as = ft.away ?? null;
       if (st === 'FINISHED' && hs == null && as == null) continue; // no usable score
       m.status = st;
-      m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
+      m.score = { fullTime: orient(m.homeTeam?.name, hit.homeTeam?.name, hs, as) };
       if (hit.minute != null) m.minute = hit.minute;
       usedFd = true;
     }
@@ -217,11 +203,8 @@ async function main() {
   // against the hard 100/day cap, so it only fires as a genuine last resort.
   let usedAfl = false;
   const stillLiveUnresolved = matches.filter((m) => {
-    if (!m.utcDate) return false;
-    const k = Date.parse(m.utcDate);
-    const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
-    const resolved = m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'FINISHED';
-    return liveNow && !resolved;
+    const { liveNow } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS);
+    return liveNow && !isResolved(m.status);
   });
   if (stillLiveUnresolved.length && aflBudgetOk()) {
     const fixtures = await fetchApiFootballLive();
@@ -233,10 +216,9 @@ async function main() {
       const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
       if (!hit) continue;
       const st = aflStatus(hit.fixture?.status?.short); if (!st) continue;
-      const reversed = norm(m.homeTeam?.name) !== norm(hit.teams.home.name);
       const hs = hit.goals?.home ?? null, as = hit.goals?.away ?? null;
       m.status = st;
-      m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
+      m.score = { fullTime: orient(m.homeTeam?.name, hit.teams.home.name, hs, as) };
       if (hit.fixture?.status?.elapsed != null) m.minute = hit.fixture.status.elapsed;
       usedAfl = true;
     }
@@ -247,7 +229,7 @@ async function main() {
     for (const m of matches) {
       const p = priorOf(m);
       if (!p) continue;
-      const priorResult = p.status === 'IN_PLAY' || p.status === 'PAUSED' || p.status === 'FINISHED' || hasScore(p.score);
+      const priorResult = isResolved(p.status) || hasScore(p.score);
       const currentBlank = !m.status || m.status === 'TIMED' || m.status === 'SCHEDULED' || !hasScore(m.score);
       if (priorResult && currentBlank) {
         m.status = p.status; m.minute = p.minute; m.score = p.score;
