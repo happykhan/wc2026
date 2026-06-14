@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { normTeam } from '../data/teamMatch';
 
-// Poll intervals: faster when spoilers are on (user wants live info),
-// slower otherwise to be polite to the API.
+// Poll intervals: faster while a match is live (goals show fast), slower when
+// there's no live action to be polite to the cache/VM.
 const POLL_ACTIVE = 25_000;    // 25 s — a match is in progress (goals show fast)
-const POLL_IDLE   = 5 * 60_000; // 5 min — spoilers off / no live action
+const POLL_IDLE   = 5 * 60_000; // 5 min — no live action
 
 export interface LiveScore {
   matchId: string;
-  fdMatchId?: number;   // football-data.org integer match ID (for detail lookups)
   aflFixtureId?: number; // API-Football fixture id (lineups/stats fallback)
   espnEventId?: string;  // ESPN event id (primary for lineups/stats)
   score1?: number;
@@ -19,11 +18,11 @@ export interface LiveScore {
 }
 
 // ---------------------------------------------------------------------------
-// Live scores come from our own /api/scores Vercel function, which calls
-// football-data.org directly and is edge-cached so the upstream stays within
-// the free 10-requests/minute limit. This replaced a Cloudflare Worker + KV +
-// poller daemon (see api/scores.ts).
-// Docs: https://www.football-data.org/documentation/quickstart
+// Live scores come from /api/scores, which proxies (and edge-caches ~20s) the
+// VM poller's scores.json — it makes no upstream feed calls of its own. The VM
+// poller (scripts/vm-poller.mjs) resolves each match via ESPN (primary) →
+// football-data.org → API-Football, so `status` already carries the
+// feed-authoritative state (incl. PAUSED = half-time) by the time we read it.
 // ---------------------------------------------------------------------------
 
 const WC_SCORES_URL = '/api/scores';
@@ -54,7 +53,7 @@ interface FDMatch {
   awayTeam: { name: string };
 }
 
-// Shape written by wc_scores_poller.py
+// Shape written by the VM poller (scripts/vm-poller.mjs → scores.json).
 interface WCScoresResponse {
   fetchedAt: string;
   updatedAt?: string; // when the poller captured this data (minute anchor)
@@ -63,11 +62,12 @@ interface WCScoresResponse {
   standings: unknown[];
 }
 
-export function mapStatus(fdStatus: FDMatchStatus, minute?: number | null): LiveScore['status'] {
-  if (fdStatus === 'IN_PLAY') {
-    // Treat the pause around 45 min as half-time
-    return minute !== undefined && minute !== null && minute >= 45 && minute <= 50 ? 'ht' : 'live';
-  }
+// Map the poller's feed-authoritative status to the card state. Half-time is the
+// poller's PAUSED (ESPN STATUS_HALFTIME / football-data PAUSED / API-Football HT),
+// not something we re-guess from the minute — a genuine early second half (46–50')
+// would otherwise be mislabelled "HT".
+export function mapStatus(fdStatus: FDMatchStatus): LiveScore['status'] {
+  if (fdStatus === 'IN_PLAY')  return 'live';
   if (fdStatus === 'PAUSED')   return 'ht';
   if (fdStatus === 'FINISHED') return 'ft';
   return 'upcoming';
@@ -108,12 +108,11 @@ async function fetchFromFootballData(
 
     next.set(match.id, {
       matchId: match.id,
-      fdMatchId: fdm.id,
       aflFixtureId: fdm.aflFixtureId,
       espnEventId: fdm.espnEventId,
       score1: fdm.score.fullTime.home ?? undefined,
       score2: fdm.score.fullTime.away ?? undefined,
-      status: mapStatus(fdm.status, fdm.minute),
+      status: mapStatus(fdm.status),
       minute: fdm.minute ?? undefined,
       minuteAt: fdm.minuteAt ? Date.parse(fdm.minuteAt) : blobAt,
     });

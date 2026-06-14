@@ -1,30 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { mapStatus } from './useLiveScores';
 
-// Characterization test — locks the CURRENT behaviour before any refactor.
-// NOTE: the minute ∈ [45,50] → 'ht' rule is a known heuristic (it also labels the
-// genuine early second half as half-time). Captured here as-is on purpose; change
-// this test deliberately if/when that rule is removed.
+// mapStatus is a straight lookup over the poller's feed-authoritative status.
+// Half-time is the poller's PAUSED (ESPN STATUS_HALFTIME / football-data PAUSED /
+// API-Football HT) — NOT re-derived from the minute. The old minute ∈ [45,50] →
+// 'ht' heuristic was removed because it mislabelled a genuine early second half
+// (or 45+stoppage while a feed still reports IN_PLAY) as half-time.
 describe('mapStatus', () => {
-  it('maps an in-play match to live', () => {
-    expect(mapStatus('IN_PLAY', 30)).toBe('live');
-    expect(mapStatus('IN_PLAY', 67)).toBe('live');
-  });
-
-  it('treats the 45–50 minute window of IN_PLAY as half-time (current heuristic)', () => {
-    expect(mapStatus('IN_PLAY', 45)).toBe('ht');
-    expect(mapStatus('IN_PLAY', 48)).toBe('ht');
-    expect(mapStatus('IN_PLAY', 50)).toBe('ht');
-    expect(mapStatus('IN_PLAY', 51)).toBe('live');
-  });
-
-  it('maps an in-play match with no minute to live', () => {
+  it('maps any IN_PLAY to live, regardless of minute', () => {
     expect(mapStatus('IN_PLAY')).toBe('live');
-    expect(mapStatus('IN_PLAY', null)).toBe('live');
+    expect(mapStatus('IN_PLAY')).toBe('live'); // formerly mislabelled in the 45–50' window
   });
 
-  it('maps PAUSED to half-time and FINISHED to full-time', () => {
+  it('maps PAUSED to half-time', () => {
     expect(mapStatus('PAUSED')).toBe('ht');
+  });
+
+  it('maps FINISHED to full-time', () => {
     expect(mapStatus('FINISHED')).toBe('ft');
   });
 

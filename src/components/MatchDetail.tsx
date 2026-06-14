@@ -143,7 +143,7 @@ export function H2HPanel({ team1, team2, t }: { team1: string; team2: string; t:
 }
 
 // ---------------------------------------------------------------------------
-// Match detail — lineups + statistics (batched from a single /api/match/{id})
+// Match detail — lineups + statistics (batched from a single /api/matchdetail)
 // ---------------------------------------------------------------------------
 
 interface PlayerEntry {
@@ -186,7 +186,7 @@ function mdToLineup(t: MdTeam | undefined): TeamLineup {
 // Hook: lineups + stats for a match via /api/matchdetail, keyed by the ESPN
 // event id (primary) or API-Football fixture id (fallback) the poller attached.
 // No id → not live / not available → no data and NO upstream call. Shows cached
-// values instantly, then refreshes every 3 min while open (edge-cached upstream).
+// values instantly, then refreshes every 75s while open (edge-cached upstream).
 export function useMatchDetail(
   homeTeam: string,
   awayTeam: string,

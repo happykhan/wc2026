@@ -40,7 +40,6 @@ export default function App() {
         status: live.status,
         minute: live.minute,
         minuteAt: live.minuteAt,
-        fdMatchId: live.fdMatchId,
         aflFixtureId: live.aflFixtureId,
         espnEventId: live.espnEventId,
       };
