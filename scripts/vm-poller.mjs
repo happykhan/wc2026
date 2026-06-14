@@ -6,7 +6,7 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus } from './pollerLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -45,6 +45,35 @@ async function fetchFootballData(dates) {
     });
     if (!r.ok) return [];
     return (await r.json()).matches ?? [];
+  } catch { return []; }
+}
+
+// API-Football: hard 100/day free cap, so keep a persisted daily budget and only
+// call as a last resort for a live match neither ESPN nor football-data resolved.
+const AFL_USAGE = path.join(DATA_DIR, 'afl-usage.json');
+const AFL_DAILY_CAP = 90;
+function aflBudgetOk() {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const u = JSON.parse(fs.readFileSync(AFL_USAGE, 'utf8'));
+    return u.date !== today || (u.count ?? 0) < AFL_DAILY_CAP;
+  } catch { return true; }
+}
+function aflRecordCall() {
+  const today = new Date().toISOString().slice(0, 10);
+  let u = { date: today, count: 0 };
+  try { const p = JSON.parse(fs.readFileSync(AFL_USAGE, 'utf8')); if (p.date === today) u = p; } catch { /* */ }
+  u.count = (u.count ?? 0) + 1;
+  try { fs.writeFileSync(AFL_USAGE, JSON.stringify(u)); } catch { /* */ }
+}
+async function fetchApiFootballLive() {
+  const key = ENV.AFL_API_KEY;
+  if (!key) return [];
+  try {
+    const r = await fetch('https://v3.football.api-sports.io/fixtures?live=all', { headers: { 'x-apisports-key': key } });
+    if (!r.ok) return [];
+    aflRecordCall();
+    return (await r.json()).response ?? [];
   } catch { return []; }
 }
 
@@ -179,6 +208,36 @@ async function main() {
     }
   }
 
+  // Third fallback: API-Football for a LIVE match neither ESPN nor football-data
+  // resolved (its free tier does live in-play but not history). Budget-guarded
+  // against the hard 100/day cap, so it only fires as a genuine last resort.
+  let usedAfl = false;
+  const stillLiveUnresolved = matches.filter((m) => {
+    if (!m.utcDate) return false;
+    const k = Date.parse(m.utcDate);
+    const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
+    const resolved = m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'FINISHED';
+    return liveNow && !resolved;
+  });
+  if (stillLiveUnresolved.length && aflBudgetOk()) {
+    const fixtures = await fetchApiFootballLive();
+    const byPair = new Map();
+    for (const f of fixtures) {
+      if (f.teams?.home?.name && f.teams?.away?.name) byPair.set(pairKey(f.teams.home.name, f.teams.away.name), f);
+    }
+    for (const m of stillLiveUnresolved) {
+      const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
+      if (!hit) continue;
+      const st = aflStatus(hit.fixture?.status?.short); if (!st) continue;
+      const reversed = norm(m.homeTeam?.name) !== norm(hit.teams.home.name);
+      const hs = hit.goals?.home ?? null, as = hit.goals?.away ?? null;
+      m.status = st;
+      m.score = { fullTime: reversed ? { home: as, away: hs } : { home: hs, away: as } };
+      if (hit.fixture?.status?.elapsed != null) m.minute = hit.fixture.status.elapsed;
+      usedAfl = true;
+    }
+  }
+
   // Carry a seen score/status forward so a blank fetch never erases it.
   if (prior) {
     for (const m of matches) {
@@ -216,6 +275,6 @@ async function main() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DATA_FILE + '.tmp', JSON.stringify(data));
   fs.renameSync(DATA_FILE + '.tmp', DATA_FILE); // atomic
-  console.log(new Date(now).toISOString(), 'wrote', matches.length, 'matches | live=' + live, 'usedEspn=' + usedEspn, 'usedFd=' + usedFd, 'dates=' + [...needDates]);
+  console.log(new Date(now).toISOString(), 'wrote', matches.length, 'matches | live=' + live, 'usedEspn=' + usedEspn, 'usedFd=' + usedFd, 'usedAfl=' + usedAfl, 'dates=' + [...needDates]);
 }
 main().catch((e) => { console.error('poller error', e?.message); process.exit(1); });
