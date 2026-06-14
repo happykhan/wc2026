@@ -3,7 +3,7 @@ import { normTeam } from '../data/teamMatch';
 
 // Poll intervals: faster while a match is live (goals show fast), slower when
 // there's no live action to be polite to the cache/VM.
-const POLL_ACTIVE = 25_000;    // 25 s — a match is in progress (goals show fast)
+const POLL_ACTIVE = 15_000;    // 15 s — a match is in progress (goals show fast)
 const POLL_IDLE   = 5 * 60_000; // 5 min — no live action
 
 export interface LiveScore {
@@ -18,7 +18,7 @@ export interface LiveScore {
 }
 
 // ---------------------------------------------------------------------------
-// Live scores come from /api/scores, which proxies (and edge-caches ~20s) the
+// Live scores come from /api/scores, which proxies (and edge-caches ~12s) the
 // VM poller's scores.json — it makes no upstream feed calls of its own. The VM
 // poller (scripts/vm-poller.mjs) resolves each match via ESPN (primary) →
 // football-data.org → API-Football, so `status` already carries the
@@ -157,8 +157,11 @@ export function useLiveScores(enabled: boolean, matchList?: MatchRef) {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return;
-
+    // Always poll so finished results and the next live window are picked up —
+    // just at a slower cadence when nothing is live/imminent. `enabled` (true
+    // when a match is live or kicking off within ~2h) only selects the cadence:
+    // POLL_ACTIVE while active, POLL_IDLE (5 min) otherwise.
+    //
     // Initial fetch — called as a fire-and-forget side effect so we never call
     // setState synchronously inside the effect body.
     void fetchScores();
