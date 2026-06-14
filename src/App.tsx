@@ -3,6 +3,7 @@ import { usePreferences } from './hooks/usePreferences';
 import { useTheme } from './hooks/useTheme';
 import { useLiveScores } from './hooks/useLiveScores';
 import { processedMatches } from './data/processFixtures';
+import { anyMatchActive } from './utils/liveWindow';
 import { getTranslations, isRtlLanguage } from './data/i18n';
 import { Header } from './components/Header';
 import { Schedule } from './pages/Schedule';
@@ -24,8 +25,23 @@ export default function App() {
 
   const { darkMode, toggleDarkMode } = useTheme(prefs.teamTheme);
 
-  // Fetch live scores (always on — scores/results are shown by default).
-  const { scores } = useLiveScores(true, processedMatches);
+  // Only poll at the ACTIVE cadence when a match is live or kicking off within
+  // ~2h; otherwise `useLiveScores` falls back to POLL_IDLE (5 min). Re-evaluated
+  // on a timer (not just at mount) so the window opens/closes as kickoff
+  // approaches without needing a page reload. Computed from static kickoff times
+  // (anyMatchActive), so it's independent of the live data we're deciding to fetch.
+  const [pollActive, setPollActive] = useState<boolean>(() =>
+    anyMatchActive(processedMatches, Date.now())
+  );
+  useEffect(() => {
+    const tick = () => setPollActive(anyMatchActive(processedMatches, Date.now()));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Fetch live scores. Fast cadence only while a match is live/imminent.
+  const { scores } = useLiveScores(pollActive, processedMatches);
 
   // Merge live scores into the static fixture list.
   const matches = useMemo(() => {
