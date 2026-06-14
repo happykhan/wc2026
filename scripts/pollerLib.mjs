@@ -18,6 +18,8 @@ export const TEAM_ALIASES = {
   iranislamicrepublic: 'iran',
   ivorycoast: 'cotedivoire',   // our "Ivory Coast"
   ctedivoire: 'cotedivoire',   // ESPN "Côte d'Ivoire" (accents stripped → "ctedivoire")
+  trkiye: 'turkey',            // ESPN "Türkiye" (ü stripped → "trkiye")
+  turkiye: 'turkey',
 };
 
 export const norm = (s) => {

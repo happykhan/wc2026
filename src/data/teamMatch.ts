@@ -20,6 +20,8 @@ export const TEAM_ALIASES: Record<string, string> = {
   ivorycoast: 'cotedivoire',       // our "Ivory Coast"
   ctedivoire: 'cotedivoire',       // ESPN "Côte d'Ivoire" — accents are stripped to
                                    // "ctedivoire", which must fold to the same token
+  trkiye: 'turkey',                // ESPN "Türkiye" — ü stripped → "trkiye"
+  turkiye: 'turkey',               // defensive (un-accented "Turkiye")
 };
 
 export function normTeam(name: string | null | undefined): string {
