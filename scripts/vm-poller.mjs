@@ -122,12 +122,15 @@ async function main() {
   // Decide which dates to hit ESPN for. Live now → yes. Past match without a
   // confirmed final result → keep retrying (BACKFILL) so a missed result (poller
   // downtime, ESPN lag, a team-name mismatch) self-heals instead of sticking on
-  // the kickoff time forever. Once a match has a final score it stops being
-  // fetched, so this stays gentle on ESPN.
+  // the kickoff time forever. Imminent kickoff (PRE-MATCH window) → yes too, so we
+  // attach espnEventId before the match starts and the lineup panel can show the
+  // teamsheets ESPN publishes ~30-60 min before KO. Once a match has a final score
+  // it stops being fetched, so this stays gentle on ESPN.
   const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-kickoff
+  const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
   const needDates = new Set();
   for (const m of matches) {
-    const { kickoffMs, liveNow, withinBackfill } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS);
+    const { kickoffMs, preMatch, liveNow, withinBackfill } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS, PREMATCH_WINDOW_MS);
     if (Number.isNaN(kickoffMs)) continue;
     const p = priorOf(m);
     // Keep fetching until we have BOTH a final score AND the ESPN event id — the
@@ -135,9 +138,12 @@ async function main() {
     // football-data alone has no event id, so the timeline would be empty.
     const haveEspnId = !!m.espnEventId || !!p?.espnEventId;
     const needsBackfill = withinBackfill && (!haveFinalScore(m, p) || !haveEspnId);
+    // Pre-match: fetch only until we have the id (don't re-poll a fixture that
+    // already carries one), so the imminent-KO window stays cheap on ESPN.
+    const needsPrematchId = preMatch && !haveEspnId;
     // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
     // ±1 day; team-pair matching ignores the extra events harmlessly.
-    if (liveNow || needsBackfill) for (const d of espnDateStrings(kickoffMs)) needDates.add(d);
+    if (liveNow || needsBackfill || needsPrematchId) for (const d of espnDateStrings(kickoffMs)) needDates.add(d);
   }
 
   let usedEspn = false;
@@ -157,14 +163,19 @@ async function main() {
     for (const m of matches) {
       const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
       if (!hit) continue;
+      // Always attach the ESPN event id once the match is matched — this is what
+      // the lineups/stats/timeline panels load from. We set it even for a
+      // STATUS_SCHEDULED (pre-match) game, whose espnStatus is null, so the
+      // pre-match lineup panel can show the teamsheets before kickoff. Status and
+      // score are only overwritten once ESPN reports a live/finished state.
+      m.espnEventId = hit.ev.id;
+      usedEspn = true;
       const st = espnStatus(hit.ev); if (!st) continue;
       const hs = Number.isNaN(hit.hScore) ? null : hit.hScore;
       const as = Number.isNaN(hit.aScore) ? null : hit.aScore;
       m.status = st;
       m.minute = espnMinute(hit.ev);
       m.score = { fullTime: orient(m.homeTeam?.name, hit.hName, hs, as) };
-      m.espnEventId = hit.ev.id;
-      usedEspn = true;
     }
   }
 

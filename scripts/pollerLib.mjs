@@ -88,17 +88,26 @@ export const espnDateStrings = (kickoffMs) => {
 
 // Parse a match's kickoff and classify it against `now`. Returns kickoffMs=NaN
 // for a match with no/invalid utcDate (caller should treat that as out-of-window).
+//   preMatch:       within [kickoff - prematchMs, kickoff) — not started yet, but
+//                   close enough that ESPN has published lineups (rosters appear
+//                   ~30-60 min before KO). The poller fetches ESPN in this window
+//                   purely to attach espnEventId so the pre-match lineup panel has
+//                   an id to load from; status/score are left untouched (the match
+//                   is still STATUS_SCHEDULED on ESPN). prematchMs defaults to 0
+//                   (off) so callers that don't pass it keep the old
+//                   live/backfill-only gate.
 //   liveNow:        within [kickoff, kickoff + windowMin] — actively in play
 //   ended:          past the live window
 //   withinBackfill: ended AND still inside the post-kickoff backfill window
-export const matchWindow = (utcDate, now, windowMin, backfillMs) => {
+export const matchWindow = (utcDate, now, windowMin, backfillMs, prematchMs = 0) => {
   const kickoffMs = utcDate ? Date.parse(utcDate) : NaN;
-  if (Number.isNaN(kickoffMs)) return { kickoffMs: NaN, liveNow: false, ended: false, withinBackfill: false };
+  if (Number.isNaN(kickoffMs)) return { kickoffMs: NaN, preMatch: false, liveNow: false, ended: false, withinBackfill: false };
   const liveEnd = kickoffMs + windowMin * 60000;
+  const preMatch = now >= kickoffMs - prematchMs && now < kickoffMs;
   const liveNow = now >= kickoffMs && now <= liveEnd;
   const ended = now > liveEnd;
   const withinBackfill = ended && now <= liveEnd + backfillMs;
-  return { kickoffMs, liveNow, ended, withinBackfill };
+  return { kickoffMs, preMatch, liveNow, ended, withinBackfill };
 };
 
 // A status counts as "resolved" once a feed has given us live/finished state —

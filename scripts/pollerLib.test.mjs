@@ -30,8 +30,31 @@ describe('poller: matchWindow', () => {
     for (const d of [null, undefined, '', 'not-a-date']) {
       const w = matchWindow(d, K, WIN, BF);
       expect(Number.isNaN(w.kickoffMs)).toBe(true);
-      expect(w).toMatchObject({ liveNow: false, ended: false, withinBackfill: false });
+      expect(w).toMatchObject({ preMatch: false, liveNow: false, ended: false, withinBackfill: false });
     }
+  });
+});
+
+describe('poller: matchWindow preMatch (lineup pre-fetch window)', () => {
+  const PRE = 2 * 60 * 60000; // PREMATCH_WINDOW_MS = 2h
+  it('is preMatch inside [KO - prematchMs, KO), and not live', () => {
+    const w = matchWindow('2026-06-15T16:00:00Z', K - 30 * 60000, WIN, BF, PRE);
+    expect(w).toMatchObject({ preMatch: true, liveNow: false, ended: false, withinBackfill: false });
+  });
+  it('includes the leading edge (KO - prematchMs) and excludes kickoff itself', () => {
+    expect(matchWindow('2026-06-15T16:00:00Z', K - PRE, WIN, BF, PRE).preMatch).toBe(true);
+    // exactly at KO is live, not pre-match (the live gate takes over)
+    const atKo = matchWindow('2026-06-15T16:00:00Z', K, WIN, BF, PRE);
+    expect(atKo.preMatch).toBe(false);
+    expect(atKo.liveNow).toBe(true);
+  });
+  it('is not preMatch before the window opens', () => {
+    expect(matchWindow('2026-06-15T16:00:00Z', K - PRE - 1, WIN, BF, PRE).preMatch).toBe(false);
+  });
+  it('defaults prematchMs to 0 (off) so the legacy 4-arg call never flags preMatch', () => {
+    // Right up against kickoff, with no prematchMs passed, preMatch stays false.
+    expect(matchWindow('2026-06-15T16:00:00Z', K - 1, WIN, BF).preMatch).toBe(false);
+    expect(matchWindow('2026-06-15T16:00:00Z', K - 30 * 60000, WIN, BF).preMatch).toBe(false);
   });
 });
 
