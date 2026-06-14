@@ -41,6 +41,8 @@ export const TEAM_ALIASES: Record<string, string> = {
   iranislamicrepublic: 'iran',
   ivorycoast: 'cotedivoire',
   ctedivoire: 'cotedivoire',
+  trkiye: 'turkey',
+  turkiye: 'turkey',
 };
 function normTeam(s: string): string {
   const n = (s || '').toLowerCase().replace(/[^a-z]/g, '');

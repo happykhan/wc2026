@@ -60,7 +60,12 @@ async function main() {
   const priorById = new Map((prior?.matches ?? []).map((m) => [pairKey(m.homeTeam?.name, m.awayTeam?.name), m]));
   const priorOf = (m) => priorById.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
 
-  // ESPN only for matches live now or just finished (avoids burst-banning ESPN).
+  // Decide which dates to hit ESPN for. Live now → yes. Past match without a
+  // confirmed final result → keep retrying (BACKFILL) so a missed result (poller
+  // downtime, ESPN lag, a team-name mismatch) self-heals instead of sticking on
+  // the kickoff time forever. Once a match has a final score it stops being
+  // fetched, so this stays gentle on ESPN.
+  const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-kickoff
   const needDates = new Set();
   for (const m of matches) {
     if (!m.utcDate) continue;
@@ -68,11 +73,11 @@ async function main() {
     const liveNow = now >= k && now <= k + LIVE_WINDOW_MIN * 60000;
     const p = priorOf(m);
     const haveFinal = (m.status === 'FINISHED' && hasScore(m.score)) || (!!p && p.status === 'FINISHED' && hasScore(p.score));
-    const haveEspn = !!m.espnEventId || !!p?.espnEventId;
-    const justEnded = now > k + LIVE_WINDOW_MIN * 60000 && now <= k + (LIVE_WINDOW_MIN + 60) * 60000 && (!haveFinal || !haveEspn);
+    const ended = now > k + LIVE_WINDOW_MIN * 60000;
+    const needsBackfill = ended && !haveFinal && now <= k + LIVE_WINDOW_MIN * 60000 + BACKFILL_WINDOW_MS;
     // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
     // ±1 day; team-pair matching ignores the extra events harmlessly.
-    if (liveNow || justEnded) for (const d of espnDateStrings(k)) needDates.add(d);
+    if (liveNow || needsBackfill) for (const d of espnDateStrings(k)) needDates.add(d);
   }
 
   let usedEspn = false;

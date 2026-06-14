@@ -49,6 +49,19 @@ describe('poller: team matching', () => {
     expect(norm("Côte d'Ivoire")).toBe('cotedivoire');
     expect(norm('United States')).toBe('usa');
   });
+
+  // ESPN's real display names (accented/alternate spellings) must fold to the same
+  // token as our fixtures, or live results silently fail to merge. These caused
+  // production bugs (Côte d'Ivoire, then Türkiye); an audit confirmed all 48 teams
+  // match — these lock the tricky ones so they can't regress.
+  it('folds ESPN display names to the fixture token', () => {
+    expect(norm('Türkiye')).toBe(norm('Turkey'));
+    expect(norm("Côte d'Ivoire")).toBe(norm('Ivory Coast'));
+    expect(norm('United States')).toBe(norm('USA'));
+    expect(norm('Czechia')).toBe(norm('Czech Republic'));
+    expect(norm('Korea Republic')).toBe(norm('South Korea'));
+    expect(norm('Curaçao')).toBe(norm('Curacoa'));
+  });
   it('pairKey is order-independent', () => {
     expect(pairKey('Brazil', 'Argentina')).toBe(pairKey('Argentina', 'Brazil'));
   });
