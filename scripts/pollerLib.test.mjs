@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus } from './pollerLib.mjs';
+
+describe('poller: fdStatus (football-data fallback)', () => {
+  it('maps football-data statuses to ours', () => {
+    expect(fdStatus('FINISHED')).toBe('FINISHED');
+    expect(fdStatus('IN_PLAY')).toBe('IN_PLAY');
+    expect(fdStatus('PAUSED')).toBe('PAUSED');
+    expect(fdStatus('TIMED')).toBeNull();
+    expect(fdStatus('SCHEDULED')).toBeNull();
+  });
+});
 
 describe('poller: espnStatus', () => {
   const ev = (type) => ({ status: { type } });
