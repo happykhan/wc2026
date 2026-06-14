@@ -1,5 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus } from './pollerLib.mjs';
+
+describe('poller: fdStatus (football-data fallback)', () => {
+  it('maps football-data statuses to ours', () => {
+    expect(fdStatus('FINISHED')).toBe('FINISHED');
+    expect(fdStatus('IN_PLAY')).toBe('IN_PLAY');
+    expect(fdStatus('PAUSED')).toBe('PAUSED');
+    expect(fdStatus('TIMED')).toBeNull();
+    expect(fdStatus('SCHEDULED')).toBeNull();
+  });
+});
+
+describe('poller: aflStatus (API-Football fallback)', () => {
+  it('maps API-Football short codes to ours', () => {
+    expect(aflStatus('1H')).toBe('IN_PLAY');
+    expect(aflStatus('2H')).toBe('IN_PLAY');
+    expect(aflStatus('HT')).toBe('PAUSED');
+    expect(aflStatus('FT')).toBe('FINISHED');
+    expect(aflStatus('AET')).toBe('FINISHED');
+    expect(aflStatus('PEN')).toBe('FINISHED');
+    expect(aflStatus('NS')).toBeNull();
+    expect(aflStatus('PST')).toBeNull();
+  });
+});
 
 describe('poller: espnStatus', () => {
   const ev = (type) => ({ status: { type } });

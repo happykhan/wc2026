@@ -48,6 +48,25 @@ export const espnMinute = (ev) => {
   return m ? parseInt(m[1], 10) : null;
 };
 
+// football-data.org status → our status (the fallback feed when ESPN doesn't
+// resolve a match — e.g. a name ESPN spells differently). It gives final results
+// even on the free tier, where this matters most for backfilling.
+export const fdStatus = (s) => {
+  if (s === 'FINISHED') return 'FINISHED';
+  if (s === 'IN_PLAY') return 'IN_PLAY';
+  if (s === 'PAUSED') return 'PAUSED';
+  return null;
+};
+
+// API-Football fixture status short code → our status. Its free tier does LIVE
+// (fixtures?live=all) but not historical, so it's the fallback for live matches.
+export const aflStatus = (short) => {
+  if (['FT', 'AET', 'PEN'].includes(short)) return 'FINISHED';
+  if (short === 'HT') return 'PAUSED';
+  if (['1H', '2H', 'ET', 'BT', 'P', 'LIVE'].includes(short)) return 'IN_PLAY';
+  return null;
+};
+
 // ESPN files each game under its US-LOCAL date, not UTC — a 01:00 UTC kickoff
 // (US evening) is listed under the previous calendar day. Return the kickoff's
 // UTC date ±1 day as YYYYMMDD strings so the fetch covers the offset either way.
