@@ -94,6 +94,35 @@ export interface GroupStanding {
   ga: number;
   gd: number;
   points: number;
+  /**
+   * FIFA fair-play / team-conduct score: the sum of disciplinary points
+   * (yellow = 1, indirect red = 3, direct red = 4, yellow+direct red = 5).
+   * Fewer is better. 0 when no disciplinary data is supplied. This is the
+   * SECOND-TO-LAST group-stage tiebreaker — never applied before goal
+   * difference / goals scored / head-to-head.
+   */
+  disciplinaryPoints: number;
+}
+
+/**
+ * Optional inputs that feed the lower FIFA group-stage tiebreakers. Both are
+ * keyed by team name (matching Match.team1 / team2). When omitted the
+ * standings fall back to the higher tiers only (points → GD → GF → H2H).
+ */
+export interface StandingsTiebreakers {
+  /**
+   * Team-conduct disciplinary points, keyed by team name. Per FIFA: each
+   * yellow = 1, an indirect red (second yellow in a match) = 3, a direct
+   * red = 4, and a yellow followed by a direct red in one match = 5.
+   * Fewer points is better (tier 7).
+   */
+  disciplinaryPoints?: Record<string, number>;
+  /**
+   * FIFA/Coca-Cola Men's World Ranking position, keyed by team name. Lower
+   * number = higher rank = advances (tier 8, the final drawing-of-lots
+   * replacement).
+   */
+  fifaRank?: Record<string, number>;
 }
 
 export type FilterState = {
