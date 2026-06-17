@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
@@ -6,6 +6,7 @@ import { ICSExport } from '../components/ICSExport';
 import { allTeams as wcTeams, allGroups as wcGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
 import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
+import { pickScrollTargetDateKey } from '../utils/scrollTarget';
 
 interface ScheduleProps {
   matches: Match[];
@@ -98,6 +99,74 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
     if (!filters.date) return -1;
     return allDateKeys.indexOf(filters.date);
   }, [allDateKeys, filters.date]);
+
+  // --- Cue to today on load -------------------------------------------------
+  // The list is in chronological order (oldest first), so on a fresh load the
+  // viewport starts on long-finished matches. We auto-scroll to today's date
+  // group (or the next upcoming day if today has none), and offer a sticky
+  // "Jump to today" button to re-cue at any time. Past matches stay above —
+  // we never hide or reorder them.
+  const dateGroupRefs = useRef(new Map<string, HTMLDivElement>());
+  const didAutoScroll = useRef(false);
+  const userHasScrolled = useRef(false);
+
+  // Which date group to cue to, recomputed as the (filtered) day list changes.
+  const scrollTargetKey = useMemo(() => {
+    const keys = byDate.map(([k]) => k);
+    return pickScrollTargetDateKey(keys, getDateKey(new Date(), prefs.timezone));
+  }, [byDate, prefs.timezone]);
+
+  const scrollToTarget = useCallback(
+    (behavior: ScrollBehavior) => {
+      if (!scrollTargetKey) return false;
+      const el = dateGroupRefs.current.get(scrollTargetKey);
+      if (!el) return false;
+      el.scrollIntoView({ behavior, block: 'start' });
+      return true;
+    },
+    [scrollTargetKey],
+  );
+
+  // Note if the user scrolls before our auto-scroll runs, so we never yank their
+  // position out from under them. This catches scrolls AFTER the listener mounts;
+  // the live `window.scrollY` check below catches any earlier ones the listener
+  // missed (e.g. browser scroll-restoration or a fast flick during first paint).
+  useEffect(() => {
+    const onScroll = () => {
+      userHasScrolled.current = true;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // One-time auto-scroll once the day groups have rendered. Skipped when a
+  // shared /match link is being focused (MatchRow scrolls to that card itself),
+  // and skipped if the user already scrolled. `requestAnimationFrame` waits for
+  // layout so scrollIntoView lands on the real position.
+  useEffect(() => {
+    if (didAutoScroll.current) return;
+    if (focusMatchId) {
+      didAutoScroll.current = true; // defer entirely to the deep-link scroll
+      return;
+    }
+    if (userHasScrolled.current) return;
+    if (byDate.length === 0) return; // data not in yet — try again on next render
+    const raf = requestAnimationFrame(() => {
+      // Re-check at fire time: if the listener flagged a scroll, or the page is
+      // already meaningfully scrolled away from the top (an early scroll the
+      // listener missed), the user is in control — don't override them.
+      if (userHasScrolled.current) return;
+      if (typeof window !== 'undefined' && window.scrollY > 40) {
+        userHasScrolled.current = true;
+        didAutoScroll.current = true;
+        return;
+      }
+      // 'auto' (instant) on first paint avoids a long animated scroll past every
+      // finished match; the manual button uses 'smooth'.
+      if (scrollToTarget('auto')) didAutoScroll.current = true;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [byDate.length, focusMatchId, scrollToTarget]);
 
   const navigateDay = useCallback((direction: 1 | -1) => {
     // If no date filter, find today or first future date as anchor
@@ -217,7 +286,14 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
               : formatMatchDate(d, prefs.timezone, prefs.language);
 
             return (
-              <div key={dateKey} className="space-y-2">
+              <div
+                key={dateKey}
+                ref={(el) => {
+                  if (el) dateGroupRefs.current.set(dateKey, el);
+                  else dateGroupRefs.current.delete(dateKey);
+                }}
+                className="scroll-mt-20 space-y-2"
+              >
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
                   <span className="inline-block w-1 h-3.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
                   {label}
@@ -241,6 +317,36 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
             );
           })}
         </div>
+      )}
+
+      {/* Sticky "Jump to today" — always available to re-cue after scrolling.
+          Hidden when the list is empty / there is no target day. Uses logical
+          `end-4` so it sits bottom-right in LTR and bottom-left in RTL (Arabic). */}
+      {scrollTargetKey && (
+        <button
+          type="button"
+          onClick={() => {
+            userHasScrolled.current = true; // an explicit jump is not "untouched"
+            scrollToTarget('smooth');
+          }}
+          className="fixed bottom-4 end-4 z-30 flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95"
+          aria-label={t('jumpToToday')}
+        >
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="5 12 12 5 19 12" />
+          </svg>
+          {t('jumpToToday')}
+        </button>
       )}
     </div>
   );

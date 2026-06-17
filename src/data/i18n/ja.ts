@@ -8,6 +8,7 @@ export const ja = {
   settings: '設定',
   today: '今日',
   tomorrow: '明日',
+  jumpToToday: '今日へ移動',
   live: 'ライブ',
   ht: 'HT',
   ft: '終了',

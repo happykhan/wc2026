@@ -8,6 +8,7 @@ export const it = {
   settings: 'Impostazioni',
   today: 'Oggi',
   tomorrow: 'Domani',
+  jumpToToday: 'Vai a oggi',
   live: 'In diretta',
   ht: 'INT',
   ft: 'Fine',

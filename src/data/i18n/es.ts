@@ -7,6 +7,7 @@ export const es = {
   settings: 'Ajustes',
   today: 'Hoy',
   tomorrow: 'Mañana',
+  jumpToToday: 'Ir a hoy',
   live: 'En vivo',
   ht: 'Descanso',
   ft: 'Terminado',

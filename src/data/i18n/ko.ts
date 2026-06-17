@@ -8,6 +8,7 @@ export const ko = {
   settings: '설정',
   today: '오늘',
   tomorrow: '내일',
+  jumpToToday: '오늘로 이동',
   live: '실시간',
   ht: 'HT',
   ft: '종료',

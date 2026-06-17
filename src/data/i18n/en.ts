@@ -7,6 +7,7 @@ export const en = {
   settings: 'Settings',
   today: 'Today',
   tomorrow: 'Tomorrow',
+  jumpToToday: 'Jump to today',
   live: 'Live',
   ht: 'HT',
   ft: 'FT',

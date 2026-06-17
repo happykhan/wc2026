@@ -9,6 +9,7 @@ export const ar = {
   settings: 'الإعدادات',
   today: 'اليوم',
   tomorrow: 'غدًا',
+  jumpToToday: 'الانتقال إلى اليوم',
   live: 'مباشر',
   ht: 'استراحة',
   ft: 'انتهت',

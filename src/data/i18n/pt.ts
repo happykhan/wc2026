@@ -9,6 +9,7 @@ export const pt = {
   settings: 'Configurações',
   today: 'Hoje',
   tomorrow: 'Amanhã',
+  jumpToToday: 'Ir para hoje',
   live: 'Ao vivo',
   ht: 'INT',
   ft: 'Fim',

@@ -7,6 +7,7 @@ export const fr = {
   settings: 'Paramètres',
   today: "Aujourd'hui",
   tomorrow: 'Demain',
+  jumpToToday: "Aller à aujourd'hui",
   live: 'En direct',
   ht: 'MT',
   ft: 'Terminé',
