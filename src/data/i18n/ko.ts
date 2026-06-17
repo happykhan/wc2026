@@ -8,6 +8,8 @@ export const ko = {
   settings: '설정',
   today: '오늘',
   tomorrow: '내일',
+  showPastMatches: '지난 경기 보기',
+  hidePastMatches: '지난 경기 숨기기',
   live: '실시간',
   ht: 'HT',
   ft: '종료',

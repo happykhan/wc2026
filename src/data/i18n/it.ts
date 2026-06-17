@@ -8,6 +8,8 @@ export const it = {
   settings: 'Impostazioni',
   today: 'Oggi',
   tomorrow: 'Domani',
+  showPastMatches: 'Mostra partite passate',
+  hidePastMatches: 'Nascondi partite passate',
   live: 'In diretta',
   ht: 'INT',
   ft: 'Fine',

@@ -7,6 +7,8 @@ export const en = {
   settings: 'Settings',
   today: 'Today',
   tomorrow: 'Tomorrow',
+  showPastMatches: 'Show past matches',
+  hidePastMatches: 'Hide past matches',
   live: 'Live',
   ht: 'HT',
   ft: 'FT',

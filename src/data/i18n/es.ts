@@ -7,6 +7,8 @@ export const es = {
   settings: 'Ajustes',
   today: 'Hoy',
   tomorrow: 'Mañana',
+  showPastMatches: 'Mostrar partidos pasados',
+  hidePastMatches: 'Ocultar partidos pasados',
   live: 'En vivo',
   ht: 'Descanso',
   ft: 'Terminado',

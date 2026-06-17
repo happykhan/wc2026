@@ -9,6 +9,8 @@ export const ar = {
   settings: 'الإعدادات',
   today: 'اليوم',
   tomorrow: 'غدًا',
+  showPastMatches: 'إظهار المباريات السابقة',
+  hidePastMatches: 'إخفاء المباريات السابقة',
   live: 'مباشر',
   ht: 'استراحة',
   ft: 'انتهت',

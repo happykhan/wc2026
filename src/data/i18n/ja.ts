@@ -8,6 +8,8 @@ export const ja = {
   settings: '設定',
   today: '今日',
   tomorrow: '明日',
+  showPastMatches: '過去の試合を表示',
+  hidePastMatches: '過去の試合を非表示',
   live: 'ライブ',
   ht: 'HT',
   ft: '終了',

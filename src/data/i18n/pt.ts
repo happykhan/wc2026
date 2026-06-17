@@ -9,6 +9,8 @@ export const pt = {
   settings: 'Configurações',
   today: 'Hoje',
   tomorrow: 'Amanhã',
+  showPastMatches: 'Mostrar jogos anteriores',
+  hidePastMatches: 'Ocultar jogos anteriores',
   live: 'Ao vivo',
   ht: 'INT',
   ft: 'Fim',
