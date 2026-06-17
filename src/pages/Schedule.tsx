@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
@@ -6,7 +6,7 @@ import { ICSExport } from '../components/ICSExport';
 import { allTeams as wcTeams, allGroups as wcGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
 import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
-import { pickScrollTargetDateKey } from '../utils/scrollTarget';
+import { partitionPastDateKeys, shouldStartPastExpanded } from '../utils/pastMatches';
 
 interface ScheduleProps {
   matches: Match[];
@@ -73,7 +73,7 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
     });
   }, [matches, filters, prefs.favouriteMatches]);
 
-  // Group by date for display
+  // Group by date for display (chronological, oldest first).
   const byDate = useMemo(() => {
     const map = new Map<string, Match[]>();
     for (const m of filtered) {
@@ -100,79 +100,52 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
     return allDateKeys.indexOf(filters.date);
   }, [allDateKeys, filters.date]);
 
-  // --- Cue to today on load -------------------------------------------------
-  // The list is in chronological order (oldest first), so on a fresh load the
-  // viewport starts on long-finished matches. We auto-scroll to today's date
-  // group (or the next upcoming day if today has none), and offer a sticky
-  // "Jump to today" button to re-cue at any time. Past matches stay above —
-  // we never hide or reorder them.
-  const dateGroupRefs = useRef(new Map<string, HTMLDivElement>());
-  const didAutoScroll = useRef(false);
-  const userHasScrolled = useRef(false);
+  // --- Collapse past matches ------------------------------------------------
+  // The list is chronological (oldest first), so finished match days sit at the
+  // top and you'd otherwise scroll past every one to reach today. We split the
+  // visible day groups into "past" (strictly before today) and "current" (today
+  // onward), hide the past block behind a toggle, and render today's matches at
+  // the top. Order is never changed — when expanded, past days appear in their
+  // normal chronological position (above today).
+  const todayKey = getDateKey(new Date(), prefs.timezone);
+  const { past: pastKeys, current: currentKeys } = useMemo(
+    () => partitionPastDateKeys(byDate.map(([k]) => k), todayKey),
+    [byDate, todayKey],
+  );
+  const pastKeySet = useMemo(() => new Set(pastKeys), [pastKeys]);
 
-  // Which date group to cue to, recomputed as the (filtered) day list changes.
-  const scrollTargetKey = useMemo(() => {
-    const keys = byDate.map(([k]) => k);
-    return pickScrollTargetDateKey(keys, getDateKey(new Date(), prefs.timezone));
-  }, [byDate, prefs.timezone]);
+  const pastGroups = useMemo(() => byDate.filter(([k]) => pastKeySet.has(k)), [byDate, pastKeySet]);
+  const currentGroups = useMemo(() => byDate.filter(([k]) => !pastKeySet.has(k)), [byDate, pastKeySet]);
 
-  const scrollToTarget = useCallback(
-    (behavior: ScrollBehavior) => {
-      if (!scrollTargetKey) return false;
-      const el = dateGroupRefs.current.get(scrollTargetKey);
-      if (!el) return false;
-      el.scrollIntoView({ behavior, block: 'start' });
-      return true;
-    },
-    [scrollTargetKey],
+  const pastMatchCount = useMemo(
+    () => pastGroups.reduce((n, [, ms]) => n + ms.length, 0),
+    [pastGroups],
   );
 
-  // Note if the user scrolls before our auto-scroll runs, so we never yank their
-  // position out from under them. This catches scrolls AFTER the listener mounts;
-  // the live `window.scrollY` check below catches any earlier ones the listener
-  // missed (e.g. browser scroll-restoration or a fast flick during first paint).
-  useEffect(() => {
-    const onScroll = () => {
-      userHasScrolled.current = true;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // If a shared /match link points at a match in the (collapsed) past section,
+  // auto-expand so the deep-linked card is reachable and scrollable.
+  const deepLinkIsPast = useMemo(() => {
+    if (!focusMatchId) return false;
+    const m = filtered.find((x) => x.id === focusMatchId);
+    if (!m) return false;
+    return pastKeySet.has(getDateKey(m.utcDate, prefs.timezone));
+  }, [focusMatchId, filtered, pastKeySet, prefs.timezone]);
 
-  // One-time auto-scroll once the day groups have rendered. Skipped when a
-  // shared /match link is being focused (MatchRow scrolls to that card itself),
-  // and skipped if the user already scrolled. `requestAnimationFrame` waits for
-  // layout so scrollIntoView lands on the real position.
-  useEffect(() => {
-    if (didAutoScroll.current) return;
-    if (focusMatchId) {
-      didAutoScroll.current = true; // defer entirely to the deep-link scroll
-      return;
-    }
-    if (userHasScrolled.current) return;
-    if (byDate.length === 0) return; // data not in yet — try again on next render
-    const raf = requestAnimationFrame(() => {
-      // Re-check at fire time: if the listener flagged a scroll, or the page is
-      // already meaningfully scrolled away from the top (an early scroll the
-      // listener missed), the user is in control — don't override them.
-      if (userHasScrolled.current) return;
-      if (typeof window !== 'undefined' && window.scrollY > 40) {
-        userHasScrolled.current = true;
-        didAutoScroll.current = true;
-        return;
-      }
-      // 'auto' (instant) on first paint avoids a long animated scroll past every
-      // finished match; the manual button uses 'smooth'.
-      if (scrollToTarget('auto')) didAutoScroll.current = true;
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [byDate.length, focusMatchId, scrollToTarget]);
+  // Collapsed by default. Exceptions: (a) a deep-linked past match forces it open
+  // so the card is reachable; (b) when there are NO current/upcoming days but
+  // there ARE past days (tournament over), default to open so the screen isn't
+  // empty. `useState` initialiser runs once; the deep-link case re-asserts below.
+  const [showPast, setShowPast] = useState(
+    () => shouldStartPastExpanded(pastKeys.length, currentKeys.length, deepLinkIsPast),
+  );
+  // Keep the past section open whenever a past match is deep-linked, even if the
+  // focus arrives after the initial render (route change without remount).
+  const effectiveShowPast = showPast || deepLinkIsPast;
 
   const navigateDay = useCallback((direction: 1 | -1) => {
     // If no date filter, find today or first future date as anchor
     let currentIdx = activeDateIndex;
     if (currentIdx === -1) {
-      const todayKey = getDateKey(new Date(), prefs.timezone);
       currentIdx = allDateKeys.findIndex((k) => k >= todayKey);
       if (currentIdx === -1) currentIdx = 0;
     }
@@ -180,7 +153,7 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
     if (nextIdx >= 0 && nextIdx < allDateKeys.length) {
       setFilters((prev) => ({ ...prev, date: allDateKeys[nextIdx] }));
     }
-  }, [activeDateIndex, allDateKeys, prefs.timezone]);
+  }, [activeDateIndex, allDateKeys, todayKey]);
 
   const resetDrag = useCallback(() => {
     const el = listRef.current;
@@ -225,6 +198,43 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
       if (Math.abs(dx) >= swipeThreshold) navigateDay(dx < 0 ? 1 : -1);
     }
   }, [navigateDay, resetDrag]);
+
+  const renderDayGroup = useCallback(
+    ([dateKey, dayMatches]: [string, Match[]]) => {
+      // Use noon UTC on the date key to get a representative Date for label checks
+      const d = new Date(dateKey + 'T12:00:00Z');
+      const label = isMatchToday(d, prefs.timezone)
+        ? t('today')
+        : isMatchTomorrow(d, prefs.timezone)
+        ? t('tomorrow')
+        : formatMatchDate(d, prefs.timezone, prefs.language);
+
+      return (
+        <div key={dateKey} className="space-y-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+            <span className="inline-block w-1 h-3.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+            {label}
+          </h3>
+          <div className="space-y-2">
+            {dayMatches.map((m) => (
+              <MatchRow
+                key={m.id}
+                match={m}
+                prefs={prefs}
+                t={t}
+                onToggleFavourite={onToggleFavourite}
+                timezone={prefs.timezone}
+                isToday={isMatchToday(m.utcDate, prefs.timezone)}
+                isClubComp={isClubComp}
+                initialExpanded={!!focusMatchId && m.id === focusMatchId}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    },
+    [prefs, t, onToggleFavourite, isClubComp, focusMatchId],
+  );
 
   return (
     <div className="space-y-6">
@@ -276,77 +286,41 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {byDate.map(([dateKey, dayMatches]) => {
-            // Use noon UTC on the date key to get a representative Date for label checks
-            const d = new Date(dateKey + 'T12:00:00Z');
-            const label = isMatchToday(d, prefs.timezone)
-              ? t('today')
-              : isMatchTomorrow(d, prefs.timezone)
-              ? t('tomorrow')
-              : formatMatchDate(d, prefs.timezone, prefs.language);
-
-            return (
-              <div
-                key={dateKey}
-                ref={(el) => {
-                  if (el) dateGroupRefs.current.set(dateKey, el);
-                  else dateGroupRefs.current.delete(dateKey);
-                }}
-                className="scroll-mt-20 space-y-2"
+          {/* Past-matches toggle + (when expanded) the past day groups, kept in
+              their chronological position ABOVE today. Hidden entirely when
+              there are no past days. */}
+          {pastGroups.length > 0 && (
+            <div className="space-y-8">
+              <button
+                type="button"
+                onClick={() => setShowPast((v) => !v)}
+                aria-expanded={effectiveShowPast}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 px-4 py-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-300 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
-                  <span className="inline-block w-1 h-3.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-                  {label}
-                </h3>
-                <div className="space-y-2">
-                  {dayMatches.map((m) => (
-                    <MatchRow
-                      key={m.id}
-                      match={m}
-                      prefs={prefs}
-                      t={t}
-                      onToggleFavourite={onToggleFavourite}
-                      timezone={prefs.timezone}
-                      isToday={isMatchToday(m.utcDate, prefs.timezone)}
-                      isClubComp={isClubComp}
-                      initialExpanded={!!focusMatchId && m.id === focusMatchId}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                <svg
+                  className={`w-4 h-4 transition-transform ${effectiveShowPast ? 'rotate-180' : ''}`}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <span>{effectiveShowPast ? t('hidePastMatches') : t('showPastMatches')}</span>
+                <span className="inline-flex items-center justify-center min-w-[1.5rem] rounded-full bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
+                  {pastMatchCount}
+                </span>
+              </button>
+              {effectiveShowPast && <div className="space-y-8">{pastGroups.map(renderDayGroup)}</div>}
+            </div>
+          )}
 
-      {/* Sticky "Jump to today" — always available to re-cue after scrolling.
-          Hidden when the list is empty / there is no target day. Uses logical
-          `end-4` so it sits bottom-right in LTR and bottom-left in RTL (Arabic). */}
-      {scrollTargetKey && (
-        <button
-          type="button"
-          onClick={() => {
-            userHasScrolled.current = true; // an explicit jump is not "untouched"
-            scrollToTarget('smooth');
-          }}
-          className="fixed bottom-4 end-4 z-30 flex items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95"
-          aria-label={t('jumpToToday')}
-        >
-          <svg
-            className="w-4 h-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <line x1="12" y1="19" x2="12" y2="5" />
-            <polyline points="5 12 12 5 19 12" />
-          </svg>
-          {t('jumpToToday')}
-        </button>
+          {/* Today + upcoming days — always visible, at the top. */}
+          {currentGroups.map(renderDayGroup)}
+        </div>
       )}
     </div>
   );
