@@ -10,3 +10,6 @@ export function getQualificationState(team: string): QualificationState | undefi
   return QUALIFICATION_BY_TEAM[team];
 }
 
+export function getQualifiedTeams(): string[] {
+  return Object.keys(QUALIFICATION_BY_TEAM);
+}

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getQualifiedTeams } from '../src/data/qualification';
 
 // ---------------------------------------------------------------------------
 // /api/scores — reads the pre-computed scores JSON hosted on Nabil's VM.
@@ -11,7 +12,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // ---------------------------------------------------------------------------
 
 const VM_SCORES_URL = 'https://wc-scores.genomicx.org/scores.json';
-const EMPTY_RESPONSE = { live: false, matches: [], standings: [] };
+const EMPTY_RESPONSE = { live: false, matches: [], standings: [], qualifiedTeams: getQualifiedTeams() };
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
@@ -22,7 +23,13 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     }
     const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string };
     res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=12, stale-while-revalidate=20');
-    return res.status(200).json({ live: data.live ?? false, matches: data.matches ?? [], standings: [], updatedAt: data.updatedAt });
+    return res.status(200).json({
+      live: data.live ?? false,
+      matches: data.matches ?? [],
+      standings: [],
+      updatedAt: data.updatedAt,
+      qualifiedTeams: getQualifiedTeams(),
+    });
   } catch {
     res.setHeader('Cache-Control', 'public, max-age=30');
     return res.status(200).json(EMPTY_RESPONSE);
