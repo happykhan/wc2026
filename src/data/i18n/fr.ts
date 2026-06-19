@@ -47,6 +47,7 @@ export const fr = {
   goalsAgainst: 'BC',
   goalDifference: 'DB',
   points: 'Pts',
+  qualified: 'Qualifié',
   tbd: 'À déterminer',
   matchday: 'Journée',
   roundOf32: 'Seizièmes',

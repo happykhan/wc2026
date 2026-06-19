@@ -47,6 +47,7 @@ export const de = {
   goalsAgainst: 'Gegentore',
   goalDifference: 'TD',
   points: 'Pkt',
+  qualified: 'Qualifiziert',
   tbd: 'Noch zu bestimmen',
   matchday: 'Spieltag',
   roundOf32: '32. Finale',

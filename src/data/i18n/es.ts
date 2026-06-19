@@ -47,6 +47,7 @@ export const es = {
   goalsAgainst: 'GC',
   goalDifference: 'DG',
   points: 'Pts',
+  qualified: 'Clasificado',
   tbd: 'Por definir',
   matchday: 'Jornada',
   roundOf32: 'Dieciseisavos',

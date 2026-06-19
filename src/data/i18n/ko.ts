@@ -48,6 +48,7 @@ export const ko = {
   goalsAgainst: '실점',
   goalDifference: '득실',
   points: '승점',
+  qualified: '진출 확정',
   tbd: '미정',
   matchday: '경기일',
   roundOf32: '32강',
