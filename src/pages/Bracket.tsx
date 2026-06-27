@@ -6,6 +6,7 @@ import { buildBracket, type BracketMatch, type BracketRound } from '../data/brac
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { formatMatchDate, formatMatchTime } from '../utils/time';
+import { FeatureNoticeGroup } from '../components/FeatureNotice';
 
 interface BracketProps {
   matches: Match[];
@@ -433,6 +434,22 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
         selection={pathSelection}
         prefs={prefs}
         onClose={() => setPathSelection(null)}
+      />
+
+      <FeatureNoticeGroup
+        dismissLabel={t('scheduleFeatureDismiss')}
+        notices={[
+          {
+            id: 'bracket-views-v1',
+            title: t('bracketFeatureTitle'),
+            children: t('bracketFeatureBody'),
+          },
+          {
+            id: 'bracket-path-v1',
+            title: t('pathFeatureTitle'),
+            children: t('pathFeatureBody'),
+          },
+        ]}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import type { Match, UserPreferences, FilterState } from '../types';
 import { MatchRow } from '../components/MatchRow';
 import { FilterBar } from '../components/FilterBar';
 import { ICSExport } from '../components/ICSExport';
+import { FeatureNoticeGroup } from '../components/FeatureNotice';
 import { allTeams as wcTeams, allGroups as wcGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
 import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
@@ -238,6 +239,17 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
 
   return (
     <div className="space-y-6">
+      <FeatureNoticeGroup
+        dismissLabel={t('scheduleFeatureDismiss')}
+        notices={[
+          {
+            id: 'knockout-schedule-v1',
+            title: t('scheduleFeatureTitle'),
+            children: t('scheduleFeatureBody'),
+          },
+        ]}
+      />
+
       {/* Filters + export */}
       <div className="flex flex-wrap gap-3 items-start justify-between">
         <FilterBar
