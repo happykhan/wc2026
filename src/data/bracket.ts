@@ -44,6 +44,11 @@ export interface BracketRound {
   matches: BracketMatch[];
 }
 
+export interface ResolvedKnockoutTeams {
+  team1: string;
+  team2: string;
+}
+
 // Display order + titles for the knockout rounds, keyed by the round string
 // used in fixtures.json.
 const ROUND_ORDER: { round: string; key: string; title: string }[] = [
@@ -172,4 +177,19 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
   }
 
   return rounds;
+}
+
+export function resolveKnockoutMatchTeams(allMatches: Match[]): Map<string, ResolvedKnockoutTeams> {
+  const resolved = new Map<string, ResolvedKnockoutTeams>();
+
+  for (const round of buildBracket(allMatches)) {
+    for (const match of round.matches) {
+      resolved.set(match.matchId, {
+        team1: match.team1.label,
+        team2: match.team2.label,
+      });
+    }
+  }
+
+  return resolved;
 }

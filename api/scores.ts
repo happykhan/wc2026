@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getQualifiedTeams } from '../src/data/qualification';
+import { getQualifiedTeams } from '../src/data/qualification.js';
 
 // ---------------------------------------------------------------------------
 // /api/scores — reads the pre-computed scores JSON hosted on Nabil's VM.

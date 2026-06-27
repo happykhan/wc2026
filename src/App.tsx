@@ -3,6 +3,7 @@ import { usePreferences } from './hooks/usePreferences';
 import { useTheme } from './hooks/useTheme';
 import { useLiveScores } from './hooks/useLiveScores';
 import { processedMatches } from './data/processFixtures';
+import { resolveKnockoutMatchTeams } from './data/bracket';
 import { anyMatchActive } from './utils/liveWindow';
 import { getTranslations, isRtlLanguage } from './data/i18n';
 import { Header } from './components/Header';
@@ -45,8 +46,7 @@ export default function App() {
 
   // Merge live scores into the static fixture list.
   const matches = useMemo(() => {
-    if (scores.size === 0) return processedMatches;
-    return processedMatches.map((m) => {
+    const scoredMatches = scores.size === 0 ? processedMatches : processedMatches.map((m) => {
       const live = scores.get(m.id);
       if (!live) return m;
       return {
@@ -59,6 +59,14 @@ export default function App() {
         aflFixtureId: live.aflFixtureId,
         espnEventId: live.espnEventId,
       };
+    });
+
+    const resolvedKnockoutTeams = resolveKnockoutMatchTeams(scoredMatches);
+    return scoredMatches.map((m) => {
+      if (m.phase !== 'knockout') return m;
+      const resolved = resolvedKnockoutTeams.get(m.id);
+      if (!resolved || (resolved.team1 === m.team1 && resolved.team2 === m.team2)) return m;
+      return { ...m, team1: resolved.team1, team2: resolved.team2 };
     });
   }, [scores]);
 

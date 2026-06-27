@@ -51,6 +51,111 @@ function normTeam(s: string): string {
 
 interface ScoreInfo { sh: number | null; sa: number | null; label: string; live: boolean }
 
+interface ScoresMatch {
+  id?: string | number;
+  utcDate?: string;
+  status?: string;
+  score?: { fullTime?: { home: number | null; away: number | null } };
+  homeTeam?: { name?: string };
+  awayTeam?: { name?: string };
+  group?: string | null;
+  round?: string;
+}
+
+const isGroupSlot = (team: string) => /^[12][A-L]$/.test(team);
+
+interface GroupResult {
+  team: string;
+  points: number;
+  gd: number;
+  gf: number;
+}
+
+interface GroupMatch {
+  team1: string;
+  team2: string;
+  score1: number;
+  score2: number;
+  group: string;
+}
+
+function toGroupMatch(m: ScoresMatch): GroupMatch | null {
+  const home = m.homeTeam?.name;
+  const away = m.awayTeam?.name;
+  const homeScore = m.score?.fullTime?.home;
+  const awayScore = m.score?.fullTime?.away;
+  if (!home || !away || !m.group || homeScore == null || awayScore == null) return null;
+  if (m.status !== 'FINISHED') return null;
+  return {
+    team1: home,
+    team2: away,
+    score1: homeScore,
+    score2: awayScore,
+    group: m.group,
+  };
+}
+
+function computeSimpleGroupStandings(matches: GroupMatch[]): GroupResult[] {
+  const table = new Map<string, GroupResult>();
+  const row = (team: string) => {
+    if (!table.has(team)) table.set(team, { team, points: 0, gd: 0, gf: 0 });
+    return table.get(team)!;
+  };
+
+  for (const match of matches) {
+    const home = row(match.team1);
+    const away = row(match.team2);
+    home.gf += match.score1;
+    away.gf += match.score2;
+    home.gd += match.score1 - match.score2;
+    away.gd += match.score2 - match.score1;
+    if (match.score1 > match.score2) home.points += 3;
+    else if (match.score1 < match.score2) away.points += 3;
+    else {
+      home.points += 1;
+      away.points += 1;
+    }
+  }
+
+  return Array.from(table.values()).sort(
+    (a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf,
+  );
+}
+
+async function resolveGroupSlotTeams(origin: string, home: string, away: string): Promise<{ home: string; away: string }> {
+  if (!isGroupSlot(home) && !isGroupSlot(away)) return { home, away };
+
+  try {
+    const r = await fetch(`${origin}/api/scores`);
+    if (!r.ok) return { home, away };
+    const j = (await r.json()) as { matches?: ScoresMatch[] };
+    const groupMatches = (j.matches ?? [])
+      .map(toGroupMatch)
+      .filter((m): m is GroupMatch => m !== null);
+
+    const byGroup = new Map<string, GroupMatch[]>();
+    for (const m of groupMatches) {
+      const key = m.group!.replace(/^Group\s+/i, '').trim();
+      if (!byGroup.has(key)) byGroup.set(key, []);
+      byGroup.get(key)!.push(m);
+    }
+
+    const resolve = (slot: string): string => {
+      const parsed = slot.match(/^([12])([A-L])$/);
+      if (!parsed) return slot;
+      const [, pos, group] = parsed;
+      const matches = byGroup.get(group) ?? [];
+      if (matches.length < 6) return slot;
+      const standings = computeSimpleGroupStandings(matches);
+      return standings[Number(pos) - 1]?.team ?? slot;
+    };
+
+    return { home: resolve(home), away: resolve(away) };
+  } catch {
+    return { home, away };
+  }
+}
+
 // Look the match's live/final score up from the cached /api/scores (the Blob),
 // matched by team name. Returns null for not-found / not-yet-played.
 async function lookupScore(origin: string, home: string, away: string): Promise<ScoreInfo | null> {
@@ -105,8 +210,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Prefer the server-resolved details (clean URL); fall back to legacy params.
   const m = await lookupMatch(origin, id);
-  const home = m?.h || first(req.query.h);
-  const away = m?.a || first(req.query.a);
+  let home = m?.h || first(req.query.h);
+  let away = m?.a || first(req.query.a);
+  ({ home, away } = await resolveGroupSlotTeams(origin, home, away));
   const stage = m?.s || first(req.query.s);
   const date = m?.d || first(req.query.d);
   const venue = m?.v || first(req.query.v);

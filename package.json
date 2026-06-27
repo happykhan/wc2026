@@ -12,7 +12,7 @@
   "keywords": ["world-cup", "world-cup-2026", "football", "soccer", "live-scores", "fixtures", "react", "vite"],
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/gen-match-index.mjs && vitest run && tsc -b && vite build",
+    "build": "node scripts/gen-match-index.mjs && vitest run && tsc -b && tsc -p tsconfig.api.json --noEmit && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch-fixtures": "node scripts/fetch-fixtures.mjs",

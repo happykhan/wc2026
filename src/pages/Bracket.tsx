@@ -2,10 +2,9 @@ import { useMemo } from 'react';
 import type { Match, UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch } from '../data/bracket';
-import { getQualifiedTeams } from '../data/qualification';
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
-import { formatMatchDate } from '../utils/time';
+import { formatMatchDate, formatMatchTime } from '../utils/time';
 
 interface BracketProps {
   matches: Match[];
@@ -44,8 +43,10 @@ function TeamLine({
   );
 }
 
-function BracketCard({ m, language }: { m: BracketMatch; language: string }) {
+function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) {
   const live = m.status === 'live' || m.status === 'ht';
+  const date = formatMatchDate(m.utcDate, prefs.timezone, prefs.language).replace(/,.*$/, '');
+  const time = formatMatchTime(m.utcDate, prefs.timezone, prefs.hour12);
   return (
     <div
       className={[
@@ -57,7 +58,7 @@ function BracketCard({ m, language }: { m: BracketMatch; language: string }) {
     >
       <div className="px-2 pt-1 flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-          {m.num ? `#${m.num}` : ''} {formatMatchDate(m.utcDate, 'UTC', language).replace(/,.*$/, '')}
+          {m.num ? `#${m.num}` : ''} {date} {time}
         </span>
         {live && <span className="text-[10px] font-semibold text-red-500">LIVE</span>}
         {m.status === 'ft' && <span className="text-[10px] text-neutral-400">FT</span>}
@@ -82,7 +83,6 @@ function BracketCard({ m, language }: { m: BracketMatch; language: string }) {
 
 export function Bracket({ matches, prefs, t }: BracketProps) {
   const rounds = useMemo(() => buildBracket(matches), [matches]);
-  const qualifiedTeams = useMemo(() => getQualifiedTeams(), []);
 
   if (rounds.length === 0) {
     return (
@@ -94,14 +94,6 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
 
   return (
     <div className="space-y-4">
-      {qualifiedTeams.length > 0 && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">
-          <span className="font-semibold uppercase tracking-wide">{t('qualified')}</span>
-          <span className="ml-2">
-            {qualifiedTeams.join(', ')}
-          </span>
-        </div>
-      )}
       {/* Horizontally scrollable column layout — reads as a bracket, works on
           mobile via overflow-x. Vertical gaps grow per round so pairs roughly
           align with their next-round match. */}
@@ -119,7 +111,7 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
                 ].join(' ')}
               >
                 {round.matches.map((m, i) => (
-                  <BracketCard key={m.matchId + i} m={m} language={prefs.language} />
+                  <BracketCard key={m.matchId + i} m={m} prefs={prefs} />
                 ))}
               </div>
             </div>
