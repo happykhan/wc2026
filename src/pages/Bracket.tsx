@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type { Match, UserPreferences } from '../types';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch } from '../data/bracket';
-import { getQualifiedTeams } from '../data/qualification';
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { formatMatchDate, formatMatchTime } from '../utils/time';
@@ -84,7 +83,6 @@ function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) 
 
 export function Bracket({ matches, prefs, t }: BracketProps) {
   const rounds = useMemo(() => buildBracket(matches), [matches]);
-  const qualifiedTeams = useMemo(() => getQualifiedTeams(), []);
 
   if (rounds.length === 0) {
     return (
@@ -96,14 +94,6 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
 
   return (
     <div className="space-y-4">
-      {qualifiedTeams.length > 0 && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200">
-          <span className="font-semibold uppercase tracking-wide">{t('qualified')}</span>
-          <span className="ml-2">
-            {qualifiedTeams.join(', ')}
-          </span>
-        </div>
-      )}
       {/* Horizontally scrollable column layout — reads as a bracket, works on
           mobile via overflow-x. Vertical gaps grow per round so pairs roughly
           align with their next-round match. */}
