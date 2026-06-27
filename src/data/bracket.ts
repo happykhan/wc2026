@@ -31,6 +31,8 @@ export interface BracketMatch {
   num?: number;
   round: string;
   utcDate: Date;
+  sourceTeam1: string;
+  sourceTeam2: string;
   team1: BracketTeam;
   team2: BracketTeam;
   score1?: number;
@@ -127,6 +129,8 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       num: m.num,
       round: m.round,
       utcDate: m.utcDate,
+      sourceTeam1: m.team1,
+      sourceTeam2: m.team2,
       team1,
       team2,
       score1: m.score1,
@@ -157,6 +161,8 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
           num: m.num,
           round: m.round,
           utcDate: m.utcDate,
+          sourceTeam1: m.team1,
+          sourceTeam2: m.team2,
           team1,
           team2,
           score1: m.score1,
