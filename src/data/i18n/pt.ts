@@ -51,6 +51,7 @@ export const pt = {
   goalsAgainst: 'GC',
   goalDifference: 'SG',
   points: 'Pts',
+  qualified: 'Classificado',
   tbd: 'A definir',
   matchday: 'Rodada',
   roundOf32: '16-avos de final',

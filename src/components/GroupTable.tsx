@@ -4,6 +4,7 @@ import type { TranslationKey } from '../data/i18n';
 import { localizedTeamName } from '../data/teamFlags';
 import { localizedGroupName } from '../utils/labels';
 import { computeStandings } from '../data/standings';
+import { getQualificationState } from '../data/qualification';
 
 interface GroupTableProps {
   group: string;
@@ -35,35 +36,43 @@ export function GroupTable({ group, matches, language, t }: GroupTableProps) {
           </tr>
         </thead>
         <tbody>
-          {standings.map((s, i) => (
-            <tr
-              key={s.team}
-              className={[
-                'border-b last:border-0 border-neutral-50 dark:border-neutral-800/50',
-                i < 3 ? 'bg-white dark:bg-neutral-900' : 'bg-neutral-50/50 dark:bg-neutral-900/50',
-              ].join(' ')}
-            >
-              <td className="px-3 py-2.5 flex items-center gap-2">
-                {i < 3 && (
-                  <span className={[
-                    'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                    i < 2 ? 'bg-green-500' : 'bg-blue-400',
-                  ].join(' ')} title={i < 2 ? 'Qualify' : 'Potential playoff'} />
-                )}
-                <span className="font-medium text-neutral-800 dark:text-neutral-200">{localizedTeamName(s.team, language)}</span>
-              </td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.played}</td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.won}</td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.drawn}</td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.lost}</td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.gf}</td>
-              <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.ga}</td>
-              <td className="px-2 py-2.5 text-center font-medium text-neutral-700 dark:text-neutral-300">
-                {s.gd > 0 ? `+${s.gd}` : s.gd}
-              </td>
-              <td className="px-2 py-2.5 text-center font-bold text-neutral-900 dark:text-neutral-100">{s.points}</td>
-            </tr>
-          ))}
+          {standings.map((s, i) => {
+            const qualificationState = getQualificationState(s.team);
+            return (
+              <tr
+                key={s.team}
+                className={[
+                  'border-b last:border-0 border-neutral-50 dark:border-neutral-800/50',
+                  i < 3 ? 'bg-white dark:bg-neutral-900' : 'bg-neutral-50/50 dark:bg-neutral-900/50',
+                ].join(' ')}
+              >
+                <td className="px-3 py-2.5 flex items-center gap-2">
+                  {i < 3 && (
+                    <span className={[
+                      'w-1.5 h-1.5 rounded-full flex-shrink-0',
+                      i < 2 ? 'bg-green-500' : 'bg-blue-400',
+                    ].join(' ')} title={i < 2 ? 'Qualify' : 'Potential playoff'} />
+                  )}
+                  <span className="font-medium text-neutral-800 dark:text-neutral-200">{localizedTeamName(s.team, language)}</span>
+                  {qualificationState === 'qualified' && (
+                    <span className="rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-green-700 dark:border-green-800/80 dark:bg-green-950/50 dark:text-green-300">
+                      {t('qualified')}
+                    </span>
+                  )}
+                </td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.played}</td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.won}</td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.drawn}</td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.lost}</td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.gf}</td>
+                <td className="px-2 py-2.5 text-center text-neutral-600 dark:text-neutral-400">{s.ga}</td>
+                <td className="px-2 py-2.5 text-center font-medium text-neutral-700 dark:text-neutral-300">
+                  {s.gd > 0 ? `+${s.gd}` : s.gd}
+                </td>
+                <td className="px-2 py-2.5 text-center font-bold text-neutral-900 dark:text-neutral-100">{s.points}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

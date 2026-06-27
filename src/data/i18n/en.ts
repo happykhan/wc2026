@@ -49,6 +49,7 @@ export const en = {
   goalsAgainst: 'GA',
   goalDifference: 'GD',
   points: 'Pts',
+  qualified: 'Qualified',
   tbd: 'TBD',
   matchday: 'Matchday',
   roundOf32: 'Round of 32',

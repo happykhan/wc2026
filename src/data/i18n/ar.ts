@@ -51,6 +51,7 @@ export const ar = {
   goalsAgainst: 'عليه',
   goalDifference: 'الفارق',
   points: 'نقاط',
+  qualified: 'تأهل',
   tbd: 'يُحدد لاحقًا',
   matchday: 'الجولة',
   roundOf32: 'دور الـ32',

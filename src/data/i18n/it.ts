@@ -50,6 +50,7 @@ export const it = {
   goalsAgainst: 'GS',
   goalDifference: 'DR',
   points: 'Pti',
+  qualified: 'Qualificata',
   tbd: 'Da definire',
   matchday: 'Giornata',
   roundOf32: 'Sedicesimi',

@@ -50,6 +50,7 @@ export const ja = {
   goalsAgainst: '失点',
   goalDifference: '得失',
   points: '勝点',
+  qualified: '突破',
   tbd: '未定',
   matchday: '節',
   roundOf32: 'ラウンド32',
