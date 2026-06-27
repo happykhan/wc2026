@@ -6,6 +6,7 @@ export const pt = {
   groups: 'Grupos',
   bracket: 'Mata-mata',
   bracketEmpty: 'O chaveamento do mata-mata aparecerá quando os confrontos forem definidos.',
+  asItStands: 'No momento',
   settings: 'Configurações',
   today: 'Hoje',
   tomorrow: 'Amanhã',

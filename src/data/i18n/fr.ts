@@ -4,6 +4,7 @@ export const fr = {
   groups: 'Groupes',
   bracket: 'Tableau final',
   bracketEmpty: 'Le tableau à élimination directe apparaîtra une fois les affiches connues.',
+  asItStands: 'En l’état',
   settings: 'Paramètres',
   today: "Aujourd'hui",
   tomorrow: 'Demain',

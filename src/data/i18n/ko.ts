@@ -5,6 +5,7 @@ export const ko = {
   groups: '조별',
   bracket: '토너먼트',
   bracketEmpty: '대진이 확정되면 토너먼트 대진표가 표시됩니다.',
+  asItStands: '현재 기준',
   settings: '설정',
   today: '오늘',
   tomorrow: '내일',

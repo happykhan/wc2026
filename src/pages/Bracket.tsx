@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Match, UserPreferences } from '../types';
+import { TriangleAlert } from 'lucide-react';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch } from '../data/bracket';
 import { getTeamFlag } from '../data/teamFlags';
@@ -43,7 +44,7 @@ function TeamLine({
   );
 }
 
-function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) {
+function BracketCard({ m, prefs, t }: { m: BracketMatch; prefs: UserPreferences; t: (k: TranslationKey) => string }) {
   const live = m.status === 'live' || m.status === 'ht';
   const date = formatMatchDate(m.utcDate, prefs.timezone, prefs.language).replace(/,.*$/, '');
   const time = formatMatchTime(m.utcDate, prefs.timezone, prefs.hour12);
@@ -60,6 +61,15 @@ function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) 
         <span className="text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           {m.num ? `#${m.num}` : ''} {date} {time}
         </span>
+        {m.projected && (
+          <span
+            className="ml-1 inline-flex items-center text-amber-500 dark:text-amber-300"
+            title={t('asItStands')}
+            aria-label={t('asItStands')}
+          >
+            <TriangleAlert size={11} strokeWidth={2.25} />
+          </span>
+        )}
         {live && <span className="text-[10px] font-semibold text-red-500">LIVE</span>}
         {m.status === 'ft' && <span className="text-[10px] text-neutral-400">FT</span>}
       </div>
@@ -111,7 +121,7 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
                 ].join(' ')}
               >
                 {round.matches.map((m, i) => (
-                  <BracketCard key={m.matchId + i} m={m} prefs={prefs} />
+                  <BracketCard key={m.matchId + i} m={m} prefs={prefs} t={t} />
                 ))}
               </div>
             </div>

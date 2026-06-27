@@ -4,6 +4,7 @@ export const en = {
   groups: 'Groups',
   bracket: 'Bracket',
   bracketEmpty: 'The knockout bracket will appear once the fixtures are set.',
+  asItStands: 'As it stands',
   settings: 'Settings',
   today: 'Today',
   tomorrow: 'Tomorrow',

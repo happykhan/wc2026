@@ -6,6 +6,7 @@ export const ar = {
   groups: 'المجموعات',
   bracket: 'الأدوار الإقصائية',
   bracketEmpty: 'سيظهر جدول الأدوار الإقصائية بمجرد تحديد المباريات.',
+  asItStands: 'حسب الوضع الحالي',
   settings: 'الإعدادات',
   today: 'اليوم',
   tomorrow: 'غدًا',

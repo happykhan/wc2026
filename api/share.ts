@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { THIRD_PLACE_ASSIGNMENTS } from '../src/data/thirdPlaceAllocation.js';
 
 // ---------------------------------------------------------------------------
 // /api/share — per-match share page (reached via the /match/:id rewrite).
@@ -63,6 +64,7 @@ interface ScoresMatch {
 }
 
 const isGroupSlot = (team: string) => /^[12][A-L]$/.test(team);
+const isThirdPlaceSlot = (team: string) => /^3[A-L](?:\/[A-L])+$/.test(team);
 
 interface GroupResult {
   team: string;
@@ -122,8 +124,10 @@ function computeSimpleGroupStandings(matches: GroupMatch[]): GroupResult[] {
   );
 }
 
-async function resolveGroupSlotTeams(origin: string, home: string, away: string): Promise<{ home: string; away: string }> {
-  if (!isGroupSlot(home) && !isGroupSlot(away)) return { home, away };
+async function resolveKnockoutSlotTeams(origin: string, home: string, away: string): Promise<{ home: string; away: string }> {
+  if (!isGroupSlot(home) && !isGroupSlot(away) && !isThirdPlaceSlot(home) && !isThirdPlaceSlot(away)) {
+    return { home, away };
+  }
 
   try {
     const r = await fetch(`${origin}/api/scores`);
@@ -140,17 +144,42 @@ async function resolveGroupSlotTeams(origin: string, home: string, away: string)
       byGroup.get(key)!.push(m);
     }
 
-    const resolve = (slot: string): string => {
-      const parsed = slot.match(/^([12])([A-L])$/);
-      if (!parsed) return slot;
-      const [, pos, group] = parsed;
-      const matches = byGroup.get(group) ?? [];
-      if (matches.length < 6) return slot;
+    const groupResult = new Map<string, GroupResult[]>();
+    const thirdPlaceRows: Array<GroupResult & { group: string }> = [];
+    for (const [group, matches] of byGroup) {
       const standings = computeSimpleGroupStandings(matches);
-      return standings[Number(pos) - 1]?.team ?? slot;
+      groupResult.set(group, standings);
+      const third = standings[2];
+      if (third) thirdPlaceRows.push({ ...third, group });
+    }
+
+    const advancingThirds = thirdPlaceRows
+      .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf)
+      .slice(0, 8);
+    const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
+    const thirdPlaceKey = advancingThirds.map((third) => third.group).sort().join('');
+    const thirdPlaceAssignment = THIRD_PLACE_ASSIGNMENTS[thirdPlaceKey];
+
+    const resolve = (slot: string, opponentSlot?: string): string => {
+      const parsed = slot.match(/^([12])([A-L])$/);
+      if (parsed) {
+        const [, pos, group] = parsed;
+        return groupResult.get(group)?.[Number(pos) - 1]?.team ?? slot;
+      }
+
+      const thirdPlace = slot.match(/^3([A-L](?:\/[A-L])+)$/);
+      if (thirdPlace && opponentSlot && thirdPlaceAssignment) {
+        const assignedSlot = thirdPlaceAssignment[opponentSlot];
+        const allowedGroups = new Set(thirdPlace[1].split('/'));
+        if (assignedSlot && allowedGroups.has(assignedSlot.slice(1))) {
+          return thirdPlaceTeamBySlot.get(assignedSlot) ?? slot;
+        }
+      }
+
+      return slot;
     };
 
-    return { home: resolve(home), away: resolve(away) };
+    return { home: resolve(home, away), away: resolve(away, home) };
   } catch {
     return { home, away };
   }
@@ -212,7 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const m = await lookupMatch(origin, id);
   let home = m?.h || first(req.query.h);
   let away = m?.a || first(req.query.a);
-  ({ home, away } = await resolveGroupSlotTeams(origin, home, away));
+  ({ home, away } = await resolveKnockoutSlotTeams(origin, home, away));
   const stage = m?.s || first(req.query.s);
   const date = m?.d || first(req.query.d);
   const venue = m?.v || first(req.query.v);

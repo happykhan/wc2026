@@ -33,6 +33,8 @@ export interface Match {
   aflFixtureId?: number;
   /** ESPN event id — primary id for lineups/stats (free, uncapped) */
   espnEventId?: string;
+  /** True when knockout team names are filled from current, not-final standings. */
+  projectedKnockoutTeams?: boolean;
   /** Club competition team crest URLs (undefined for WC/national-team matches) */
   crest1?: string;
   crest2?: string;

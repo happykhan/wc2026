@@ -1,14 +1,15 @@
 import type { Match } from '../types';
 import { computeStandings } from './standings';
 import { isKnockoutTeam } from './processFixtures';
+import { THIRD_PLACE_ASSIGNMENTS } from './thirdPlaceAllocation';
 
 // ---------------------------------------------------------------------------
 // Knockout bracket resolver
 //
 // Fixtures store knockout slots as placeholders:
 //   "1A" / "2B"        → winner / runner-up of a group
-//   "3A/B/C/D/F"       → one of the best third-placed teams (not resolvable
-//                        without FIFA's bracket-assignment table — left as-is)
+//   "3A/B/C/D/F"       → one of the best third-placed teams, allocated by
+//                        FIFA's third-place assignment table
 //   "W74" / "L101"     → winner / loser of match #74 / #101
 //
 // buildBracket() walks the knockout matches in match-number order (which is
@@ -22,6 +23,8 @@ export interface BracketTeam {
   label: string;
   /** True once this slot maps to an actual qualified team. */
   resolved: boolean;
+  /** True when the resolved label depends on current, not-final standings. */
+  projected?: boolean;
 }
 
 export interface BracketMatch {
@@ -36,6 +39,8 @@ export interface BracketMatch {
   status: Match['status'];
   /** Which side won (1 or 2), when decided by a non-level full-time score. */
   winner?: 1 | 2;
+  /** True when either displayed team is an as-it-stands projection. */
+  projected?: boolean;
 }
 
 export interface BracketRound {
@@ -47,6 +52,7 @@ export interface BracketRound {
 export interface ResolvedKnockoutTeams {
   team1: string;
   team2: string;
+  projected: boolean;
 }
 
 // Display order + titles for the knockout rounds, keyed by the round string
@@ -61,8 +67,9 @@ const ROUND_ORDER: { round: string; key: string; title: string }[] = [
 ];
 
 export function buildBracket(allMatches: Match[]): BracketRound[] {
-  // 1. Resolve group winners / runners-up (index 0 = 1st, 1 = 2nd) for any
-  //    group that has finished all its matches.
+  // 1. Resolve group positions from current standings. During the last group
+  //    matches this is deliberately "as it stands"; completed groups naturally
+  //    become final.
   const groupMatches = allMatches.filter((m) => m.phase === 'group' && m.group);
   const byGroup = new Map<string, Match[]>();
   for (const m of groupMatches) {
@@ -71,15 +78,34 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
     byGroup.get(g)!.push(m);
   }
 
-  // group letter (e.g. "A") → [winnerName, runnerUpName] when complete.
+  // group letter (e.g. "A") → [winnerName, runnerUpName, thirdName].
   const groupResult = new Map<string, string[]>();
+  const groupComplete = new Map<string, boolean>();
+  const thirdPlaceRows: Array<{ group: string; team: string; points: number; gd: number; gf: number }> = [];
   for (const [group, ms] of byGroup) {
-    const complete = ms.length > 0 && ms.every((m) => m.status === 'ft');
-    if (!complete) continue;
     const standings = computeStandings(ms);
     const letter = group.replace(/^Group\s+/i, '').trim();
-    groupResult.set(letter, [standings[0]?.team, standings[1]?.team].filter(Boolean) as string[]);
+    groupComplete.set(letter, ms.length >= 6 && ms.every((m) => m.status === 'ft'));
+    groupResult.set(letter, [standings[0]?.team, standings[1]?.team, standings[2]?.team].filter(Boolean) as string[]);
+    const third = standings[2];
+    if (third) {
+      thirdPlaceRows.push({
+        group: letter,
+        team: third.team,
+        points: third.points,
+        gd: third.gd,
+        gf: third.gf,
+      });
+    }
   }
+  const advancingThirds = thirdPlaceRows
+    .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf)
+    .slice(0, 8);
+  const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
+  const thirdPlaceKey = advancingThirds.map((third) => third.group).sort().join('');
+  const thirdPlaceAssignment = THIRD_PLACE_ASSIGNMENTS[thirdPlaceKey];
+  const isThirdPlaceAssignmentStable = (opponentCode: string, assignedSlot: string) =>
+    Object.values(THIRD_PLACE_ASSIGNMENTS).every((assignment) => assignment[opponentCode] === assignedSlot);
 
   // 2. Walk knockout matches in num order, resolving each slot.
   const knockout = allMatches
@@ -89,7 +115,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
   // resolved[num] → the BracketMatch, so later W{num}/L{num} can look it up.
   const resolved = new Map<number, BracketMatch>();
 
-  const resolveTeam = (code: string): BracketTeam => {
+  const resolveTeam = (code: string, opponentCode?: string): BracketTeam => {
     if (!isKnockoutTeam(code)) return { label: code, resolved: true };
 
     // Winner / loser of a previous match.
@@ -113,17 +139,33 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       const [, posStr, letter] = gp;
       const teams = groupResult.get(letter);
       const name = teams?.[Number(posStr) - 1];
-      if (name) return { label: name, resolved: true };
+      if (name) return { label: name, resolved: true, projected: !groupComplete.get(letter) };
       return { label: code, resolved: false };
     }
 
-    // Third-place qualifier or anything else — not resolvable here.
+    const thirdPlace = code.match(/^3([A-L](?:\/[A-L])+)$/);
+    if (thirdPlace && opponentCode && thirdPlaceAssignment) {
+      const assignedSlot = thirdPlaceAssignment[opponentCode];
+      const allowedGroups = new Set(thirdPlace[1].split('/'));
+      if (assignedSlot && allowedGroups.has(assignedSlot.slice(1))) {
+        const name = thirdPlaceTeamBySlot.get(assignedSlot);
+        if (name) {
+          const assignedGroup = assignedSlot.slice(1);
+          return {
+            label: name,
+            resolved: true,
+            projected: !groupComplete.get(assignedGroup) || !isThirdPlaceAssignmentStable(opponentCode, assignedSlot),
+          };
+        }
+      }
+    }
+
     return { label: code, resolved: false };
   };
 
   for (const m of knockout) {
     const team1 = resolveTeam(m.team1);
-    const team2 = resolveTeam(m.team2);
+    const team2 = resolveTeam(m.team2, m.team1);
     let winner: 1 | 2 | undefined;
     if (
       m.status === 'ft' &&
@@ -144,6 +186,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       score2: m.score2,
       status: m.status,
       winner,
+      projected: Boolean(team1.projected || team2.projected || m.projectedKnockoutTeams),
     };
     if (m.num !== undefined) resolved.set(m.num, bm);
   }
@@ -165,11 +208,12 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
           round: m.round,
           utcDate: m.utcDate,
           team1: resolveTeam(m.team1),
-          team2: resolveTeam(m.team2),
+          team2: resolveTeam(m.team2, m.team1),
           score1: m.score1,
           score2: m.score2,
           status: m.status,
           winner: undefined,
+          projected: Boolean(resolveTeam(m.team1).projected || resolveTeam(m.team2, m.team1).projected || m.projectedKnockoutTeams),
         });
       }
     }
@@ -187,6 +231,7 @@ export function resolveKnockoutMatchTeams(allMatches: Match[]): Map<string, Reso
       resolved.set(match.matchId, {
         team1: match.team1.label,
         team2: match.team2.label,
+        projected: Boolean(match.projected),
       });
     }
   }
