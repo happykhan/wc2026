@@ -65,8 +65,9 @@ export default function App() {
     return scoredMatches.map((m) => {
       if (m.phase !== 'knockout') return m;
       const resolved = resolvedKnockoutTeams.get(m.id);
-      if (!resolved || (resolved.team1 === m.team1 && resolved.team2 === m.team2)) return m;
-      return { ...m, team1: resolved.team1, team2: resolved.team2 };
+      if (!resolved) return m;
+      if (resolved.team1 === m.team1 && resolved.team2 === m.team2 && !resolved.projected) return m;
+      return { ...m, team1: resolved.team1, team2: resolved.team2, projectedKnockoutTeams: resolved.projected };
     });
   }, [scores]);
 

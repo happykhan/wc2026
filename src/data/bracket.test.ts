@@ -31,18 +31,15 @@ function match(
 describe('resolveKnockoutMatchTeams', () => {
   it('resolves group-place knockout placeholders once group standings are complete', () => {
     const matches: Match[] = [
-      match('a1', 'Group A', 'Mexico', 3, 'South Africa', 0),
-      match('a2', 'Group A', 'Mexico', 2, 'South Korea', 0),
-      match('a3', 'Group A', 'South Africa', 1, 'South Korea', 0),
-      match('b1', 'Group B', 'Canada', 2, 'Qatar', 0),
-      match('b2', 'Group B', 'Canada', 1, 'Switzerland', 0),
-      match('b3', 'Group B', 'Qatar', 0, 'Switzerland', 3),
+      ...group('A', ['Mexico', 'South Africa', 'South Korea', 'Czech Republic']),
+      ...group('B', ['Switzerland', 'Canada', 'Bosnia & Herzegovina', 'Qatar']),
       { ...match('m73', undefined, '2A', undefined, '2B', undefined), num: 73 },
     ];
 
     expect(resolveKnockoutMatchTeams(matches).get('m73')).toEqual({
       team1: 'South Africa',
-      team2: 'Switzerland',
+      team2: 'Canada',
+      projected: false,
     });
   });
 
@@ -56,6 +53,7 @@ describe('resolveKnockoutMatchTeams', () => {
     expect(resolveKnockoutMatchTeams(matches).get('m73')).toEqual({
       team1: 'Mexico',
       team2: 'Canada',
+      projected: true,
     });
   });
 
@@ -78,10 +76,12 @@ describe('resolveKnockoutMatchTeams', () => {
     expect(resolveKnockoutMatchTeams(matches).get('m74')).toEqual({
       team1: 'Germany',
       team2: 'Paraguay',
+      projected: false,
     });
     expect(resolveKnockoutMatchTeams(matches).get('m86')).toEqual({
       team1: 'Argentina',
       team2: 'Cape Verde',
+      projected: false,
     });
   });
 });

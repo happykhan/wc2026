@@ -23,6 +23,8 @@ export interface BracketTeam {
   label: string;
   /** True once this slot maps to an actual qualified team. */
   resolved: boolean;
+  /** True when the resolved label depends on current, not-final standings. */
+  projected?: boolean;
 }
 
 export interface BracketMatch {
@@ -37,6 +39,8 @@ export interface BracketMatch {
   status: Match['status'];
   /** Which side won (1 or 2), when decided by a non-level full-time score. */
   winner?: 1 | 2;
+  /** True when either displayed team is an as-it-stands projection. */
+  projected?: boolean;
 }
 
 export interface BracketRound {
@@ -48,6 +52,7 @@ export interface BracketRound {
 export interface ResolvedKnockoutTeams {
   team1: string;
   team2: string;
+  projected: boolean;
 }
 
 // Display order + titles for the knockout rounds, keyed by the round string
@@ -75,10 +80,12 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
 
   // group letter (e.g. "A") → [winnerName, runnerUpName, thirdName].
   const groupResult = new Map<string, string[]>();
+  const groupComplete = new Map<string, boolean>();
   const thirdPlaceRows: Array<{ group: string; team: string; points: number; gd: number; gf: number }> = [];
   for (const [group, ms] of byGroup) {
     const standings = computeStandings(ms);
     const letter = group.replace(/^Group\s+/i, '').trim();
+    groupComplete.set(letter, ms.length >= 6 && ms.every((m) => m.status === 'ft'));
     groupResult.set(letter, [standings[0]?.team, standings[1]?.team, standings[2]?.team].filter(Boolean) as string[]);
     const third = standings[2];
     if (third) {
@@ -97,6 +104,8 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
   const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
   const thirdPlaceKey = advancingThirds.map((third) => third.group).sort().join('');
   const thirdPlaceAssignment = THIRD_PLACE_ASSIGNMENTS[thirdPlaceKey];
+  const isThirdPlaceAssignmentStable = (opponentCode: string, assignedSlot: string) =>
+    Object.values(THIRD_PLACE_ASSIGNMENTS).every((assignment) => assignment[opponentCode] === assignedSlot);
 
   // 2. Walk knockout matches in num order, resolving each slot.
   const knockout = allMatches
@@ -130,7 +139,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       const [, posStr, letter] = gp;
       const teams = groupResult.get(letter);
       const name = teams?.[Number(posStr) - 1];
-      if (name) return { label: name, resolved: true };
+      if (name) return { label: name, resolved: true, projected: !groupComplete.get(letter) };
       return { label: code, resolved: false };
     }
 
@@ -140,7 +149,14 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       const allowedGroups = new Set(thirdPlace[1].split('/'));
       if (assignedSlot && allowedGroups.has(assignedSlot.slice(1))) {
         const name = thirdPlaceTeamBySlot.get(assignedSlot);
-        if (name) return { label: name, resolved: true };
+        if (name) {
+          const assignedGroup = assignedSlot.slice(1);
+          return {
+            label: name,
+            resolved: true,
+            projected: !groupComplete.get(assignedGroup) || !isThirdPlaceAssignmentStable(opponentCode, assignedSlot),
+          };
+        }
       }
     }
 
@@ -170,6 +186,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       score2: m.score2,
       status: m.status,
       winner,
+      projected: Boolean(team1.projected || team2.projected || m.projectedKnockoutTeams),
     };
     if (m.num !== undefined) resolved.set(m.num, bm);
   }
@@ -196,6 +213,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
           score2: m.score2,
           status: m.status,
           winner: undefined,
+          projected: Boolean(resolveTeam(m.team1).projected || resolveTeam(m.team2, m.team1).projected || m.projectedKnockoutTeams),
         });
       }
     }
@@ -213,6 +231,7 @@ export function resolveKnockoutMatchTeams(allMatches: Match[]): Map<string, Reso
       resolved.set(match.matchId, {
         team1: match.team1.label,
         team2: match.team2.label,
+        projected: Boolean(match.projected),
       });
     }
   }

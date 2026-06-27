@@ -461,6 +461,14 @@ export function MatchRow({
               {match.group ? localizedGroupName(match.group, t('group')) : match.round}
             </span>
           )}
+          {match.projectedKnockoutTeams && (
+            <>
+              {(match.group || match.round) && <span aria-hidden="true">·</span>}
+              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300 whitespace-nowrap">
+                {t('asItStands')}
+              </span>
+            </>
+          )}
           {(match.group || match.round) && venueName && <span aria-hidden="true">·</span>}
           {venueName && <span className="truncate max-w-[8rem]">{venueName}</span>}
           {primaryChannel && (

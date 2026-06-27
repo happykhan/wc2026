@@ -5,6 +5,7 @@ export const ja = {
   groups: 'グループ',
   bracket: 'トーナメント表',
   bracketEmpty: '組み合わせが決まるとトーナメント表が表示されます。',
+  asItStands: '現時点',
   settings: '設定',
   today: '今日',
   tomorrow: '明日',

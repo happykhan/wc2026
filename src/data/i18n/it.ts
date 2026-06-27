@@ -5,6 +5,7 @@ export const it = {
   groups: 'Gironi',
   bracket: 'Tabellone',
   bracketEmpty: 'Il tabellone a eliminazione diretta apparirà una volta definiti gli accoppiamenti.',
+  asItStands: 'Al momento',
   settings: 'Impostazioni',
   today: 'Oggi',
   tomorrow: 'Domani',

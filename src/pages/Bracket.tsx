@@ -43,7 +43,7 @@ function TeamLine({
   );
 }
 
-function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) {
+function BracketCard({ m, prefs, t }: { m: BracketMatch; prefs: UserPreferences; t: (k: TranslationKey) => string }) {
   const live = m.status === 'live' || m.status === 'ht';
   const date = formatMatchDate(m.utcDate, prefs.timezone, prefs.language).replace(/,.*$/, '');
   const time = formatMatchTime(m.utcDate, prefs.timezone, prefs.hour12);
@@ -60,6 +60,11 @@ function BracketCard({ m, prefs }: { m: BracketMatch; prefs: UserPreferences }) 
         <span className="text-[10px] uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
           {m.num ? `#${m.num}` : ''} {date} {time}
         </span>
+        {m.projected && (
+          <span className="ml-1 rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[9px] font-semibold uppercase leading-none text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300">
+            {t('asItStands')}
+          </span>
+        )}
         {live && <span className="text-[10px] font-semibold text-red-500">LIVE</span>}
         {m.status === 'ft' && <span className="text-[10px] text-neutral-400">FT</span>}
       </div>
@@ -111,7 +116,7 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
                 ].join(' ')}
               >
                 {round.matches.map((m, i) => (
-                  <BracketCard key={m.matchId + i} m={m} prefs={prefs} />
+                  <BracketCard key={m.matchId + i} m={m} prefs={prefs} t={t} />
                 ))}
               </div>
             </div>

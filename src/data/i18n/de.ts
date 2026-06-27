@@ -4,6 +4,7 @@ export const de = {
   groups: 'Gruppen',
   bracket: 'Turnierbaum',
   bracketEmpty: 'Der K.-o.-Baum erscheint, sobald die Spielpaarungen feststehen.',
+  asItStands: 'Aktueller Stand',
   settings: 'Einstellungen',
   today: 'Heute',
   tomorrow: 'Morgen',

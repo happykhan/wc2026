@@ -4,6 +4,7 @@ export const es = {
   groups: 'Grupos',
   bracket: 'Eliminatorias',
   bracketEmpty: 'El cuadro de eliminatorias aparecerá cuando se definan los cruces.',
+  asItStands: 'Por ahora',
   settings: 'Ajustes',
   today: 'Hoy',
   tomorrow: 'Mañana',
