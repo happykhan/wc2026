@@ -1,4 +1,6 @@
 // FIFA Round-of-32 allocation table for the eight third-placed teams.
+// Source snapshot checked on 2026-06-27 against the published 2026
+// third-place allocation table used by FIFA/BBC fixture listings.
 // Keys are the alphabetically sorted groups whose third-placed teams advance.
 // Values map the first-place slot in the fixture list to the allocated
 // third-place slot for that matchup.

@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getThirdPlaceAssignment } from '../src/data/thirdPlaceAllocation.js';
-import { computeStandings } from '../src/data/standings.js';
+import { buildGroupSlotResolver, isPlaceholderSlot, resolveGroupBackedPair } from '../src/data/knockoutSlots.js';
 import type { Match } from '../src/types/index.js';
 
 // ---------------------------------------------------------------------------
@@ -65,9 +64,6 @@ interface ScoresMatch {
   round?: string;
 }
 
-const isGroupSlot = (team: string) => /^[12][A-L]$/.test(team);
-const isThirdPlaceSlot = (team: string) => /^3[A-L](?:\/[A-L])+$/.test(team);
-
 function toGroupMatch(m: ScoresMatch): Match | null {
   const home = m.homeTeam?.name;
   const away = m.awayTeam?.name;
@@ -94,7 +90,7 @@ function toGroupMatch(m: ScoresMatch): Match | null {
 }
 
 async function resolveKnockoutSlotTeams(origin: string, home: string, away: string): Promise<{ home: string; away: string }> {
-  if (!isGroupSlot(home) && !isGroupSlot(away) && !isThirdPlaceSlot(home) && !isThirdPlaceSlot(away)) {
+  if (!isPlaceholderSlot(home) && !isPlaceholderSlot(away)) {
     return { home, away };
   }
 
@@ -106,48 +102,8 @@ async function resolveKnockoutSlotTeams(origin: string, home: string, away: stri
       .map(toGroupMatch)
       .filter((m): m is Match => m !== null);
 
-    const byGroup = new Map<string, Match[]>();
-    for (const m of groupMatches) {
-      const key = m.group!.replace(/^Group\s+/i, '').trim();
-      if (!byGroup.has(key)) byGroup.set(key, []);
-      byGroup.get(key)!.push(m);
-    }
-
-    const groupResult = new Map<string, ReturnType<typeof computeStandings>>();
-    const thirdPlaceRows: Array<ReturnType<typeof computeStandings>[number] & { group: string }> = [];
-    for (const [group, matches] of byGroup) {
-      const standings = computeStandings(matches);
-      groupResult.set(group, standings);
-      const third = standings[2];
-      if (third) thirdPlaceRows.push({ ...third, group });
-    }
-
-    const advancingThirds = thirdPlaceRows
-      .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf)
-      .slice(0, 8);
-    const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
-    const thirdPlaceAssignment = getThirdPlaceAssignment(advancingThirds.map((third) => third.group));
-
-    const resolve = (slot: string, opponentSlot?: string): string => {
-      const parsed = slot.match(/^([12])([A-L])$/);
-      if (parsed) {
-        const [, pos, group] = parsed;
-        return groupResult.get(group)?.[Number(pos) - 1]?.team ?? slot;
-      }
-
-      const thirdPlace = slot.match(/^3([A-L](?:\/[A-L])+)$/);
-      if (thirdPlace && opponentSlot && thirdPlaceAssignment) {
-        const assignedSlot = thirdPlaceAssignment[opponentSlot];
-        const allowedGroups = new Set(thirdPlace[1].split('/'));
-        if (assignedSlot && allowedGroups.has(assignedSlot.slice(1))) {
-          return thirdPlaceTeamBySlot.get(assignedSlot) ?? slot;
-        }
-      }
-
-      return slot;
-    };
-
-    return { home: resolve(home, away), away: resolve(away, home) };
+    const pair = resolveGroupBackedPair(home, away, buildGroupSlotResolver(groupMatches));
+    return { home: pair.team1.label, away: pair.team2.label };
   } catch {
     return { home, away };
   }

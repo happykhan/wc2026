@@ -123,6 +123,8 @@ same live scores feed that powers the schedule and group tables:
 - `1A` / `2B` slots come from the current group standings.
 - Third-place slots use FIFA's third-place allocation table in
   `src/data/thirdPlaceAllocation.ts`.
+- `src/data/knockoutSlots.ts` is the shared resolver used by the bracket and
+  `/match/:id` share metadata.
 - If the displayed matchup depends on an unfinished group or an allocation that
   can still change, the schedule and bracket show a small warning icon. The icon
   disappears automatically once the relevant groups are complete and the matchup
@@ -137,8 +139,8 @@ The team-name alias map is mirrored across three runtimes that can't share a mod
 parity test fails the build if they ever drift. The live-clock and status logic are
 pure functions with regression tests for the bugs they've actually had. Knockout
 resolution has fast unit coverage for group-slot resolution, current third-place
-allocation examples, and projected-vs-final fixture flags. Run them with
-`npx vitest run`.
+allocation examples, the shared slot resolver, and projected-vs-final fixture
+flags. Run them with `npx vitest run`.
 
 ## Contributing
 
