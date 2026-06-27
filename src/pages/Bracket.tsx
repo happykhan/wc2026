@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Match, UserPreferences } from '../types';
+import { TriangleAlert } from 'lucide-react';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch } from '../data/bracket';
 import { getTeamFlag } from '../data/teamFlags';
@@ -61,8 +62,12 @@ function BracketCard({ m, prefs, t }: { m: BracketMatch; prefs: UserPreferences;
           {m.num ? `#${m.num}` : ''} {date} {time}
         </span>
         {m.projected && (
-          <span className="ml-1 rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[9px] font-semibold uppercase leading-none text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300">
-            {t('asItStands')}
+          <span
+            className="ml-1 inline-flex items-center text-amber-500 dark:text-amber-300"
+            title={t('asItStands')}
+            aria-label={t('asItStands')}
+          >
+            <TriangleAlert size={11} strokeWidth={2.25} />
           </span>
         )}
         {live && <span className="text-[10px] font-semibold text-red-500">LIVE</span>}

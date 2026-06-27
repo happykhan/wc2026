@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Star, MapPin, Tv, Share2, Copy, Check, ChevronDown, ChevronUp, CalendarPlus } from 'lucide-react';
+import { Star, MapPin, Tv, Share2, Copy, Check, ChevronDown, ChevronUp, CalendarPlus, TriangleAlert } from 'lucide-react';
 import type { Match, UserPreferences } from '../types';
 import { getChannelsForCountry } from '../data/tvChannels';
 import { isKnockoutTeam } from '../data/processFixtures';
@@ -464,8 +464,12 @@ export function MatchRow({
           {match.projectedKnockoutTeams && (
             <>
               {(match.group || match.round) && <span aria-hidden="true">·</span>}
-              <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300 whitespace-nowrap">
-                {t('asItStands')}
+              <span
+                className="inline-flex items-center text-amber-500 dark:text-amber-300"
+                title={t('asItStands')}
+                aria-label={t('asItStands')}
+              >
+                <TriangleAlert size={12} strokeWidth={2.25} />
               </span>
             </>
           )}
