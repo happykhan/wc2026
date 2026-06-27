@@ -1,4 +1,4 @@
-import type { Match, GroupStanding, StandingsTiebreakers } from '../types';
+import type { Match, GroupStanding, StandingsTiebreakers } from '../types/index.js';
 
 // ---------------------------------------------------------------------------
 // computeStandings — build a sorted league table from a set of matches,

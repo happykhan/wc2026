@@ -1,7 +1,7 @@
 import type { Match } from '../types';
 import { computeStandings } from './standings';
 import { isKnockoutTeam } from './processFixtures';
-import { THIRD_PLACE_ASSIGNMENTS } from './thirdPlaceAllocation';
+import { getThirdPlaceAssignment, isThirdPlaceAssignmentStable } from './thirdPlaceAllocation';
 
 // ---------------------------------------------------------------------------
 // Knockout bracket resolver
@@ -102,10 +102,7 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
     .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf)
     .slice(0, 8);
   const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
-  const thirdPlaceKey = advancingThirds.map((third) => third.group).sort().join('');
-  const thirdPlaceAssignment = THIRD_PLACE_ASSIGNMENTS[thirdPlaceKey];
-  const isThirdPlaceAssignmentStable = (opponentCode: string, assignedSlot: string) =>
-    Object.values(THIRD_PLACE_ASSIGNMENTS).every((assignment) => assignment[opponentCode] === assignedSlot);
+  const thirdPlaceAssignment = getThirdPlaceAssignment(advancingThirds.map((third) => third.group));
 
   // 2. Walk knockout matches in num order, resolving each slot.
   const knockout = allMatches

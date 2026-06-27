@@ -21,7 +21,7 @@ A fast, ad-free **FIFA World Cup 2026** companion: the full schedule, live score
 - 🎨 **Team themes** — pick any of the 48 nations and the whole app recolours in their kit; your starred teams float to the top.
 - 🌐 **Nine languages** — English, Français, Español, Deutsch, Português, Italiano, 日本語, 한국어 and العربية (right-to-left) — with **localised team & group names** (USA → Estados Unidos, Group A → Grupo A) resolved automatically via `Intl.DisplayNames`.
 - ⭐ **Favourites & follow-a-team**, **share cards** with the live score baked into the preview, and **calendar (.ics) export**.
-- 🏆 **Group tables** and a **knockout bracket**.
+- 🏆 **Group tables** and a **knockout bracket** that fills known Round-of-32 teams from the current live standings. Fixtures that still depend on unfinished groups get a compact warning icon until they become final.
 - 📱 Installable **PWA**, dark mode, no ads, no tracking.
 
 ## Why it's interesting
@@ -73,7 +73,7 @@ npm run dev          # http://localhost:5173
 Other scripts:
 
 ```bash
-npm run build        # gen-match-index && vitest run && tsc -b && vite build  (the gated build)
+npm run build        # gen-match-index && vitest run && tsc -b && API tsc && vite build
 npm test             # run the test suite once (vitest run)
 npx vitest            # tests in watch mode
 npm run lint         # eslint
@@ -114,13 +114,31 @@ is live and every 5 minutes when idle. The pure rules (full-time detection, ESPN
 US-local date filing, minute parsing, team-name matching) live in
 `scripts/pollerLib.mjs` and are unit-tested.
 
+## Knockout bracket resolution
+
+The static fixture list stores Round-of-32 teams as FIFA slot labels such as
+`1E`, `2H`, and `3A/B/C/D/F`. The app resolves those labels at runtime from the
+same live scores feed that powers the schedule and group tables:
+
+- `1A` / `2B` slots come from the current group standings.
+- Third-place slots use FIFA's third-place allocation table in
+  `src/data/thirdPlaceAllocation.ts`.
+- If the displayed matchup depends on an unfinished group or an allocation that
+  can still change, the schedule and bracket show a small warning icon. The icon
+  disappears automatically once the relevant groups are complete and the matchup
+  is final.
+- `/match/:id` share metadata resolves the same slots, so copied/shared knockout
+  links show real teams where the feed makes them knowable.
+
 ## Testing
 
 The team-name alias map is mirrored across three runtimes that can't share a module
 (the bundled frontend, the raw-node poller, and the isolated Vercel function); a
 parity test fails the build if they ever drift. The live-clock and status logic are
-pure functions with regression tests for the bugs they've actually had. Run them
-with `npx vitest run`.
+pure functions with regression tests for the bugs they've actually had. Knockout
+resolution has fast unit coverage for group-slot resolution, current third-place
+allocation examples, and projected-vs-final fixture flags. Run them with
+`npx vitest run`.
 
 ## Contributing
 

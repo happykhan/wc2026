@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { THIRD_PLACE_ASSIGNMENTS } from '../src/data/thirdPlaceAllocation.js';
+import { getThirdPlaceAssignment } from '../src/data/thirdPlaceAllocation.js';
+import { computeStandings } from '../src/data/standings.js';
+import type { Match } from '../src/types/index.js';
 
 // ---------------------------------------------------------------------------
 // /api/share — per-match share page (reached via the /match/:id rewrite).
@@ -66,22 +68,7 @@ interface ScoresMatch {
 const isGroupSlot = (team: string) => /^[12][A-L]$/.test(team);
 const isThirdPlaceSlot = (team: string) => /^3[A-L](?:\/[A-L])+$/.test(team);
 
-interface GroupResult {
-  team: string;
-  points: number;
-  gd: number;
-  gf: number;
-}
-
-interface GroupMatch {
-  team1: string;
-  team2: string;
-  score1: number;
-  score2: number;
-  group: string;
-}
-
-function toGroupMatch(m: ScoresMatch): GroupMatch | null {
+function toGroupMatch(m: ScoresMatch): Match | null {
   const home = m.homeTeam?.name;
   const away = m.awayTeam?.name;
   const homeScore = m.score?.fullTime?.home;
@@ -89,39 +76,21 @@ function toGroupMatch(m: ScoresMatch): GroupMatch | null {
   if (!home || !away || !m.group || homeScore == null || awayScore == null) return null;
   if (m.status !== 'FINISHED') return null;
   return {
+    id: String(m.id ?? `${home}-${away}`),
+    round: m.round ?? 'Group stage',
+    phase: 'group',
+    group: m.group,
+    date: new Date(m.utcDate ?? Date.now()),
+    utcDate: new Date(m.utcDate ?? Date.now()),
     team1: home,
     team2: away,
     score1: homeScore,
     score2: awayScore,
-    group: m.group,
+    venue: '',
+    city: '',
+    tvChannels: {},
+    status: 'ft',
   };
-}
-
-function computeSimpleGroupStandings(matches: GroupMatch[]): GroupResult[] {
-  const table = new Map<string, GroupResult>();
-  const row = (team: string) => {
-    if (!table.has(team)) table.set(team, { team, points: 0, gd: 0, gf: 0 });
-    return table.get(team)!;
-  };
-
-  for (const match of matches) {
-    const home = row(match.team1);
-    const away = row(match.team2);
-    home.gf += match.score1;
-    away.gf += match.score2;
-    home.gd += match.score1 - match.score2;
-    away.gd += match.score2 - match.score1;
-    if (match.score1 > match.score2) home.points += 3;
-    else if (match.score1 < match.score2) away.points += 3;
-    else {
-      home.points += 1;
-      away.points += 1;
-    }
-  }
-
-  return Array.from(table.values()).sort(
-    (a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf,
-  );
 }
 
 async function resolveKnockoutSlotTeams(origin: string, home: string, away: string): Promise<{ home: string; away: string }> {
@@ -135,19 +104,19 @@ async function resolveKnockoutSlotTeams(origin: string, home: string, away: stri
     const j = (await r.json()) as { matches?: ScoresMatch[] };
     const groupMatches = (j.matches ?? [])
       .map(toGroupMatch)
-      .filter((m): m is GroupMatch => m !== null);
+      .filter((m): m is Match => m !== null);
 
-    const byGroup = new Map<string, GroupMatch[]>();
+    const byGroup = new Map<string, Match[]>();
     for (const m of groupMatches) {
       const key = m.group!.replace(/^Group\s+/i, '').trim();
       if (!byGroup.has(key)) byGroup.set(key, []);
       byGroup.get(key)!.push(m);
     }
 
-    const groupResult = new Map<string, GroupResult[]>();
-    const thirdPlaceRows: Array<GroupResult & { group: string }> = [];
+    const groupResult = new Map<string, ReturnType<typeof computeStandings>>();
+    const thirdPlaceRows: Array<ReturnType<typeof computeStandings>[number] & { group: string }> = [];
     for (const [group, matches] of byGroup) {
-      const standings = computeSimpleGroupStandings(matches);
+      const standings = computeStandings(matches);
       groupResult.set(group, standings);
       const third = standings[2];
       if (third) thirdPlaceRows.push({ ...third, group });
@@ -157,8 +126,7 @@ async function resolveKnockoutSlotTeams(origin: string, home: string, away: stri
       .sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf)
       .slice(0, 8);
     const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
-    const thirdPlaceKey = advancingThirds.map((third) => third.group).sort().join('');
-    const thirdPlaceAssignment = THIRD_PLACE_ASSIGNMENTS[thirdPlaceKey];
+    const thirdPlaceAssignment = getThirdPlaceAssignment(advancingThirds.map((third) => third.group));
 
     const resolve = (slot: string, opponentSlot?: string): string => {
       const parsed = slot.match(/^([12])([A-L])$/);

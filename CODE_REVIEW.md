@@ -1,146 +1,112 @@
-# Thermo-Nuclear Code Quality Review — wc2026
+# Thermo-Nuclear Code Quality Review — PR #21
 
-Scope: the live-data / clock / theme / settings work merged today, plus the
-structural health of the files that work touched. Strict maintainability lens:
-ambitious restructuring, delete complexity, no spaghetti growth, no >1k files.
+Scope: the current branch `codex/resolve-third-place-knockout-fixtures`, covering
+Round-of-32 slot resolution, projected-fixture warnings, `/match/:id` share
+metadata, README/notes updates, and regression coverage.
 
-Verdict: **changes are behaviourally correct but sit on top of real structural
-debt.** Three presumptive blockers below. None are "rename this" nits.
+Verdict: **behavior is on the right track and the branch is shippable after the
+small cleanup already applied in this review pass.** The important fix was
+removing the simplified standings duplicate from `api/share.ts`; it now reuses
+the canonical `computeStandings`, so share previews cannot silently disagree
+with the UI on FIFA tiebreakers.
 
----
+## Findings
 
-## 1. BLOCKER — `api/poll.ts` (340 lines) is dead code still deployed
+### 1. P2 — Slot resolution still has two orchestration paths
 
-The whole live-scores cache moved to the VM (`scripts/vm-poller.mjs` →
-`wc-scores.genomicx.org` → `/api/scores` proxies it). `api/poll.ts` is no longer
-triggered by anything: the cron line is gone, `/api/scores` no longer reads Blob,
-nothing imports it. The only remaining reference is `scripts/test-cache.mjs`
-asserting it returns 401.
+`src/data/bracket.ts` owns the frontend resolver, while `api/share.ts` has a
+smaller server-side resolver for metadata. They now share the third-place table
+and `computeStandings`, but the orchestration is still duplicated: fetch/group
+matches, build group results, rank thirds, resolve `1A`/`3A/B/...` slots.
 
-It still ships 340 lines of duplicated ESPN-merge logic **and its own copy of the
-team-alias map** (see #2), plus the Vercel Blob write path that caused the quota
-incident.
+This is not a release blocker because the API build gate catches unsafe imports
+and the new tests cover the high-risk allocation row. It is still the main
+structural weakness in this branch.
 
-**Code-judo (delete a whole layer):** remove `api/poll.ts`, drop the dead Blob
-store, delete the `/api/poll` assertions from `test-cache.mjs`. This deletes one
-of four alias copies, an entire duplicate of the merge logic, and the last Blob
-dependency — in one move. Highest value, lowest risk on the list.
+Best next code-judo move: extract an API-safe pure module, for example
+`src/data/knockoutSlots.ts`, that accepts:
 
----
+- group standings/results
+- a home slot
+- an away slot
+- third-place assignment data
 
-## 2. BLOCKER — the team-alias map is redefined in 4 places
+and returns `{ team1, team2, projected }`. Then both `bracket.ts` and
+`api/share.ts` become thin adapters around the same resolver. That would delete
+the duplicated regex/assignment flow rather than polishing it.
 
-`normTeam` + `TEAM_ALIASES` is the single most bug-prone primitive in the app
-(the Czechia/Cape Verde/Curaçao score-merge failures all came from one copy
-missing an alias). It currently lives in **four** independent definitions:
+### 2. P2 — Projection semantics are implicit and deserve a dedicated model
 
-- `src/data/teamMatch.ts`  ← canonical; correctly imported by `useLiveScores`,
-  `MatchRow`, and the integrity test
-- `api/poll.ts`            ← dead (see #1), delete
-- `api/share.ts`           ← live, hand-maintained copy
-- `scripts/vm-poller.mjs`  ← live, hand-maintained copy (the one that actually
-  drives production scores)
+The current `projected` flag is correct for the current behavior: unfinished
+group slots and unstable third-place allocation show the warning icon; final
+fixtures do not. The logic is spread across `groupComplete`,
+`isThirdPlaceAssignmentStable`, and `projectedKnockoutTeams`.
 
-This is exactly "copy-pasted logic instead of a canonical helper." The runtime
-split is real (`src` is bundled, `scripts/*.mjs` runs raw on the VM, `api/*` is
-serverless) — but that's an argument for **one shared data source**, not four
-hand-edited maps that silently drift.
+This works, but the concept is important enough to model explicitly. A small
+type like `ResolvedSlot = { label; status: 'placeholder' | 'projected' | 'final' }`
+would make the UI rule and share-preview behavior clearer than a boolean that
+has to be interpreted in context.
 
-**Remedy:** make the alias map the single source of truth as plain data
-(`src/data/teamAliases.json` or a tiny `.mjs`), and have `teamMatch.ts`,
-`vm-poller.mjs`, and `api/share.ts` all import it. Then add a test asserting the
-production-critical consumers fold a known set of variants identically. After #1,
-this collapses 3 live copies → 1.
+### 3. P3 — `thirdPlaceAllocation.ts` is data with no source marker beyond comments
 
----
+The allocation table is compact and now tested for shape and the current
+`ABDEFGIL` examples. The remaining maintainability risk is provenance: if FIFA
+or the source table changes, the code has no machine-readable snapshot metadata.
 
-## 3. BLOCKER — `MatchRow.tsx` is 1098 lines and is the god-file
+Add a source/date note near the table when the table is next refreshed. If the
+full 495-row allocation table becomes necessary, generate this file from a
+checked-in source fixture rather than hand-maintaining rows.
 
-It was edited **10 times today** and is the file most likely to keep breaking. It
-holds ~11 concerns: ICS helpers, `StatusBadge` + the live-clock math,
-`TeamNameInline`, `CountdownInline`, `ShareButton`, `CopyButton`, `useMatchDetail`,
-and four detail panels (`H2H`, `Lineups`, `Stats`, `Timeline`), then the row
-itself. Anything that touches the card reloads all of it.
+### 4. P3 — Browser/UI verification is manual, not part of CI
 
-**Decomposition (behaviour-preserving):**
-- `src/components/matchDetail/` ← the 4 panels + `useMatchDetail` (~410 lines out)
-- `src/components/StatusBadge.tsx` + `src/utils/liveClock.ts` ← the badge and the
-  clock extrapolation (see #4)
-- `src/components/matchActions/` ← Share/Copy/ICS buttons
+The PR has good unit coverage for resolver behavior, but the "warning icon is
+icon-only, not text" requirement was verified with Playwright manually. That is
+fine for this release, but a tiny Playwright smoke test could prevent the chip
+from regressing into visible text.
 
-That leaves `MatchRow` ≈ 550 lines of actual row layout. Each extracted unit
-becomes independently testable — which matters most for the clock.
+Keep it lightweight: one mocked `/api/scores` payload, load bracket, assert a
+`[aria-label="As it stands"]` warning exists and visible body text does not
+contain `AS IT STANDS`.
 
----
+## Tests Added / Strengthened
 
-## 4. The live-clock math is untested logic buried in a component
+- `src/data/bracket.test.ts`
+  - final group slots resolve without projection
+  - current unfinished group standings resolve with `projected: true`
+  - Germany vs Paraguay and Argentina vs Cape Verde are covered
+- `src/data/thirdPlaceAllocation.test.ts`
+  - assignment table shape
+  - current `ABDEFGIL` allocation examples
+  - stable-vs-unstable assignment detection
+- `npm run build` now exercises API type-checking, so unsafe serverless imports
+  fail before Vercel deploys.
 
-`MatchRow.tsx:110-111`:
-```
-const ext = Math.min(Math.max(0, Date.now() - minuteAt), 900_000);
-const sec = Math.round(minute * 60 + ext / 1000 + 30);
-```
-This expression had **three** production bugs this session (trailed the TV clock,
-sawtoothed backwards in stoppage, ran past full-time). It is pure and trivial to
-test, but it lives inline in a 1098-line component with `Date.now()` baked in, so
-it never got a test.
+## Additional Fast Regression Opportunities
 
-**Remedy:** extract `liveClockLabel({ status, minute, minuteAt, now })` to
-`src/utils/liveClock.ts` and unit-test the three regressions explicitly:
-ticks forward, never decreases while `minute` plateaus, caps at the 15-min ceiling.
-This is the single highest-value missing test in the codebase.
+1. Add a focused test for Group J/K/L completion: when a group flips from 4/6
+   finished to 6/6 finished, the same resolved fixture keeps the same teams but
+   `projected` flips from `true` to `false`.
+2. Add a test for `/api/share` resolver behavior if it is extracted into an
+   API-safe pure module; this would cover metadata without invoking Vercel.
+3. Add a generated table-integrity test if more third-place rows are added:
+   every assignment value must be one of the advancing groups and every required
+   first-place slot must be present.
 
----
+## File Size / Decomposition
 
-## 5. `mapStatus` hides a magic-number special case (untested)
+No file crossed the 1000-line threshold. The largest touched file remains
+`src/components/MatchRow.tsx` at roughly 630 lines. This branch only adds a
+small icon and does not worsen the component's overall shape materially.
 
-`useLiveScores.ts:66` maps `IN_PLAY` with `minute ∈ [45,50]` to `ht`. That's an
-ad-hoc heuristic that also mislabels the genuine 46–50' of the second half as
-half-time. The real signal already exists upstream — ESPN's `STATUS_HALFTIME` is
-mapped to `PAUSED` by the poller. So the `[45,50]` guess is papering over a
-boundary that's already explicit one layer up.
+## Approval Bar
 
-**Remedy:** trust `PAUSED → ht` and drop the minute-range guess (or, if it's
-catching a real gap, make that gap explicit and test it). Either way: add a
-`mapStatus` unit test — it's a pure function with zero coverage.
+Approved from a maintainability standpoint for this branch after the cleanup:
 
----
+- canonical standings are reused by `/api/share`
+- third-place table lookup/stability is centralized
+- regression tests cover the risky cases
+- projected UI is compact and accessible
+- no large-file or broad spaghetti growth
 
-## 6. Poller helpers are pure but live in an untestable `.mjs`
-
-`vm-poller.mjs` carries the logic that actually breaks in production: `espnStatus`
-(the full-time mapping), the ESPN US-local date ±1 fetch, the `minuteAt`
-minute-change anchor, and the carry-forward block (a dense stack of
-`priorResult/currentBlank/justEnded/haveFinal/haveEspn` booleans). It's a raw node
-script with no tests, so every fix here has been verified by hand against a live
-match.
-
-**Remedy:** split the pure helpers (`espnStatus`, `espnMinute`, `neededEspnDates`,
-the carry-forward reducer) into a `.mjs` module importable by both the poller and
-a vitest suite. Test: `STATUS_FULL_TIME → FINISHED`, a 01:00 UTC kickoff yields
-the previous US date, and carry-forward never erases a seen score.
-
----
-
-## Lower-priority / type-boundary notes
-
-- `api/matchdetail.ts` parses ESPN/AFL with ~10 `any`/cast sites. A small typed
-  boundary (parse → narrow shape once) would remove the scattered casts. Not a
-  blocker, but it's the loosest contract in the API layer.
-- The 8 obsolete `theme*` i18n keys (`themeRedWhite`, …) are now unreferenced
-  after the team-theme rewrite — delete them from all four locale files.
-- `THEMES` now has a per-team entry for all 48 nations but there's no test that
-  every fixture team resolves to a non-`default` theme (the same class of gap the
-  channel test already guards). Add it — one assertion, prevents a silent
-  "everyone's blue" regression.
-
----
-
-## Prioritised action list
-
-1. Delete `api/poll.ts` + dead Blob + its test assertions (#1) — pure deletion.
-2. Single-source the alias map; import everywhere (#2).
-3. Extract + test `liveClockLabel` (#4) and `mapStatus` (#5).
-4. Decompose `MatchRow.tsx` under 1k (#3).
-5. Extract + test poller pure helpers (#6).
-6. Tidy: matchdetail types, dead i18n keys, theme-coverage test.
+The next meaningful cleanup is to extract an API-safe pure knockout slot
+resolver so frontend and share metadata cannot drift.
