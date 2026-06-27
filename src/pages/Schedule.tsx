@@ -245,8 +245,6 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
           {
             id: 'knockout-schedule-v1',
             title: t('scheduleFeatureTitle'),
-            primaryLabel: t('scheduleFeatureViewKnockout'),
-            onPrimary: () => setFilters((prev) => ({ ...prev, group: 'knockout', date: '', search: '' })),
             children: t('scheduleFeatureBody'),
           },
         ]}

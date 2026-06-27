@@ -442,8 +442,6 @@ export function Bracket({ matches, prefs, t }: BracketProps) {
           {
             id: 'bracket-views-v1',
             title: t('bracketFeatureTitle'),
-            primaryLabel: t('bracketFeatureTryRounds'),
-            onPrimary: () => setView('rounds'),
             children: t('bracketFeatureBody'),
           },
           {

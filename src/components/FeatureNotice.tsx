@@ -5,8 +5,6 @@ export interface FeatureNoticeItem {
   id: string;
   title: string;
   children: ReactNode;
-  primaryLabel?: string;
-  onPrimary?: () => void;
 }
 
 interface FeatureNoticeProps extends FeatureNoticeItem {
@@ -43,16 +41,9 @@ function NoticeCard({
   id: _id,
   title,
   children,
-  primaryLabel,
   dismissLabel,
-  onPrimary,
   onDismiss,
 }: NoticeCardProps) {
-  const handlePrimary = () => {
-    onPrimary?.();
-    onDismiss();
-  };
-
   return (
     <div className="fixed inset-x-3 bottom-3 z-40 mx-auto max-w-md rounded-lg border border-blue-200 bg-white p-4 shadow-xl dark:border-blue-900/70 dark:bg-neutral-900">
       <div className="flex items-start justify-between gap-3">
@@ -81,15 +72,6 @@ function NoticeCard({
         >
           {dismissLabel}
         </button>
-        {primaryLabel && onPrimary && (
-          <button
-            type="button"
-            onClick={handlePrimary}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-          >
-            {primaryLabel}
-          </button>
-        )}
       </div>
     </div>
   );
