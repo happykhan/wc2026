@@ -3,6 +3,7 @@ import type { Match, UserPreferences } from '../types';
 import { GitBranch, List, Network, Route, TriangleAlert, X } from 'lucide-react';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch, type BracketRound } from '../data/bracket';
+import { buildPathSteps, type PathSelection } from '../data/bracketPath';
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { formatMatchDate, formatMatchTime } from '../utils/time';
@@ -15,16 +16,6 @@ interface BracketProps {
 }
 
 type BracketView = 'tree' | 'rounds';
-
-interface PathSelection {
-  matchId: string;
-  side: 1 | 2;
-}
-
-interface PathStep {
-  match: BracketMatch;
-  focusSide: 1 | 2;
-}
 
 const VIEW_STORAGE_KEY = 'wc2026-bracket-view';
 
@@ -230,31 +221,6 @@ function RoundTabs({
       </div>
     </div>
   );
-}
-
-function buildPathSteps(rounds: BracketRound[], selection: PathSelection | null): PathStep[] {
-  if (!selection) return [];
-  const allMatches = rounds.flatMap((round) => round.matches);
-  const start = allMatches.find((m) => m.matchId === selection.matchId);
-  if (!start) return [];
-
-  const steps: PathStep[] = [{ match: start, focusSide: selection.side }];
-  let current = start;
-  let guard = 0;
-  while (current.num !== undefined && guard < 8) {
-    const winnerSlot = `W${current.num}`;
-    const next = allMatches.find((candidate) =>
-      candidate.sourceTeam1 === winnerSlot || candidate.sourceTeam2 === winnerSlot
-    );
-    if (!next) break;
-    steps.push({
-      match: next,
-      focusSide: next.sourceTeam1 === winnerSlot ? 1 : 2,
-    });
-    current = next;
-    guard += 1;
-  }
-  return steps;
 }
 
 function PathPanel({
