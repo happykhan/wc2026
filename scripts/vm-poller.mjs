@@ -6,8 +6,9 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient } from './pollerLib.mjs';
-import { parseKickoffUtc } from './fixturesLib.mjs';
+import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture } from './pollerLib.mjs';
+import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
+import { resolveKnockoutTeams } from './knockoutLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -82,10 +83,12 @@ async function fetchApiFootballLive() {
 // "2026-06-11" + "13:00 UTC-6" into a UTC timestamp. No external base API needed.
 function buildBase() {
   const fx = JSON.parse(fs.readFileSync(FIXTURES, 'utf8')).matches;
+  const assignId = makeIdAssigner();
   return fx.map((m, i) => {
     const kickoff = parseKickoffUtc(m.date, m.time);
     return {
-      id: `fx${i}`,
+      id: assignId(m),
+      num: m.num,
       utcDate: kickoff ? kickoff.toISOString() : null,
       status: 'TIMED',
       minute: null,
@@ -110,8 +113,8 @@ async function fetchEspnDates(dates) {
 
 async function main() {
   const now = Date.now();
-  const matches = buildBase();
   const prior = readPrior();
+  const matches = resolveKnockoutTeams(buildBase(), prior?.matches ?? []);
   if (matches.length === 0) { console.log(new Date(now).toISOString(), 'no fixtures — skip'); return; }
 
   // Key prior by team-pair (not id) so carry-forward works even when seeded from
@@ -152,30 +155,26 @@ async function main() {
   const espnDisabled = process.env.DISABLE_ESPN || ENV.DISABLE_ESPN;
   if (needDates.size && !espnDisabled) {
     const events = await fetchEspnDates([...needDates]);
-    const byPair = new Map();
-    for (const ev of events) {
-      const c = ev.competitions?.[0];
-      const h = c?.competitors?.find((x) => x.homeAway === 'home');
-      const a = c?.competitors?.find((x) => x.homeAway === 'away');
-      if (!h?.team?.displayName || !a?.team?.displayName) continue;
-      byPair.set(pairKey(h.team.displayName, a.team.displayName), { ev, hName: h.team.displayName, hScore: parseInt(h.score ?? '', 10), aScore: parseInt(a.score ?? '', 10) });
-    }
     for (const m of matches) {
-      const hit = byPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
+      const hit = events
+        .map((ev) => matchEspnEventToFixture(m, ev))
+        .find(Boolean);
       if (!hit) continue;
       // Always attach the ESPN event id once the match is matched — this is what
       // the lineups/stats/timeline panels load from. We set it even for a
       // STATUS_SCHEDULED (pre-match) game, whose espnStatus is null, so the
       // pre-match lineup panel can show the teamsheets before kickoff. Status and
       // score are only overwritten once ESPN reports a live/finished state.
-      m.espnEventId = hit.ev.id;
+      m.espnEventId = hit.id;
+      m.homeTeam.name = hit.homeName;
+      m.awayTeam.name = hit.awayName;
       usedEspn = true;
-      const st = espnStatus(hit.ev); if (!st) continue;
-      const hs = Number.isNaN(hit.hScore) ? null : hit.hScore;
-      const as = Number.isNaN(hit.aScore) ? null : hit.aScore;
+      const st = espnStatus(hit.event); if (!st) continue;
+      const hs = Number.isNaN(hit.homeScore) ? null : hit.homeScore;
+      const as = Number.isNaN(hit.awayScore) ? null : hit.awayScore;
       m.status = st;
-      m.minute = espnMinute(hit.ev);
-      m.score = { fullTime: orient(m.homeTeam?.name, hit.hName, hs, as) };
+      m.minute = espnMinute(hit.event);
+      m.score = { fullTime: { home: hs, away: as } };
     }
   }
 
