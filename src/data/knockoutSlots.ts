@@ -71,6 +71,7 @@ export function buildGroupSlotResolver(groupMatches: Match[]): (slot: string, op
     .slice(0, 8);
   const thirdPlaceTeamBySlot = new Map(advancingThirds.map((third) => [`3${third.group}`, third.team]));
   const thirdPlaceAssignment = getThirdPlaceAssignment(advancingThirds.map((third) => third.group));
+  const allGroupsComplete = [...groupComplete.values()].length > 0 && [...groupComplete.values()].every(Boolean);
 
   return (slot: string, opponentSlot?: string): ResolvedSlot => {
     const groupSlot = slot.match(/^([12])([A-L])$/);
@@ -89,7 +90,7 @@ export function buildGroupSlotResolver(groupMatches: Match[]): (slot: string, op
         const label = thirdPlaceTeamBySlot.get(assignedSlot);
         if (label) {
           const assignedGroup = assignedSlot.slice(1);
-          const final = groupComplete.get(assignedGroup) && isThirdPlaceAssignmentStable(opponentSlot, assignedSlot);
+          const final = allGroupsComplete || (groupComplete.get(assignedGroup) && isThirdPlaceAssignmentStable(opponentSlot, assignedSlot));
           return { label, status: final ? 'final' : 'projected' };
         }
       }

@@ -3,6 +3,8 @@ import type { Match, UserPreferences } from '../types';
 import { GitBranch, List, Network, Route, TriangleAlert, X } from 'lucide-react';
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch, type BracketRound } from '../data/bracket';
+import { buildPathSteps, type PathSelection } from '../data/bracketPath';
+import { processedMatches } from '../data/processFixtures';
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { formatMatchDate, formatMatchTime } from '../utils/time';
@@ -15,16 +17,6 @@ interface BracketProps {
 }
 
 type BracketView = 'tree' | 'rounds';
-
-interface PathSelection {
-  matchId: string;
-  side: 1 | 2;
-}
-
-interface PathStep {
-  match: BracketMatch;
-  focusSide: 1 | 2;
-}
 
 const VIEW_STORAGE_KEY = 'wc2026-bracket-view';
 
@@ -238,31 +230,6 @@ function RoundTabs({
   );
 }
 
-function buildPathSteps(rounds: BracketRound[], selection: PathSelection | null): PathStep[] {
-  if (!selection) return [];
-  const allMatches = rounds.flatMap((round) => round.matches);
-  const start = allMatches.find((m) => m.matchId === selection.matchId);
-  if (!start) return [];
-
-  const steps: PathStep[] = [{ match: start, focusSide: selection.side }];
-  let current = start;
-  let guard = 0;
-  while (current.num !== undefined && guard < 8) {
-    const winnerSlot = `W${current.num}`;
-    const next = allMatches.find((candidate) =>
-      candidate.sourceTeam1 === winnerSlot || candidate.sourceTeam2 === winnerSlot
-    );
-    if (!next) break;
-    steps.push({
-      match: next,
-      focusSide: next.sourceTeam1 === winnerSlot ? 1 : 2,
-    });
-    current = next;
-    guard += 1;
-  }
-  return steps;
-}
-
 function PathPanel({
   rounds,
   selection,
@@ -279,6 +246,8 @@ function PathPanel({
 
   const start = steps[0].match;
   const selectedTeam = selection.side === 1 ? start.team1.label : start.team2.label;
+  const last = steps[steps.length - 1];
+  const knockedOut = Boolean(last && last.match.winner !== undefined && last.match.winner !== last.focusSide);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-3 pb-3 pt-16 sm:items-center">
@@ -290,7 +259,7 @@ function PathPanel({
               <span className="truncate">{selectedTeam} path</span>
             </div>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              Assumes this side keeps advancing
+              {knockedOut ? 'Shows the route reached before elimination' : 'Assumes this side keeps advancing'}
             </p>
           </div>
           <button
@@ -350,7 +319,7 @@ function PathPanel({
 }
 
 export function Bracket({ matches, prefs, t }: BracketProps) {
-  const rounds = useMemo(() => buildBracket(matches), [matches]);
+  const rounds = useMemo(() => buildBracket(matches, processedMatches), [matches]);
   const [view, setViewState] = useState<BracketView>(() => readStoredView());
   const [activeRound, setActiveRound] = useState<string>(rounds[0]?.key ?? 'r32');
   const [pathSelection, setPathSelection] = useState<PathSelection | null>(null);

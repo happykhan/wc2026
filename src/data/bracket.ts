@@ -67,7 +67,8 @@ const ROUND_ORDER: { round: string; key: string; title: string }[] = [
   { round: 'Final',                key: 'final', title: 'Final' },
 ];
 
-export function buildBracket(allMatches: Match[]): BracketRound[] {
+export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): BracketRound[] {
+  const sourceById = new Map((sourceMatches ?? allMatches).map((match) => [match.id, match]));
   const groupMatches = allMatches.filter((m) => m.phase === 'group' && m.group);
   const resolveGroupSlot = buildGroupSlotResolver(groupMatches);
 
@@ -108,13 +109,16 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
   };
 
   for (const m of knockout) {
-    const pair = resolveGroupBackedPair(m.team1, m.team2, resolveGroupSlot);
-    const team1 = isKnockoutTeam(m.team1) && !isResultSlot(m.team1)
+    const source = sourceById.get(m.id) ?? m;
+    const sourceTeam1 = source.team1;
+    const sourceTeam2 = source.team2;
+    const pair = resolveGroupBackedPair(sourceTeam1, sourceTeam2, resolveGroupSlot);
+    const team1 = isKnockoutTeam(sourceTeam1) && !isResultSlot(sourceTeam1)
       ? toBracketTeam(pair.team1)
-      : resolveTeam(m.team1);
-    const team2 = isKnockoutTeam(m.team2) && !isResultSlot(m.team2)
+      : resolveTeam(sourceTeam1);
+    const team2 = isKnockoutTeam(sourceTeam2) && !isResultSlot(sourceTeam2)
       ? toBracketTeam(pair.team2)
-      : resolveTeam(m.team2);
+      : resolveTeam(sourceTeam2);
     let winner: 1 | 2 | undefined;
     if (
       m.status === 'ft' &&
@@ -129,8 +133,8 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
       num: m.num,
       round: m.round,
       utcDate: m.utcDate,
-      sourceTeam1: m.team1,
-      sourceTeam2: m.team2,
+      sourceTeam1,
+      sourceTeam2,
       team1,
       team2,
       score1: m.score1,
@@ -153,16 +157,19 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
     if (matches.length === 0) {
       const fallback = knockout.filter((m) => m.round === def.round);
       for (const m of fallback) {
-        const pair = resolveGroupBackedPair(m.team1, m.team2, resolveGroupSlot);
-        const team1 = isResultSlot(m.team1) ? resolveTeam(m.team1) : toBracketTeam(pair.team1);
-        const team2 = isResultSlot(m.team2) ? resolveTeam(m.team2) : toBracketTeam(pair.team2);
+        const source = sourceById.get(m.id) ?? m;
+        const sourceTeam1 = source.team1;
+        const sourceTeam2 = source.team2;
+        const pair = resolveGroupBackedPair(sourceTeam1, sourceTeam2, resolveGroupSlot);
+        const team1 = isResultSlot(sourceTeam1) ? resolveTeam(sourceTeam1) : toBracketTeam(pair.team1);
+        const team2 = isResultSlot(sourceTeam2) ? resolveTeam(sourceTeam2) : toBracketTeam(pair.team2);
         matches.push({
           matchId: m.id,
           num: m.num,
           round: m.round,
           utcDate: m.utcDate,
-          sourceTeam1: m.team1,
-          sourceTeam2: m.team2,
+          sourceTeam1,
+          sourceTeam2,
           team1,
           team2,
           score1: m.score1,
@@ -179,10 +186,10 @@ export function buildBracket(allMatches: Match[]): BracketRound[] {
   return rounds;
 }
 
-export function resolveKnockoutMatchTeams(allMatches: Match[]): Map<string, ResolvedKnockoutTeams> {
+export function resolveKnockoutMatchTeams(allMatches: Match[], sourceMatches?: Match[]): Map<string, ResolvedKnockoutTeams> {
   const resolved = new Map<string, ResolvedKnockoutTeams>();
 
-  for (const round of buildBracket(allMatches)) {
+  for (const round of buildBracket(allMatches, sourceMatches)) {
     for (const match of round.matches) {
       resolved.set(match.matchId, {
         team1: match.team1.label,
