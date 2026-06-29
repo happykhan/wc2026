@@ -4,6 +4,7 @@ import { GitBranch, List, Network, Route, TriangleAlert, X } from 'lucide-react'
 import type { TranslationKey } from '../data/i18n';
 import { buildBracket, type BracketMatch, type BracketRound } from '../data/bracket';
 import { buildPathSteps, type PathSelection } from '../data/bracketPath';
+import { processedMatches } from '../data/processFixtures';
 import { getTeamFlag } from '../data/teamFlags';
 import { isKnockoutTeam } from '../data/processFixtures';
 import { formatMatchDate, formatMatchTime } from '../utils/time';
@@ -239,6 +240,8 @@ function PathPanel({
 
   const start = steps[0].match;
   const selectedTeam = selection.side === 1 ? start.team1.label : start.team2.label;
+  const last = steps[steps.length - 1];
+  const knockedOut = Boolean(last && last.match.winner !== undefined && last.match.winner !== last.focusSide);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-3 pb-3 pt-16 sm:items-center">
@@ -250,7 +253,7 @@ function PathPanel({
               <span className="truncate">{selectedTeam} path</span>
             </div>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              Assumes this side keeps advancing
+              {knockedOut ? 'Shows the route reached before elimination' : 'Assumes this side keeps advancing'}
             </p>
           </div>
           <button
@@ -310,7 +313,7 @@ function PathPanel({
 }
 
 export function Bracket({ matches, prefs, t }: BracketProps) {
-  const rounds = useMemo(() => buildBracket(matches), [matches]);
+  const rounds = useMemo(() => buildBracket(matches, processedMatches), [matches]);
   const [view, setViewState] = useState<BracketView>(() => readStoredView());
   const [activeRound, setActiveRound] = useState<string>(rounds[0]?.key ?? 'r32');
   const [pathSelection, setPathSelection] = useState<PathSelection | null>(null);

@@ -63,7 +63,7 @@ export default function App() {
       };
     });
 
-    const resolvedKnockoutTeams = resolveKnockoutMatchTeams(scoredMatches);
+    const resolvedKnockoutTeams = resolveKnockoutMatchTeams(scoredMatches, processedMatches);
     return scoredMatches.map((m) => {
       if (m.phase !== 'knockout') return m;
       const resolved = resolvedKnockoutTeams.get(m.id);

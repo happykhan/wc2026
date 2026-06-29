@@ -1,87 +1,85 @@
-# Thermo-Nuclear Code Quality Review — PR #21
+# Thermo-Nuclear Code Quality Review — PR #28
 
-Scope: the current branch `codex/resolve-third-place-knockout-fixtures`, covering
-Round-of-32 slot resolution, projected-fixture warnings, `/match/:id` share
-metadata, README/notes updates, and regression coverage.
+Scope: branch `fix-path-journey`, covering bracket path traversal, knockout
+source-slot preservation after live-score merges, and the path-panel copy.
 
-Verdict: **behavior is on the right track and the branch is shippable after the
-cleanup applied in this review pass.** The important fixes were removing the
-simplified standings duplicate from `api/share.ts`, extracting shared knockout
-slot resolution into an API-safe pure module, and making slot finality explicit.
+Verdict: **no structural blocker remains on this branch after the current
+cleanup.** The important code-quality move was to stop letting mutable display
+team names leak into canonical bracket-routing logic.
 
 ## Findings
 
-### 1. Fixed — Slot resolution now has one shared pure path
+### 1. Fixed — bracket routing no longer depends on mutated display labels
 
-`src/data/knockoutSlots.ts` now owns group-slot, third-place-slot, and
-projected/final resolution. `src/data/bracket.ts` and `api/share.ts` are thin
-adapters around the same resolver, so share metadata and the UI cannot drift on
-FIFA tiebreakers or third-place allocation.
+Before this pass, the app merged live team names into knockout matches and then
+rebuilt bracket structure from those mutated objects. That broke two canonical
+flows:
 
-### 2. Fixed — Projection semantics are explicit
+- third-place allocation, which needs the original `1L` / `1G` / `1B` slot
+  codes, not `England` / `Belgium` / `Switzerland`
+- path traversal, which needs `W73`-style source slots to keep walking forward
 
-The resolver now returns
-`ResolvedSlot = { label; status: 'placeholder' | 'projected' | 'final' }`.
-The bracket UI derives its warning icon from that status instead of interpreting
-several booleans spread across the call path.
+The branch now preserves the original fixture slots at the resolver boundary:
 
-### 3. P3 — `thirdPlaceAllocation.ts` is still hand-maintained data
+- `resolveKnockoutMatchTeams(scoredMatches, processedMatches)`
+- `buildBracket(matches, processedMatches)`
 
-The allocation table is compact and now tested for shape and the current
-`ABDEFGIL` examples. It also has a source/date comment. The remaining
-maintainability risk is that it is still hand-maintained.
+That is the right ownership line. The canonical bracket logic works from the
+canonical fixture sources again; display-name overlays stay a presentation
+concern.
 
-If the full 495-row allocation table becomes necessary, generate this file from
-a checked-in source fixture rather than hand-maintaining rows.
+### 2. Fixed — path traversal is now a dedicated pure module
 
-### 4. P3 — Browser/UI verification is manual, not part of CI
+`src/data/bracketPath.ts` owns the path walk instead of leaving that traversal
+embedded in `src/pages/Bracket.tsx`.
 
-The PR has good unit coverage for resolver behavior, but the "warning icon is
-icon-only, not text" requirement was verified with Playwright manually. That is
-fine for this release, but a tiny Playwright smoke test could prevent the chip
-from regressing into visible text.
+That is the correct decomposition for this feature:
 
-Keep it lightweight: one mocked `/api/scores` payload, load bracket, assert a
-`[aria-label="As it stands"]` warning exists and visible body text does not
-contain `AS IT STANDS`.
+- the UI renders the path
+- the pure helper decides how to walk backward to the earliest linked knockout
+  match and forward until elimination or the last reachable round
 
-## Tests Added / Strengthened
+This keeps the page component from accumulating tournament-graph logic inline.
 
+### 3. Fixed — all-groups-complete third-place fixtures are no longer mislabeled as projected
+
+The prior rule only marked a third-place assignment final if it was stable
+across every allocation table. That is too conservative once the whole group
+stage is finished. The branch now treats resolved third-place opponents as final
+when all groups are complete.
+
+That removes an incorrect state rather than adding more branchiness elsewhere.
+
+## Open Questions / Residual Risk
+
+None at blocker level.
+
+The remaining coupling is acceptable for this branch:
+
+- `processedMatches` is still the canonical source of fixture-slot truth
+- both `App.tsx` and `Bracket.tsx` now pass it explicitly to bracket helpers
+
+The cleaner long-term model would be to carry immutable knockout source slots on
+the `Match` model itself, so the canonical source survives all display merges
+without needing a second argument. That is a larger type-boundary change, not a
+requirement for this PR.
+
+## Tests / Verification
+
+- `src/data/bracketPath.test.ts`
+  - still-in-contention path shows the full chain
+  - knocked-out path stops at elimination
 - `src/data/bracket.test.ts`
-  - final group slots resolve without projection
-  - current unfinished group standings resolve with `projected: true`
-  - Germany vs Paraguay and Argentina vs Cape Verde are covered
-- `src/data/thirdPlaceAllocation.test.ts`
-  - assignment table shape
-  - current `ABDEFGIL` allocation examples
-  - stable-vs-unstable assignment detection
-- `src/data/knockoutSlots.test.ts`
-  - shared group-slot resolver behavior
-  - projected-to-final transition when a group completes without changing teams
-- `npm run build` now exercises API type-checking, so unsafe serverless imports
-  fail before Vercel deploys.
-
-## Additional Fast Regression Opportunities
-
-1. Add a tiny Playwright smoke test for the icon-only projected fixture UI.
-2. Add a direct `/api/share` handler test if share previews need more coverage
-   than the shared pure resolver gives us.
-3. Add a generated table-integrity test if more third-place rows are added:
-   every assignment value must be one of the advancing groups and every required
-   first-place slot must be present.
-
-## File Size / Decomposition
-
-No file crossed the 1000-line threshold. The largest touched file remains
-`src/components/MatchRow.tsx` at roughly 630 lines. This branch only adds a
-small icon and does not worsen the component's overall shape materially.
+  - preserves original knockout source slots after partial live-name resolution
+  - covers the England / Belgium / Switzerland class of failures
+- `npm run build`
+  - green, 23 test files / 164 tests
 
 ## Approval Bar
 
-Approved from a maintainability standpoint for this branch after the cleanup:
+Approved from a maintainability standpoint for PR #28 after the current fixes:
 
-- canonical standings are reused by `/api/share`
-- knockout slot resolution and third-place table lookup/stability are centralized
-- regression tests cover the risky cases
-- projected UI is compact and accessible
-- no large-file or broad spaghetti growth
+- no file-size regression
+- no new spaghetti branch growth in the UI layer
+- canonical routing logic moved back behind pure data helpers
+- path behavior is covered by targeted tests

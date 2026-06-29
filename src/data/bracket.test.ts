@@ -84,6 +84,48 @@ describe('resolveKnockoutMatchTeams', () => {
       projected: false,
     });
   });
+
+  it('keeps using original knockout source slots after live names partially resolve a fixture', () => {
+    const sourceMatches: Match[] = [
+      ...group('B', ['Switzerland', 'Canada', 'Bosnia & Herzegovina', 'Qatar']),
+      ...group('D', ['USA', 'Australia', 'Paraguay', 'Turkey']),
+      ...group('E', ['Germany', 'Ivory Coast', 'Ecuador', 'Curacoa']),
+      ...group('F', ['Netherlands', 'Japan', 'Sweden', 'Tunisia']),
+      ...group('G', ['Belgium', 'Egypt', 'Iran', 'New Zealand']),
+      ...group('I', ['France', 'Norway', 'Senegal', 'Iraq']),
+      ...group('J', ['Argentina', 'Austria', 'Algeria', 'Jordan']),
+      ...group('K', ['Colombia', 'Portugal', 'DR Congo', 'Uzbekistan']),
+      ...group('L', ['England', 'Ghana', 'Croatia', 'Panama']),
+      { ...match('m80', undefined, '1L', undefined, '3E/H/I/J/K', undefined), num: 80 },
+      { ...match('m82', undefined, '1G', undefined, '3A/E/H/I/J', undefined), num: 82 },
+      { ...match('m85', undefined, '1B', undefined, '3E/F/G/I/J', undefined), num: 85 },
+    ];
+
+    const liveMerged = sourceMatches.map((m) => {
+      if (m.id === 'm80') return { ...m, team1: 'England' };
+      if (m.id === 'm82') return { ...m, team1: 'Belgium' };
+      if (m.id === 'm85') return { ...m, team1: 'Switzerland' };
+      return m;
+    });
+
+    const resolved = resolveKnockoutMatchTeams(liveMerged, sourceMatches);
+
+    expect(resolved.get('m80')).toEqual({
+      team1: 'England',
+      team2: 'DR Congo',
+      projected: false,
+    });
+    expect(resolved.get('m82')).toEqual({
+      team1: 'Belgium',
+      team2: 'Algeria',
+      projected: false,
+    });
+    expect(resolved.get('m85')).toEqual({
+      team1: 'Switzerland',
+      team2: 'Iran',
+      projected: false,
+    });
+  });
 });
 
 function group(letter: string, [first, second, third, fourth]: [string, string, string, string]): Match[] {
