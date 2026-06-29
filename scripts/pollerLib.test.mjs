@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture } from './pollerLib.mjs';
 
 const WIN = 150;                       // LIVE_WINDOW_MIN
 const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
@@ -190,5 +190,30 @@ describe('poller: team matching', () => {
     expect(hasScore({ fullTime: { home: 1, away: 0 } })).toBe(true);
     expect(hasScore({ fullTime: { home: null, away: null } })).toBe(false);
     expect(hasScore(undefined)).toBe(false);
+  });
+
+  it('matches an ESPN round-of-32 event onto a best-third placeholder slot by kickoff + known side', () => {
+    const match = {
+      utcDate: '2026-06-29T20:30:00.000Z',
+      homeTeam: { name: 'Germany' },
+      awayTeam: { name: '3A/B/C/D/F' },
+    };
+    const ev = {
+      id: '760489',
+      competitions: [{
+        date: '2026-06-29T20:30Z',
+        competitors: [
+          { homeAway: 'home', score: '0', team: { displayName: 'Germany' } },
+          { homeAway: 'away', score: '0', team: { displayName: 'Paraguay' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev)).toMatchObject({
+      id: '760489',
+      homeName: 'Germany',
+      awayName: 'Paraguay',
+      homeScore: 0,
+      awayScore: 0,
+    });
   });
 });

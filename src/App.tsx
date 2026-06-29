@@ -51,6 +51,8 @@ export default function App() {
       if (!live) return m;
       return {
         ...m,
+        team1: live.team1 ?? m.team1,
+        team2: live.team2 ?? m.team2,
         score1: live.score1,
         score2: live.score2,
         status: live.status,

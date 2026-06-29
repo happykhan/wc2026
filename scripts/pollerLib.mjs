@@ -124,3 +124,60 @@ export const haveFinalScore = (m, p) =>
 // home names (folded) and return {home, away} scores oriented to OUR home team.
 export const orient = (ourHome, feedHome, homeVal, awayVal) =>
   norm(ourHome) !== norm(feedHome) ? { home: awayVal, away: homeVal } : { home: homeVal, away: awayVal };
+
+const isKnockoutSlot = (name) =>
+  /^[WL]\d+$/.test(name || '') || /^[123][A-L](?:\/[A-L])+?$/.test(name || '') || /^[12][A-L]$/.test(name || '');
+
+// Knockout fixtures can still carry placeholders (e.g. "3A/B/C/D/F") after the
+// group stage, while ESPN exposes the actual pairing. Match those by kickoff +
+// the resolved side we already know, then orient the feed's home/away order to
+// our fixture slots.
+export const matchEspnEventToFixture = (match, ev) => {
+  const c = ev.competitions?.[0];
+  const home = c?.competitors?.find((x) => x.homeAway === 'home')?.team?.displayName;
+  const away = c?.competitors?.find((x) => x.homeAway === 'away')?.team?.displayName;
+  if (!home || !away) return null;
+
+  const kickoffMs = Date.parse(match?.utcDate || '');
+  const eventMs = Date.parse(c?.date || ev?.date || '');
+  if (!Number.isNaN(kickoffMs) && !Number.isNaN(eventMs) && Math.abs(kickoffMs - eventMs) > 5 * 60000) return null;
+
+  const homeKnown = match?.homeTeam?.name && !isKnockoutSlot(match.homeTeam.name);
+  const awayKnown = match?.awayTeam?.name && !isKnockoutSlot(match.awayTeam.name);
+
+  const direct = pairKey(match?.homeTeam?.name, match?.awayTeam?.name) === pairKey(home, away);
+  const homeMatchesFeedHome = norm(match?.homeTeam?.name) === norm(home);
+  const homeMatchesFeedAway = norm(match?.homeTeam?.name) === norm(away);
+  const awayMatchesFeedHome = norm(match?.awayTeam?.name) === norm(home);
+  const awayMatchesFeedAway = norm(match?.awayTeam?.name) === norm(away);
+
+  if (!direct) {
+    if (!(homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) && !(awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway))) {
+      return null;
+    }
+  }
+
+  if (homeMatchesFeedHome || awayMatchesFeedAway || direct) {
+    return {
+      id: ev.id,
+      homeName: home,
+      awayName: away,
+      homeScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'home')?.score ?? '', 10),
+      awayScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'away')?.score ?? '', 10),
+      event: ev,
+    };
+  }
+
+  if (homeMatchesFeedAway || awayMatchesFeedHome) {
+    return {
+      id: ev.id,
+      homeName: away,
+      awayName: home,
+      homeScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'away')?.score ?? '', 10),
+      awayScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'home')?.score ?? '', 10),
+      event: ev,
+    };
+  }
+
+  return null;
+};

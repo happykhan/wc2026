@@ -8,6 +8,8 @@ const POLL_IDLE   = 5 * 60_000; // 5 min — no live action
 
 export interface LiveScore {
   matchId: string;
+  team1?: string;
+  team2?: string;
   aflFixtureId?: number; // API-Football fixture id (lineups/stats fallback)
   espnEventId?: string;  // ESPN event id (primary for lineups/stats)
   score1?: number;
@@ -38,7 +40,7 @@ interface FDScore {
 }
 
 interface FDMatch {
-  id: number;
+  id: number | string;
   utcDate: string;
   status: FDMatchStatus;
   minute?: number | null;
@@ -79,19 +81,13 @@ export function mapStatus(fdStatus: FDMatchStatus): LiveScore['status'] {
 // etc.) — fold the variants to one token so score merges don't silently miss.
 // Team-name matching (with feed aliases) lives in teamMatch.ts (test-guarded).
 
-async function fetchFromFootballData(
+export function mapApiMatchesToScores(
   local: Array<{ id: string; team1: string; team2: string }>
-): Promise<Map<string, LiveScore>> {
+  , fdMatches: FDMatch[]
+  , blobAt: number
+): Map<string, LiveScore> {
   const next = new Map<string, LiveScore>();
-
-  const res = await fetch(WC_SCORES_URL);
-
-  if (!res.ok) return next;
-
-  const data: WCScoresResponse = await res.json();
-  const fdMatches: FDMatch[] = data.matches ?? [];
-  // Fallback anchor (whole-blob capture time) when a match has no per-minute stamp.
-  const blobAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
+  const localById = new Map(local.map((match) => [match.id, match]));
 
   for (const fdm of fdMatches) {
     const fdHome = normTeam(fdm.homeTeam?.name);
@@ -100,14 +96,18 @@ async function fetchFromFootballData(
     // null doesn't abort the whole mapping and wipe out the live scores.
     if (!fdHome || !fdAway) continue;
 
-    // Match FD results back to our internal IDs via team-name fuzzy match.
-    const match = local.find(
+    const match = typeof fdm.id === 'string'
+      ? localById.get(fdm.id)
+      : undefined;
+    const fallbackMatch = match ?? local.find(
       (m) => normTeam(m.team1) === fdHome && normTeam(m.team2) === fdAway
     );
-    if (!match) continue;
+    if (!fallbackMatch) continue;
 
-    next.set(match.id, {
-      matchId: match.id,
+    next.set(fallbackMatch.id, {
+      matchId: fallbackMatch.id,
+      team1: fdm.homeTeam?.name,
+      team2: fdm.awayTeam?.name,
       aflFixtureId: fdm.aflFixtureId,
       espnEventId: fdm.espnEventId,
       score1: fdm.score.fullTime.home ?? undefined,
@@ -119,6 +119,16 @@ async function fetchFromFootballData(
   }
 
   return next;
+}
+
+async function fetchFromFootballData(
+  local: Array<{ id: string; team1: string; team2: string }>
+): Promise<Map<string, LiveScore>> {
+  const res = await fetch(WC_SCORES_URL);
+  if (!res.ok) return new Map();
+  const data: WCScoresResponse = await res.json();
+  const blobAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
+  return mapApiMatchesToScores(local, data.matches ?? [], blobAt);
 }
 
 // ---------------------------------------------------------------------------
