@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getQualifiedTeams } from '../src/data/qualification.ts';
+
+function getQualifiedTeams(): string[] {
+  return ['Mexico'];
+}
 
 // ---------------------------------------------------------------------------
 // /api/scores — reads the pre-computed scores JSON hosted on Nabil's VM.
