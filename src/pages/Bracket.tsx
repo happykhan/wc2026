@@ -49,12 +49,24 @@ function TeamLine({
   onOpenPath?: () => void;
 }) {
   const flag = resolved && !isKnockoutTeam(label) ? getTeamFlag(label) : null;
+  const className = [
+    'group grid min-w-0 w-full items-center gap-x-1.5 px-2 py-1 text-left',
+    onOpenPath
+      ? (score !== undefined
+          ? 'grid-cols-[auto_minmax(0,1fr)_2.25rem_auto] hover:bg-neutral-50 dark:hover:bg-neutral-800/70'
+          : 'grid-cols-[auto_minmax(0,1fr)_auto] hover:bg-neutral-50 dark:hover:bg-neutral-800/70')
+      : (score !== undefined
+          ? 'grid-cols-[auto_minmax(0,1fr)_2.25rem]'
+          : 'grid-cols-[auto_minmax(0,1fr)]'),
+    isWinner ? 'font-semibold text-neutral-900 dark:text-neutral-100' : '',
+    !resolved ? 'text-neutral-400 dark:text-neutral-500 italic' : 'text-neutral-700 dark:text-neutral-300',
+  ].join(' ');
   const content = (
     <>
       {flag && <span aria-hidden="true" className="flex-shrink-0">{flag}</span>}
-      <span className="truncate text-xs">{label}</span>
+      <span className="min-w-0 truncate text-xs">{label}</span>
       {score !== undefined && (
-        <span className="ml-auto tabular-nums font-mono text-xs text-neutral-800 dark:text-neutral-200 flex-shrink-0">
+        <span className="w-9 text-right tabular-nums font-mono text-xs text-neutral-800 dark:text-neutral-200">
           {score}
         </span>
       )}
@@ -62,17 +74,11 @@ function TeamLine({
         <Route
           size={12}
           aria-hidden="true"
-          className="ml-auto flex-shrink-0 text-neutral-400 group-hover:text-blue-500 dark:text-neutral-500 dark:group-hover:text-blue-300"
+          className="flex-shrink-0 text-neutral-400 group-hover:text-blue-500 dark:text-neutral-500 dark:group-hover:text-blue-300"
         />
       )}
     </>
   );
-  const className = [
-    'group flex items-center gap-1.5 px-2 py-1 min-w-0 w-full text-left',
-    onOpenPath ? 'hover:bg-neutral-50 dark:hover:bg-neutral-800/70' : '',
-    isWinner ? 'font-semibold text-neutral-900 dark:text-neutral-100' : '',
-    !resolved ? 'text-neutral-400 dark:text-neutral-500 italic' : 'text-neutral-700 dark:text-neutral-300',
-  ].join(' ');
 
   if (onOpenPath) {
     return (
