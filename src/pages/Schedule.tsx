@@ -7,7 +7,7 @@ import { FeatureNoticeGroup } from '../components/FeatureNotice';
 import { allTeams as wcTeams, allGroups as wcGroups } from '../data/processFixtures';
 import type { TranslationKey } from '../data/i18n';
 import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../utils/time';
-import { partitionPastDateKeys, shouldStartPastExpanded } from '../utils/pastMatches';
+import { partitionScheduleGroups, shouldStartPastExpanded } from '../utils/pastMatches';
 
 interface ScheduleProps {
   matches: Match[];
@@ -109,39 +109,43 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
   // the top. Order is never changed — when expanded, past days appear in their
   // normal chronological position (above today).
   const todayKey = getDateKey(new Date(), prefs.timezone);
-  const { past: pastKeys, current: currentKeys } = useMemo(
-    () => partitionPastDateKeys(byDate.map(([k]) => k), todayKey),
+  const { pastGroupStage, pastKnockout, current: currentGroups } = useMemo(
+    () => partitionScheduleGroups(byDate, todayKey),
     [byDate, todayKey],
   );
-  const pastKeySet = useMemo(() => new Set(pastKeys), [pastKeys]);
 
-  const pastGroups = useMemo(() => byDate.filter(([k]) => pastKeySet.has(k)), [byDate, pastKeySet]);
-  const currentGroups = useMemo(() => byDate.filter(([k]) => !pastKeySet.has(k)), [byDate, pastKeySet]);
-
-  const pastMatchCount = useMemo(
-    () => pastGroups.reduce((n, [, ms]) => n + ms.length, 0),
-    [pastGroups],
+  const pastGroupMatchCount = useMemo(
+    () => pastGroupStage.reduce((n, [, ms]) => n + ms.length, 0),
+    [pastGroupStage],
+  );
+  const pastKnockoutMatchCount = useMemo(
+    () => pastKnockout.reduce((n, [, ms]) => n + ms.length, 0),
+    [pastKnockout],
   );
 
   // If a shared /match link points at a match in the (collapsed) past section,
   // auto-expand so the deep-linked card is reachable and scrollable.
-  const deepLinkIsPast = useMemo(() => {
-    if (!focusMatchId) return false;
+  const deepLinkPastSection = useMemo<'group' | 'knockout' | null>(() => {
+    if (!focusMatchId) return null;
     const m = filtered.find((x) => x.id === focusMatchId);
-    if (!m) return false;
-    return pastKeySet.has(getDateKey(m.utcDate, prefs.timezone));
-  }, [focusMatchId, filtered, pastKeySet, prefs.timezone]);
+    if (!m) return null;
+    const isPastFinished = getDateKey(m.utcDate, prefs.timezone) < todayKey && m.status === 'ft';
+    if (!isPastFinished) return null;
+    return m.phase === 'group' ? 'group' : 'knockout';
+  }, [focusMatchId, filtered, prefs.timezone, todayKey]);
 
   // Collapsed by default. Exceptions: (a) a deep-linked past match forces it open
   // so the card is reachable; (b) when there are NO current/upcoming days but
   // there ARE past days (tournament over), default to open so the screen isn't
   // empty. `useState` initialiser runs once; the deep-link case re-asserts below.
-  const [showPast, setShowPast] = useState(
-    () => shouldStartPastExpanded(pastKeys.length, currentKeys.length, deepLinkIsPast),
+  const [showPastGroups, setShowPastGroups] = useState(
+    () => shouldStartPastExpanded(pastGroupStage.length, currentGroups.length, deepLinkPastSection === 'group'),
   );
-  // Keep the past section open whenever a past match is deep-linked, even if the
-  // focus arrives after the initial render (route change without remount).
-  const effectiveShowPast = showPast || deepLinkIsPast;
+  const [showPastKnockout, setShowPastKnockout] = useState(
+    () => shouldStartPastExpanded(pastKnockout.length, currentGroups.length, deepLinkPastSection === 'knockout'),
+  );
+  const effectiveShowPastGroups = showPastGroups || deepLinkPastSection === 'group';
+  const effectiveShowPastKnockout = showPastKnockout || deepLinkPastSection === 'knockout';
 
   const navigateDay = useCallback((direction: 1 | -1) => {
     // If no date filter, find today or first future date as anchor
@@ -201,7 +205,7 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
   }, [navigateDay, resetDrag]);
 
   const renderDayGroup = useCallback(
-    ([dateKey, dayMatches]: [string, Match[]]) => {
+    ([dateKey, dayMatches]: readonly [string, readonly Match[]]) => {
       // Use noon UTC on the date key to get a representative Date for label checks
       const d = new Date(dateKey + 'T12:00:00Z');
       const label = isMatchToday(d, prefs.timezone)
@@ -236,6 +240,37 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
     },
     [prefs, t, onToggleFavourite, isClubComp, focusMatchId],
   );
+
+  const renderPastToggle = useCallback((
+    expanded: boolean,
+    toggle: () => void,
+    label: string,
+    count: number,
+  ) => (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-expanded={expanded}
+      className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 px-4 py-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-300 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
+    >
+      <svg
+        className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+      <span>{label}</span>
+      <span className="inline-flex items-center justify-center min-w-[1.5rem] rounded-full bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
+        {count}
+      </span>
+    </button>
+  ), []);
 
   return (
     <div className="space-y-6">
@@ -298,35 +333,29 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Past-matches toggle + (when expanded) the past day groups, kept in
-              their chronological position ABOVE today. Hidden entirely when
-              there are no past days. */}
-          {pastGroups.length > 0 && (
+          {/* Past group-stage matches */}
+          {pastGroupStage.length > 0 && (
             <div className="space-y-8">
-              <button
-                type="button"
-                onClick={() => setShowPast((v) => !v)}
-                aria-expanded={effectiveShowPast}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 px-4 py-2.5 text-sm font-semibold text-neutral-600 dark:text-neutral-300 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-              >
-                <svg
-                  className={`w-4 h-4 transition-transform ${effectiveShowPast ? 'rotate-180' : ''}`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-                <span>{effectiveShowPast ? t('hidePastMatches') : t('showPastMatches')}</span>
-                <span className="inline-flex items-center justify-center min-w-[1.5rem] rounded-full bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 text-xs font-bold text-neutral-600 dark:text-neutral-300">
-                  {pastMatchCount}
-                </span>
-              </button>
-              {effectiveShowPast && <div className="space-y-8">{pastGroups.map(renderDayGroup)}</div>}
+              {renderPastToggle(
+                effectiveShowPastGroups,
+                () => setShowPastGroups((v) => !v),
+                effectiveShowPastGroups ? t('hidePastGroupMatches') : t('showPastGroupMatches'),
+                pastGroupMatchCount,
+              )}
+              {effectiveShowPastGroups && <div className="space-y-8">{pastGroupStage.map(renderDayGroup)}</div>}
+            </div>
+          )}
+
+          {/* Past knockout matches */}
+          {pastKnockout.length > 0 && (
+            <div className="space-y-8">
+              {renderPastToggle(
+                effectiveShowPastKnockout,
+                () => setShowPastKnockout((v) => !v),
+                effectiveShowPastKnockout ? t('hidePastKnockoutMatches') : t('showPastKnockoutMatches'),
+                pastKnockoutMatchCount,
+              )}
+              {effectiveShowPastKnockout && <div className="space-y-8">{pastKnockout.map(renderDayGroup)}</div>}
             </div>
           )}
 
