@@ -48,6 +48,25 @@ export const espnMinute = (ev) => {
   return m ? parseInt(m[1], 10) : null;
 };
 
+export const espnShootout = (ev) => {
+  const c = ev.competitions?.[0];
+  const home = c?.competitors?.find((x) => x.homeAway === 'home');
+  const away = c?.competitors?.find((x) => x.homeAway === 'away');
+  const homePens = Number(home?.shootoutScore);
+  const awayPens = Number(away?.shootoutScore);
+  const shootout =
+    Number.isNaN(homePens) || Number.isNaN(awayPens)
+      ? { home: null, away: null }
+      : { home: homePens, away: awayPens };
+  let winner = null;
+  if (home?.winner === true) winner = 1;
+  else if (away?.winner === true) winner = 2;
+  else if (shootout.home != null && shootout.away != null && shootout.home !== shootout.away) {
+    winner = shootout.home > shootout.away ? 1 : 2;
+  }
+  return { shootout, winner };
+};
+
 // football-data.org status → our status (the fallback feed when ESPN doesn't
 // resolve a match — e.g. a name ESPN spells differently). It gives final results
 // even on the free tier, where this matters most for backfilling.
@@ -158,23 +177,31 @@ export const matchEspnEventToFixture = (match, ev) => {
   }
 
   if (homeMatchesFeedHome || awayMatchesFeedAway || direct) {
+    const { shootout, winner } = espnShootout(ev);
     return {
       id: ev.id,
       homeName: home,
       awayName: away,
       homeScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'home')?.score ?? '', 10),
       awayScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'away')?.score ?? '', 10),
+      shootoutHome: shootout.home,
+      shootoutAway: shootout.away,
+      winner,
       event: ev,
     };
   }
 
   if (homeMatchesFeedAway || awayMatchesFeedHome) {
+    const { shootout, winner } = espnShootout(ev);
     return {
       id: ev.id,
       homeName: away,
       awayName: home,
       homeScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'away')?.score ?? '', 10),
       awayScore: parseInt(c?.competitors?.find((x) => x.homeAway === 'home')?.score ?? '', 10),
+      shootoutHome: shootout.away,
+      shootoutAway: shootout.home,
+      winner: winner === 1 ? 2 : winner === 2 ? 1 : null,
       event: ev,
     };
   }

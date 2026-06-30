@@ -92,7 +92,8 @@ function buildBase() {
       utcDate: kickoff ? kickoff.toISOString() : null,
       status: 'TIMED',
       minute: null,
-      score: { fullTime: { home: null, away: null } },
+      winner: null,
+      score: { fullTime: { home: null, away: null }, shootout: { home: null, away: null } },
       homeTeam: { name: m.team1 },
       awayTeam: { name: m.team2 },
       group: m.group ?? null,
@@ -174,7 +175,11 @@ async function main() {
       const as = Number.isNaN(hit.awayScore) ? null : hit.awayScore;
       m.status = st;
       m.minute = espnMinute(hit.event);
-      m.score = { fullTime: { home: hs, away: as } };
+      m.winner = hit.winner;
+      m.score = {
+        fullTime: { home: hs, away: as },
+        shootout: { home: hit.shootoutHome ?? null, away: hit.shootoutAway ?? null },
+      };
     }
   }
 
@@ -202,6 +207,7 @@ async function main() {
       const hs = ft.home ?? null, as = ft.away ?? null;
       if (st === 'FINISHED' && hs == null && as == null) continue; // no usable score
       m.status = st;
+      m.winner = hs != null && as != null && hs !== as ? (hs > as ? 1 : 2) : null;
       m.score = { fullTime: orient(m.homeTeam?.name, hit.homeTeam?.name, hs, as) };
       if (hit.minute != null) m.minute = hit.minute;
       usedFd = true;
@@ -228,6 +234,7 @@ async function main() {
       const st = aflStatus(hit.fixture?.status?.short); if (!st) continue;
       const hs = hit.goals?.home ?? null, as = hit.goals?.away ?? null;
       m.status = st;
+      m.winner = hs != null && as != null && hs !== as ? (hs > as ? 1 : 2) : null;
       m.score = { fullTime: orient(m.homeTeam?.name, hit.teams.home.name, hs, as) };
       if (hit.fixture?.status?.elapsed != null) m.minute = hit.fixture.status.elapsed;
       usedAfl = true;
@@ -243,10 +250,18 @@ async function main() {
       const currentBlank = !m.status || m.status === 'TIMED' || m.status === 'SCHEDULED' || !hasScore(m.score);
       if (priorResult && currentBlank) {
         m.status = p.status; m.minute = p.minute; m.score = p.score;
+        if (p.winner != null) m.winner = p.winner;
         if (p.aflFixtureId) m.aflFixtureId = p.aflFixtureId;
         if (p.espnEventId) m.espnEventId = p.espnEventId;
         if ((m.status === 'IN_PLAY' || m.status === 'PAUSED') && m.utcDate && now > Date.parse(m.utcDate) + LIVE_WINDOW_MIN * 60000) m.status = 'FINISHED';
       } else {
+        if (p.winner != null && m.winner == null) m.winner = p.winner;
+        if (
+          p.score?.shootout &&
+          (m.score?.shootout?.home == null || m.score?.shootout?.away == null)
+        ) {
+          m.score = { ...m.score, shootout: p.score.shootout };
+        }
         if (p.aflFixtureId && !m.aflFixtureId) m.aflFixtureId = p.aflFixtureId;
         if (p.espnEventId && !m.espnEventId) m.espnEventId = p.espnEventId;
       }

@@ -24,6 +24,11 @@ interface MatchRowProps {
   initialExpanded?: boolean;
 }
 
+function shootoutLabel(match: Match): string | null {
+  if (match.shootout1 == null || match.shootout2 == null) return null;
+  return `Pens ${match.shootout1}-${match.shootout2}`;
+}
+
 // ---------------------------------------------------------------------------
 // Per-match ICS download helper
 // ---------------------------------------------------------------------------
@@ -399,6 +404,7 @@ export function MatchRow({
   const showScore = match.status === 'ft' || match.status === 'live' || match.status === 'ht';
 
   const localTime = formatMatchTime(match.utcDate, timezone, prefs.hour12);
+  const penalties = shootoutLabel(match);
 
   // Meta line parts: channels, venue/city, countdown (for upcoming within 24 h)
   const venueName = match.city || match.venue;
@@ -441,6 +447,11 @@ export function MatchRow({
           )}
           {match.status !== 'upcoming' && (
             <StatusBadge status={match.status} minute={match.minute} minuteAt={match.minuteAt} t={t} />
+          )}
+          {penalties && (
+            <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              {penalties}
+            </span>
           )}
         </div>
 

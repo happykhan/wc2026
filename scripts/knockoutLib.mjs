@@ -12,6 +12,7 @@ function isFinished(match) {
 }
 
 function winnerOf(match) {
+  if (match?.winner === 1 || match?.winner === 2) return match.winner;
   if (!isFinished(match)) return null;
   const score = scoreOf(match);
   if (score.home === score.away) return null;

@@ -126,6 +126,33 @@ describe('resolveKnockoutMatchTeams', () => {
       projected: false,
     });
   });
+
+  it('uses the explicit knockout winner when full-time ends level', () => {
+    const matches: Match[] = [
+      ...group('A', ['Mexico', 'South Africa', 'South Korea', 'Czech Republic']),
+      ...group('B', ['Switzerland', 'Canada', 'Bosnia & Herzegovina', 'Qatar']),
+      ...group('D', ['USA', 'Australia', 'Paraguay', 'Turkey']),
+      ...group('E', ['Germany', 'Ivory Coast', 'Ecuador', 'Curacoa']),
+      ...group('F', ['Netherlands', 'Japan', 'Sweden', 'Tunisia']),
+      ...group('G', ['Belgium', 'Egypt', 'Iran', 'New Zealand']),
+      ...group('I', ['France', 'Norway', 'Senegal', 'Iraq']),
+      ...group('L', ['England', 'Ghana', 'Croatia', 'Panama']),
+      {
+        ...match('m74', undefined, '1E', 1, '3A/B/C/D/F', 1),
+        num: 74,
+        winner: 2,
+        shootout1: 3,
+        shootout2: 4,
+      },
+      { ...match('m89', undefined, 'W74', undefined, '1F', undefined), num: 89, round: 'Round of 16' },
+    ];
+
+    expect(resolveKnockoutMatchTeams(matches).get('m89')).toEqual({
+      team1: 'Paraguay',
+      team2: 'Netherlands',
+      projected: false,
+    });
+  });
 });
 
 function group(letter: string, [first, second, third, fourth]: [string, string, string, string]): Match[] {

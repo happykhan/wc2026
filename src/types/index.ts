@@ -25,6 +25,9 @@ export interface Match {
   // live data
   score1?: number;
   score2?: number;
+  shootout1?: number;
+  shootout2?: number;
+  winner?: 1 | 2;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
   minute?: number;
   /** epoch ms when `minute` was captured — lets the client tick the live clock forward */

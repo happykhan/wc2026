@@ -14,6 +14,9 @@ export interface LiveScore {
   espnEventId?: string;  // ESPN event id (primary for lineups/stats)
   score1?: number;
   score2?: number;
+  shootout1?: number;
+  shootout2?: number;
+  winner?: 1 | 2;
   status: 'upcoming' | 'live' | 'ht' | 'ft';
   minute?: number;
   minuteAt?: number; // epoch ms when `minute` was captured (for client-side ticking)
@@ -47,8 +50,10 @@ interface FDMatch {
   minuteAt?: string; // ISO — when `minute` last changed (anchor for client clock)
   aflFixtureId?: number;
   espnEventId?: string;
+  winner?: 1 | 2;
   score: {
     fullTime: FDScore;
+    shootout?: FDScore;
     halfTime?: FDScore;
   };
   homeTeam: { name: string };
@@ -112,6 +117,9 @@ export function mapApiMatchesToScores(
       espnEventId: fdm.espnEventId,
       score1: fdm.score.fullTime.home ?? undefined,
       score2: fdm.score.fullTime.away ?? undefined,
+      shootout1: fdm.score.shootout?.home ?? undefined,
+      shootout2: fdm.score.shootout?.away ?? undefined,
+      winner: fdm.winner,
       status: mapStatus(fdm.status),
       minute: fdm.minute ?? undefined,
       minuteAt: fdm.minuteAt ? Date.parse(fdm.minuteAt) : blobAt,
