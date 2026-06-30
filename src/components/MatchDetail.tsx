@@ -446,7 +446,19 @@ export function StatsPanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t }:
 // Timeline panel — goals / cards / subs with player + minute, from /api/matchdetail.
 // ---------------------------------------------------------------------------
 
-const EVENT_ICON: Record<string, string> = { goal: '⚽', own: '⚽', pen: '⚽', yellow: '🟨', red: '🟥', sub: '🔁' };
+const EVENT_ICON: Record<string, string> = {
+  goal: '⚽',
+  own: '⚽',
+  pen: '⚽',
+  yellow: '🟨',
+  red: '🟥',
+  sub: '🔁',
+  'pens-start': '🎯',
+  'pens-score': '⚽',
+  'pens-save': '🧤',
+  'pens-miss': '❌',
+  'pens-end': '🏁',
+};
 
 export function TimelinePanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t }: {
   homeTeam: string; awayTeam: string; espnEventId?: string; aflFixtureId?: number; t: (k: TranslationKey) => string;
@@ -484,4 +496,3 @@ export function TimelinePanel({ homeTeam, awayTeam, espnEventId, aflFixtureId, t
     </div>
   );
 }
-
