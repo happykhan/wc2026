@@ -124,4 +124,34 @@ describe('espnEventsFromSummary', () => {
       team: 'Brazil',
     });
   });
+
+  it('synthesizes shootout timeline events from ESPN shootout arrays when plays are absent', () => {
+    const events = espnEventsFromSummary({
+      shootout: [
+        {
+          team: 'Germany',
+          shots: [
+            { player: 'Kai Havertz', shotNumber: 1, didScore: false },
+            { player: 'Joshua Kimmich', shotNumber: 2, didScore: true },
+          ],
+        },
+        {
+          team: 'Paraguay',
+          shots: [
+            { player: 'Mauricio', shotNumber: 1, didScore: true },
+            { player: 'Gustavo Gomez', shotNumber: 2, didScore: true },
+          ],
+        },
+      ],
+    });
+
+    expect(events).toEqual([
+      { minute: 'PSO', kind: 'pens-start', team: '', player: '', detail: 'Penalty shootout begins.' },
+      { minute: 'P1', kind: 'pens-miss', team: 'Germany', player: 'Kai Havertz', detail: 'Penalty missed.' },
+      { minute: 'P2', kind: 'pens-score', team: 'Paraguay', player: 'Mauricio', detail: 'Penalty scored.' },
+      { minute: 'P3', kind: 'pens-score', team: 'Germany', player: 'Joshua Kimmich', detail: 'Penalty scored.' },
+      { minute: 'P4', kind: 'pens-score', team: 'Paraguay', player: 'Gustavo Gomez', detail: 'Penalty scored.' },
+      { minute: 'PSO', kind: 'pens-end', team: '', player: '', detail: 'Penalty shootout ends.' },
+    ]);
+  });
 });

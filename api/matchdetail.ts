@@ -36,6 +36,14 @@ interface EspnPlay {
 interface EspnSummary {
   keyEvents?: EspnPlay[];
   plays?: EspnPlay[];
+  shootout?: Array<{
+    team?: string;
+    shots?: Array<{
+      player?: string;
+      shotNumber?: number;
+      didScore?: boolean;
+    }>;
+  }>;
 }
 
 // ESPN puts the player in the free-text description, not athletesInvolved — pull
@@ -77,6 +85,59 @@ function minuteLabelForShootout(kind: string, attempt: number): string {
   return `P${attempt}`;
 }
 
+function shootoutEventsFromSummary(summary: EspnSummary): MatchEvent[] {
+  const teams = summary.shootout ?? [];
+  if (teams.length === 0) return [];
+
+  const orderedAttempts = teams
+    .flatMap((team, teamIndex) =>
+      (team.shots ?? []).map((shot) => ({
+        team: team.team ?? '',
+        player: shot.player ?? '',
+        shotNumber: shot.shotNumber ?? Number.MAX_SAFE_INTEGER,
+        teamIndex,
+        didScore: shot.didScore === true,
+      })),
+    )
+    .sort((a, b) => {
+      const byShot = a.shotNumber - b.shotNumber;
+      if (byShot !== 0) return byShot;
+      return a.teamIndex - b.teamIndex;
+    });
+
+  if (orderedAttempts.length === 0) return [];
+
+  const events: MatchEvent[] = [
+    {
+      minute: 'PSO',
+      kind: 'pens-start',
+      team: '',
+      player: '',
+      detail: 'Penalty shootout begins.',
+    },
+  ];
+
+  orderedAttempts.forEach((attempt, index) => {
+    events.push({
+      minute: minuteLabelForShootout(attempt.didScore ? 'pens-score' : 'pens-miss', index + 1),
+      kind: attempt.didScore ? 'pens-score' : 'pens-miss',
+      team: attempt.team,
+      player: attempt.player,
+      detail: attempt.didScore ? 'Penalty scored.' : 'Penalty missed.',
+    });
+  });
+
+  events.push({
+    minute: 'PSO',
+    kind: 'pens-end',
+    team: '',
+    player: '',
+    detail: 'Penalty shootout ends.',
+  });
+
+  return events;
+}
+
 export function espnEventsFromSummary(summary: EspnSummary): MatchEvent[] {
   const events: MatchEvent[] = [];
 
@@ -104,6 +165,10 @@ export function espnEventsFromSummary(summary: EspnSummary): MatchEvent[] {
       player: (play.athletesInvolved?.[0]?.displayName as string) || playerFromText(play.text),
       detail: play.text ?? play.type?.text,
     });
+  }
+
+  if ((summary.plays?.length ?? 0) === 0) {
+    events.push(...shootoutEventsFromSummary(summary));
   }
 
   return events;
