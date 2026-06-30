@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Match } from '../types';
-import { resolveKnockoutMatchTeams } from './bracket';
+import { buildBracket, resolveKnockoutMatchTeams } from './bracket';
 
 function match(
   id: string,
@@ -152,6 +152,35 @@ describe('resolveKnockoutMatchTeams', () => {
       team2: 'Netherlands',
       projected: false,
     });
+  });
+});
+
+describe('buildBracket', () => {
+  it('sorts matches within each round by kickoff time', () => {
+    const matches: Match[] = [
+      {
+        ...match('m82', undefined, '1G', undefined, '3A/E/H/I/J', undefined),
+        num: 82,
+        round: 'Round of 32',
+        utcDate: new Date('2026-07-01T20:00:00Z'),
+      },
+      {
+        ...match('m80', undefined, '1L', undefined, '3E/H/I/J/K', undefined),
+        num: 80,
+        round: 'Round of 32',
+        utcDate: new Date('2026-07-01T16:00:00Z'),
+      },
+      {
+        ...match('m81', undefined, '1D', undefined, '3B/E/F/I/J', undefined),
+        num: 81,
+        round: 'Round of 32',
+        utcDate: new Date('2026-07-02T00:00:00Z'),
+      },
+    ];
+
+    const rounds = buildBracket(matches);
+    expect(rounds[0]?.key).toBe('r32');
+    expect(rounds[0]?.matches.map((m) => m.matchId)).toEqual(['m80', 'm82', 'm81']);
   });
 });
 

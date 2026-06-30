@@ -69,6 +69,14 @@ const ROUND_ORDER: { round: string; key: string; title: string }[] = [
   { round: 'Final',                key: 'final', title: 'Final' },
 ];
 
+function compareBracketMatches(a: BracketMatch, b: BracketMatch): number {
+  const byKickoff = a.utcDate.getTime() - b.utcDate.getTime();
+  if (byKickoff !== 0) return byKickoff;
+  const byNum = (a.num ?? Number.MAX_SAFE_INTEGER) - (b.num ?? Number.MAX_SAFE_INTEGER);
+  if (byNum !== 0) return byNum;
+  return a.matchId.localeCompare(b.matchId);
+}
+
 export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): BracketRound[] {
   const sourceById = new Map((sourceMatches ?? allMatches).map((match) => [match.id, match]));
   const groupMatches = allMatches.filter((m) => m.phase === 'group' && m.group);
@@ -190,7 +198,10 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
         });
       }
     }
-    if (matches.length > 0) rounds.push({ key: def.key, title: def.title, matches });
+    if (matches.length > 0) {
+      matches.sort(compareBracketMatches);
+      rounds.push({ key: def.key, title: def.title, matches });
+    }
   }
 
   return rounds;
