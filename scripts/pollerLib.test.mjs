@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture } from './pollerLib.mjs';
 
 const WIN = 150;                       // LIVE_WINDOW_MIN
 const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
@@ -152,6 +152,23 @@ describe('poller: espnMinute', () => {
   });
 });
 
+describe('poller: espnShootout', () => {
+  it('extracts shootout scores and winner from a final-pens event', () => {
+    const ev = {
+      competitions: [{
+        competitors: [
+          { homeAway: 'home', shootoutScore: 3, winner: false },
+          { homeAway: 'away', shootoutScore: 4, winner: true },
+        ],
+      }],
+    };
+    expect(espnShootout(ev)).toEqual({
+      shootout: { home: 3, away: 4 },
+      winner: 2,
+    });
+  });
+});
+
 describe('poller: espnDateStrings (US-local date filing)', () => {
   it('includes the previous US day for a 01:00 UTC (US-evening) kickoff', () => {
     const k = Date.parse('2026-06-13T01:00:00Z');
@@ -214,6 +231,31 @@ describe('poller: team matching', () => {
       awayName: 'Paraguay',
       homeScore: 0,
       awayScore: 0,
+    });
+  });
+
+  it('carries shootout scores and winner through for penalty-decided knockout matches', () => {
+    const match = {
+      utcDate: '2026-06-29T20:30:00.000Z',
+      homeTeam: { name: 'Germany' },
+      awayTeam: { name: '3A/B/C/D/F' },
+    };
+    const ev = {
+      id: '760489',
+      competitions: [{
+        date: '2026-06-29T20:30Z',
+        competitors: [
+          { homeAway: 'home', score: '1', shootoutScore: 3, winner: false, team: { displayName: 'Germany' } },
+          { homeAway: 'away', score: '1', shootoutScore: 4, winner: true, team: { displayName: 'Paraguay' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev)).toMatchObject({
+      homeScore: 1,
+      awayScore: 1,
+      shootoutHome: 3,
+      shootoutAway: 4,
+      winner: 2,
     });
   });
 });

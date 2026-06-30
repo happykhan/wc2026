@@ -20,6 +20,11 @@ type BracketView = 'tree' | 'rounds';
 
 const VIEW_STORAGE_KEY = 'wc2026-bracket-view';
 
+function shootoutLabel(shootout1?: number, shootout2?: number): string | null {
+  if (shootout1 == null || shootout2 == null) return null;
+  return `Pens ${shootout1}-${shootout2}`;
+}
+
 function readStoredView(): BracketView {
   if (typeof window === 'undefined') return 'rounds';
   const stored = window.localStorage.getItem(VIEW_STORAGE_KEY);
@@ -110,6 +115,7 @@ function BracketCard({
   const live = m.status === 'live' || m.status === 'ht';
   const date = formatMatchDate(m.utcDate, prefs.timezone, prefs.language).replace(/,.*$/, '');
   const time = formatMatchTime(m.utcDate, prefs.timezone, prefs.hour12);
+  const penalties = shootoutLabel(m.shootout1, m.shootout2);
   return (
     <div
       className={[
@@ -134,7 +140,7 @@ function BracketCard({
           </span>
         )}
         {live && <span className="text-[10px] font-semibold text-red-500">LIVE</span>}
-        {m.status === 'ft' && <span className="text-[10px] text-neutral-400">FT</span>}
+        {m.status === 'ft' && <span className="text-[10px] text-neutral-400">{penalties ? 'FT-Pens' : 'FT'}</span>}
       </div>
       <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
         <TeamLine
@@ -152,6 +158,11 @@ function BracketCard({
           onOpenPath={onOpenPath ? () => onOpenPath({ matchId: m.matchId, side: 2 }) : undefined}
         />
       </div>
+      {penalties && (
+        <div className="border-t border-neutral-100 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+          {penalties}
+        </div>
+      )}
     </div>
   );
 }
@@ -278,6 +289,7 @@ function PathPanel({
               const other = step.focusSide === 1 ? step.match.team2 : step.match.team1;
               const date = formatMatchDate(step.match.utcDate, prefs.timezone, prefs.language).replace(/,.*$/, '');
               const time = formatMatchTime(step.match.utcDate, prefs.timezone, prefs.hour12);
+              const penalties = shootoutLabel(step.match.shootout1, step.match.shootout2);
               return (
                 <div key={`${step.match.matchId}-${index}`} className="relative pl-5">
                   {index < steps.length - 1 && (
@@ -307,6 +319,11 @@ function PathPanel({
                         isWinner={step.match.winner === (step.focusSide === 1 ? 2 : 1)}
                       />
                     </div>
+                    {penalties && (
+                      <div className="border-t border-neutral-200 px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                        {penalties}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

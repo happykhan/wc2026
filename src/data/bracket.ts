@@ -37,6 +37,8 @@ export interface BracketMatch {
   team2: BracketTeam;
   score1?: number;
   score2?: number;
+  shootout1?: number;
+  shootout2?: number;
   status: Match['status'];
   /** Which side won (1 or 2), when decided by a non-level full-time score. */
   winner?: 1 | 2;
@@ -119,8 +121,12 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
     const team2 = isKnockoutTeam(sourceTeam2) && !isResultSlot(sourceTeam2)
       ? toBracketTeam(pair.team2)
       : resolveTeam(sourceTeam2);
-    let winner: 1 | 2 | undefined;
+    let winner: 1 | 2 | undefined = m.winner;
+    if (winner === undefined && m.shootout1 !== undefined && m.shootout2 !== undefined && m.shootout1 !== m.shootout2) {
+      winner = m.shootout1 > m.shootout2 ? 1 : 2;
+    }
     if (
+      winner === undefined &&
       m.status === 'ft' &&
       m.score1 !== undefined &&
       m.score2 !== undefined &&
@@ -139,6 +145,8 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
       team2,
       score1: m.score1,
       score2: m.score2,
+      shootout1: m.shootout1,
+      shootout2: m.shootout2,
       status: m.status,
       winner,
       projected: Boolean(isProjectedPair(pair) || team1.projected || team2.projected || m.projectedKnockoutTeams),
@@ -174,8 +182,10 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
           team2,
           score1: m.score1,
           score2: m.score2,
+          shootout1: m.shootout1,
+          shootout2: m.shootout2,
           status: m.status,
-          winner: undefined,
+          winner: m.winner,
           projected: Boolean(isProjectedPair(pair) || team1.projected || team2.projected || m.projectedKnockoutTeams),
         });
       }

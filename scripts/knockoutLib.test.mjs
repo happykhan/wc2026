@@ -52,4 +52,25 @@ describe('resolveKnockoutTeams', () => {
       awayTeam: { name: 'Mexico' },
     });
   });
+
+  it('resolves later-round winner slots from penalty shootout winners on a drawn scoreline', () => {
+    const matches = [
+      { id: 'm74', num: 74, round: 'Round of 32', homeTeam: { name: 'Germany' }, awayTeam: { name: 'Paraguay' } },
+      { id: 'm89', num: 89, round: 'Round of 16', homeTeam: { name: 'W74' }, awayTeam: { name: '1F' } },
+    ];
+    const played = [
+      { id: 'm1', group: 'Group E', status: 'FINISHED', homeTeam: { name: 'Germany' }, awayTeam: { name: 'Ivory Coast' }, score: { fullTime: { home: 2, away: 0 } } },
+      { id: 'm2', group: 'Group E', status: 'FINISHED', homeTeam: { name: 'Ecuador' }, awayTeam: { name: 'Curacoa' }, score: { fullTime: { home: 1, away: 0 } } },
+      { id: 'm3', group: 'Group E', status: 'FINISHED', homeTeam: { name: 'Germany' }, awayTeam: { name: 'Ecuador' }, score: { fullTime: { home: 1, away: 0 } } },
+      { id: 'm4', group: 'Group A', status: 'FINISHED', homeTeam: { name: 'Mexico' }, awayTeam: { name: 'South Korea' }, score: { fullTime: { home: 2, away: 0 } } },
+      { id: 'm5', group: 'Group A', status: 'FINISHED', homeTeam: { name: 'Czech Republic' }, awayTeam: { name: 'South Africa' }, score: { fullTime: { home: 0, away: 1 } } },
+      { id: 'm6', group: 'Group A', status: 'FINISHED', homeTeam: { name: 'Mexico' }, awayTeam: { name: 'Czech Republic' }, score: { fullTime: { home: 2, away: 0 } } },
+      { id: 'm74', num: 74, round: 'Round of 32', status: 'FINISHED', winner: 2, homeTeam: { name: 'Germany' }, awayTeam: { name: 'Paraguay' }, score: { fullTime: { home: 1, away: 1 }, shootout: { home: 3, away: 4 } } },
+    ];
+
+    const resolved = resolveKnockoutTeams(matches, played);
+    expect(resolved.find((match) => match.id === 'm89')).toMatchObject({
+      homeTeam: { name: 'Paraguay' },
+    });
+  });
 });
