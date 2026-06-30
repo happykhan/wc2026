@@ -1,3 +1,5 @@
+import type { Match } from '../types';
+
 /**
  * Partition the schedule's date groups into "past" and "today + upcoming".
  *
@@ -25,6 +27,46 @@ export function partitionPastDateKeys(
     else current.push(k);
   }
   return { past, current };
+}
+
+type DayGroup = readonly [string, readonly Match[]];
+
+/**
+ * Split rendered schedule day groups into:
+ * - past finished group-stage matches
+ * - past finished knockout matches
+ * - everything else (today, upcoming, and any past date that still has a live/HT match)
+ *
+ * This fixes midnight-crossing live matches: a match that started "yesterday"
+ * but is still live/HT after midnight must remain visible in the current
+ * section instead of being hidden behind a past toggle.
+ */
+export function partitionScheduleGroups(
+  groups: readonly DayGroup[],
+  todayKey: string,
+): {
+  pastGroupStage: DayGroup[];
+  pastKnockout: DayGroup[];
+  current: DayGroup[];
+} {
+  const pastGroupStage: DayGroup[] = [];
+  const pastKnockout: DayGroup[] = [];
+  const current: DayGroup[] = [];
+
+  for (const [dateKey, matches] of groups) {
+    const fullyFinishedPast = dateKey < todayKey && matches.every((match) => match.status === 'ft');
+    if (!fullyFinishedPast) {
+      current.push([dateKey, matches]);
+      continue;
+    }
+
+    const groupMatches = matches.filter((match) => match.phase === 'group');
+    const knockoutMatches = matches.filter((match) => match.phase === 'knockout');
+    if (groupMatches.length > 0) pastGroupStage.push([dateKey, groupMatches]);
+    if (knockoutMatches.length > 0) pastKnockout.push([dateKey, knockoutMatches]);
+  }
+
+  return { pastGroupStage, pastKnockout, current };
 }
 
 /**
