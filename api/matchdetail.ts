@@ -20,9 +20,23 @@ interface TeamDetail {
   bench: Player[];
   stats: Record<string, string>;
 }
-// kind: goal | own | pen | yellow | red | sub
+// kind: goal | own | pen | yellow | red | sub | pens-start | pens-score | pens-save | pens-miss | pens-end
 interface MatchEvent { minute: string; kind: string; team: string; player: string; detail?: string; }
 interface Detail { source: 'espn' | 'afl' | null; teams: TeamDetail[]; events: MatchEvent[]; }
+
+interface EspnPlay {
+  text?: string;
+  team?: { displayName?: string };
+  athletesInvolved?: Array<{ displayName?: string }>;
+  clock?: { displayValue?: string };
+  period?: { number?: number };
+  type?: { text?: string; type?: string };
+}
+
+interface EspnSummary {
+  keyEvents?: EspnPlay[];
+  plays?: EspnPlay[];
+}
 
 // ESPN puts the player in the free-text description, not athletesInvolved — pull
 // the capitalised name that sits immediately before " (Team)".
@@ -30,7 +44,8 @@ function playerFromText(text: string | undefined): string {
   if (!text) return '';
   const i = text.indexOf(' (');
   if (i === -1) return '';
-  const m = text.slice(0, i).match(/([\p{Lu}][\p{L}.\-' ]+)$/u);
+  const prefix = text.slice(0, i).split(/[.!?]\s+/u).pop() ?? text.slice(0, i);
+  const m = prefix.match(/([\p{Lu}][\p{L}.\-' ]+)$/u);
   return m ? m[1].trim() : '';
 }
 function espnKind(type: string | undefined): string | null {
@@ -42,6 +57,56 @@ function espnKind(type: string | undefined): string | null {
   if (t.includes('red')) return 'red';
   if (t.includes('substitution')) return 'sub';
   return null;
+}
+
+function espnShootoutKind(play: EspnPlay): string | null {
+  const typeText = `${play.type?.text ?? ''} ${play.type?.type ?? ''}`.toLowerCase();
+  const text = (play.text ?? '').toLowerCase();
+  const isShootoutPeriod = play.period?.number === 5;
+  if (text.includes('penalty shootout begins')) return 'pens-start';
+  if (text.includes('penalty shootout ends')) return 'pens-end';
+  if (!isShootoutPeriod) return null;
+  if (typeText.includes('penalty') && typeText.includes('saved')) return 'pens-save';
+  if (typeText.includes('penalty') && typeText.includes('miss')) return 'pens-miss';
+  if (typeText.includes('penalty') && typeText.includes('scored')) return 'pens-score';
+  return null;
+}
+
+function minuteLabelForShootout(kind: string, attempt: number): string {
+  if (kind === 'pens-start' || kind === 'pens-end') return 'PSO';
+  return `P${attempt}`;
+}
+
+export function espnEventsFromSummary(summary: EspnSummary): MatchEvent[] {
+  const events: MatchEvent[] = [];
+
+  for (const e of summary.keyEvents ?? []) {
+    const kind = espnKind(e.type?.text);
+    if (!kind) continue;
+    events.push({
+      minute: e.clock?.displayValue ?? '',
+      kind,
+      team: e.team?.displayName ?? '',
+      player: (e.athletesInvolved?.[0]?.displayName as string) || playerFromText(e.text),
+      detail: e.type?.text,
+    });
+  }
+
+  let shootoutAttempt = 0;
+  for (const play of summary.plays ?? []) {
+    const kind = espnShootoutKind(play);
+    if (!kind) continue;
+    if (kind === 'pens-score' || kind === 'pens-save' || kind === 'pens-miss') shootoutAttempt += 1;
+    events.push({
+      minute: minuteLabelForShootout(kind, shootoutAttempt),
+      kind,
+      team: play.team?.displayName ?? '',
+      player: (play.athletesInvolved?.[0]?.displayName as string) || playerFromText(play.text),
+      detail: play.text ?? play.type?.text,
+    });
+  }
+
+  return events;
 }
 
 // Canonical stat keys the client knows how to label.
@@ -116,18 +181,7 @@ async function fromEspn(event: string): Promise<Detail | null> {
 
     const teams = order.map((id) => byId.get(id)!).filter(Boolean);
 
-    const events: MatchEvent[] = [];
-    for (const e of j.keyEvents ?? []) {
-      const kind = espnKind(e.type?.text);
-      if (!kind) continue;
-      events.push({
-        minute: e.clock?.displayValue ?? '',
-        kind,
-        team: e.team?.displayName ?? '',
-        player: (e.athletesInvolved?.[0]?.displayName as string) || playerFromText(e.text),
-        detail: e.type?.text,
-      });
-    }
+    const events = espnEventsFromSummary(j);
 
     const hasData = teams.some((t) => t.startXI.length > 0 || Object.keys(t.stats).length > 0) || events.length > 0;
     return hasData ? { source: 'espn', teams, events } : null;
