@@ -258,4 +258,48 @@ describe('poller: team matching', () => {
       winner: 2,
     });
   });
+
+  it('accepts a one-hour kickoff drift when a knockout placeholder has one resolved side', () => {
+    const match = {
+      utcDate: '2026-07-01T01:00:00.000Z',
+      homeTeam: { name: 'Mexico' },
+      awayTeam: { name: '3C/E/F/H/I' },
+    };
+    const ev = {
+      id: '760491',
+      competitions: [{
+        date: '2026-07-01T02:00Z',
+        competitors: [
+          { homeAway: 'home', score: '2', team: { displayName: 'Mexico' } },
+          { homeAway: 'away', score: '0', team: { displayName: 'Ecuador' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev)).toMatchObject({
+      id: '760491',
+      homeName: 'Mexico',
+      awayName: 'Ecuador',
+      homeScore: 2,
+      awayScore: 0,
+    });
+  });
+
+  it('still rejects stale same-team candidates from previous rounds', () => {
+    const match = {
+      utcDate: '2026-07-04T17:00:00.000Z',
+      homeTeam: { name: 'Canada' },
+      awayTeam: { name: 'W75' },
+    };
+    const ev = {
+      id: '760486',
+      competitions: [{
+        date: '2026-06-28T19:00Z',
+        competitors: [
+          { homeAway: 'home', score: '0', team: { displayName: 'South Africa' } },
+          { homeAway: 'away', score: '1', team: { displayName: 'Canada' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev)).toBeNull();
+  });
 });
