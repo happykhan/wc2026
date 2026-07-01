@@ -182,6 +182,28 @@ describe('buildBracket', () => {
     expect(rounds[0]?.key).toBe('r32');
     expect(rounds[0]?.matches.map((m) => m.matchId)).toEqual(['m80', 'm82', 'm81']);
   });
+
+  it('marks followed teams when knockout slots resolve to favourite countries', () => {
+    const matches: Match[] = [
+      ...group('A', ['Mexico', 'South Africa', 'South Korea', 'Czech Republic']),
+      ...group('B', ['Switzerland', 'Canada', 'Bosnia & Herzegovina', 'Qatar']),
+      { ...match('m73', undefined, '2A', undefined, '2B', undefined), num: 73 },
+    ];
+
+    const rounds = buildBracket(matches, ['South Africa']);
+    const match73 = rounds[0]?.matches.find((m) => m.matchId === 'm73');
+
+    expect(match73?.team1).toMatchObject({
+      label: 'South Africa',
+      resolved: true,
+      followed: true,
+    });
+    expect(match73?.team2).toMatchObject({
+      label: 'Canada',
+      resolved: true,
+      followed: false,
+    });
+  });
 });
 
 function group(letter: string, [first, second, third, fourth]: [string, string, string, string]): Match[] {

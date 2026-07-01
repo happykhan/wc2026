@@ -35,19 +35,21 @@ function readStoredView(): BracketView {
 function TeamLine({
   label,
   resolved,
+  followed,
   score,
   isWinner,
   onOpenPath,
 }: {
   label: string;
   resolved: boolean;
+  followed?: boolean;
   score?: number;
   isWinner: boolean;
   onOpenPath?: () => void;
 }) {
   const flag = resolved && !isKnockoutTeam(label) ? getTeamFlag(label) : null;
   const className = [
-    'group grid min-w-0 w-full items-center gap-x-1.5 px-2 py-1 text-left',
+    'group grid min-w-0 w-full items-center gap-x-1.5 border-l-2 px-2 py-1 text-left',
     onOpenPath
       ? (score !== undefined
           ? 'grid-cols-[auto_minmax(0,1fr)_2.25rem_auto] hover:bg-neutral-50 dark:hover:bg-neutral-800/70'
@@ -56,6 +58,7 @@ function TeamLine({
           ? 'grid-cols-[auto_minmax(0,1fr)_2.25rem]'
           : 'grid-cols-[auto_minmax(0,1fr)]'),
     isWinner ? 'font-semibold text-neutral-900 dark:text-neutral-100' : '',
+    followed ? 'border-l-[var(--accent)] bg-[var(--accent)]/10' : 'border-l-transparent',
     !resolved ? 'text-neutral-400 dark:text-neutral-500 italic' : 'text-neutral-700 dark:text-neutral-300',
   ].join(' ');
   const content = (
@@ -146,6 +149,7 @@ function BracketCard({
         <TeamLine
           label={m.team1.label}
           resolved={m.team1.resolved}
+          followed={m.team1.followed}
           score={m.score1}
           isWinner={m.winner === 1}
           onOpenPath={onOpenPath ? () => onOpenPath({ matchId: m.matchId, side: 1 }) : undefined}
@@ -153,6 +157,7 @@ function BracketCard({
         <TeamLine
           label={m.team2.label}
           resolved={m.team2.resolved}
+          followed={m.team2.followed}
           score={m.score2}
           isWinner={m.winner === 2}
           onOpenPath={onOpenPath ? () => onOpenPath({ matchId: m.matchId, side: 2 }) : undefined}
@@ -336,7 +341,10 @@ function PathPanel({
 }
 
 export function Bracket({ matches, prefs, t }: BracketProps) {
-  const rounds = useMemo(() => buildBracket(matches, processedMatches), [matches]);
+  const rounds = useMemo(
+    () => buildBracket(matches, processedMatches, prefs.favouriteTeams),
+    [matches, prefs.favouriteTeams],
+  );
   const [view, setViewState] = useState<BracketView>(() => readStoredView());
   const [activeRound, setActiveRound] = useState<string>(rounds[0]?.key ?? 'r32');
   const [pathSelection, setPathSelection] = useState<PathSelection | null>(null);

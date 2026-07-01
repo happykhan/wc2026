@@ -22,6 +22,8 @@ export interface BracketTeam {
   label: string;
   /** True once this slot maps to an actual or projected team. */
   resolved: boolean;
+  /** True when the resolved team is one of the user's followed teams. */
+  followed?: boolean;
   /** True when the resolved label depends on current, not-final standings. */
   projected?: boolean;
 }
@@ -77,7 +79,18 @@ function compareBracketMatches(a: BracketMatch, b: BracketMatch): number {
   return a.matchId.localeCompare(b.matchId);
 }
 
-export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): BracketRound[] {
+export function buildBracket(
+  allMatches: Match[],
+  sourceMatchesOrFavouriteTeams?: Match[] | readonly string[],
+  favouriteTeamsArg: readonly string[] = [],
+): BracketRound[] {
+  const sourceMatches = Array.isArray(sourceMatchesOrFavouriteTeams) && typeof sourceMatchesOrFavouriteTeams[0] === 'object'
+    ? sourceMatchesOrFavouriteTeams as Match[]
+    : undefined;
+  const favouriteTeams = sourceMatches
+    ? favouriteTeamsArg
+    : (sourceMatchesOrFavouriteTeams as readonly string[] | undefined) ?? [];
+  const favouriteTeamSet = new Set(favouriteTeams);
   const sourceById = new Map((sourceMatches ?? allMatches).map((match) => [match.id, match]));
   const groupMatches = allMatches.filter((m) => m.phase === 'group' && m.group);
   const resolveGroupSlot = buildGroupSlotResolver(groupMatches);
@@ -94,11 +107,12 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
   const toBracketTeam = (slot: ResolvedSlot): BracketTeam => ({
     label: slot.label,
     resolved: slot.status !== 'placeholder',
+    followed: slot.status !== 'placeholder' && favouriteTeamSet.has(slot.label),
     projected: slot.status === 'projected',
   });
 
   const resolveTeam = (code: string): BracketTeam => {
-    if (!isKnockoutTeam(code)) return { label: code, resolved: true };
+    if (!isKnockoutTeam(code)) return { label: code, resolved: true, followed: favouriteTeamSet.has(code) };
 
     // Winner / loser of a previous match.
     const wl = code.match(/^([WL])(\d+)$/);
@@ -110,9 +124,9 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
         const loseSide = winSide === 1 ? 2 : 1;
         const pick = kind === 'W' ? winSide : loseSide;
         const team = pick === 1 ? ref.team1 : ref.team2;
-        if (team.resolved) return { label: team.label, resolved: true };
+        if (team.resolved) return { label: team.label, resolved: true, followed: team.followed };
       }
-      return { label: code, resolved: false };
+      return { label: code, resolved: false, followed: false };
     }
 
     return toBracketTeam(resolveGroupSlot(code));
@@ -210,7 +224,7 @@ export function buildBracket(allMatches: Match[], sourceMatches?: Match[]): Brac
 export function resolveKnockoutMatchTeams(allMatches: Match[], sourceMatches?: Match[]): Map<string, ResolvedKnockoutTeams> {
   const resolved = new Map<string, ResolvedKnockoutTeams>();
 
-  for (const round of buildBracket(allMatches, sourceMatches)) {
+  for (const round of buildBracket(allMatches, sourceMatches, [])) {
     for (const match of round.matches) {
       resolved.set(match.matchId, {
         team1: match.team1.label,
