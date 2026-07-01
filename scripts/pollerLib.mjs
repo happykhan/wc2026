@@ -147,6 +147,9 @@ export const orient = (ourHome, feedHome, homeVal, awayVal) =>
 const isKnockoutSlot = (name) =>
   /^[WL]\d+$/.test(name || '') || /^[123][A-L](?:\/[A-L])+?$/.test(name || '') || /^[12][A-L]$/.test(name || '');
 
+const ESPN_KICKOFF_TOLERANCE_MS = 5 * 60000;
+const ESPN_KNOWN_SIDE_TOLERANCE_MS = 4 * 60 * 60000;
+
 // Knockout fixtures can still carry placeholders (e.g. "3A/B/C/D/F") after the
 // group stage, while ESPN exposes the actual pairing. Match those by kickoff +
 // the resolved side we already know, then orient the feed's home/away order to
@@ -159,7 +162,6 @@ export const matchEspnEventToFixture = (match, ev) => {
 
   const kickoffMs = Date.parse(match?.utcDate || '');
   const eventMs = Date.parse(c?.date || ev?.date || '');
-  if (!Number.isNaN(kickoffMs) && !Number.isNaN(eventMs) && Math.abs(kickoffMs - eventMs) > 5 * 60000) return null;
 
   const homeKnown = match?.homeTeam?.name && !isKnockoutSlot(match.homeTeam.name);
   const awayKnown = match?.awayTeam?.name && !isKnockoutSlot(match.awayTeam.name);
@@ -169,9 +171,21 @@ export const matchEspnEventToFixture = (match, ev) => {
   const homeMatchesFeedAway = norm(match?.homeTeam?.name) === norm(away);
   const awayMatchesFeedHome = norm(match?.awayTeam?.name) === norm(home);
   const awayMatchesFeedAway = norm(match?.awayTeam?.name) === norm(away);
+  const knownSideMatch =
+    (homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) ||
+    (awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway));
+
+  if (!Number.isNaN(kickoffMs) && !Number.isNaN(eventMs)) {
+    const toleranceMs = direct
+      ? ESPN_KICKOFF_TOLERANCE_MS
+      : knownSideMatch
+        ? ESPN_KNOWN_SIDE_TOLERANCE_MS
+        : ESPN_KICKOFF_TOLERANCE_MS;
+    if (Math.abs(kickoffMs - eventMs) > toleranceMs) return null;
+  }
 
   if (!direct) {
-    if (!(homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) && !(awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway))) {
+    if (!knownSideMatch) {
       return null;
     }
   }
