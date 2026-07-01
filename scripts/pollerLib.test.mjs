@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
 
 const WIN = 150;                       // LIVE_WINDOW_MIN
 const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
@@ -180,6 +180,31 @@ describe('poller: espnDateStrings (US-local date filing)', () => {
   });
 });
 
+describe('poller: futureDiscoveryEligible', () => {
+  const now = Date.parse('2026-07-01T00:00:00Z');
+  const lookahead = 7 * 24 * 60 * 60000;
+  it('includes future matches inside the lookahead window', () => {
+    expect(futureDiscoveryEligible('2026-07-03T12:00:00Z', now, lookahead)).toBe(true);
+  });
+  it('excludes past matches and far-future matches', () => {
+    expect(futureDiscoveryEligible('2026-06-30T23:59:59Z', now, lookahead)).toBe(false);
+    expect(futureDiscoveryEligible('2026-07-09T00:00:01Z', now, lookahead)).toBe(false);
+  });
+  it('excludes missing or invalid kickoff times', () => {
+    expect(futureDiscoveryEligible(null, now, lookahead)).toBe(false);
+    expect(futureDiscoveryEligible('nope', now, lookahead)).toBe(false);
+  });
+});
+
+describe('poller: discoveryBucket', () => {
+  it('is stable inside a bucket and advances at the boundary', () => {
+    const bucketMs = 6 * 60 * 60000;
+    expect(discoveryBucket(0, bucketMs)).toBe(0);
+    expect(discoveryBucket(bucketMs - 1, bucketMs)).toBe(0);
+    expect(discoveryBucket(bucketMs, bucketMs)).toBe(1);
+  });
+});
+
 describe('poller: team matching', () => {
   it('folds feed spelling variants to one token', () => {
     expect(norm('Czech Republic')).toBe('czechia');
@@ -301,5 +326,32 @@ describe('poller: team matching', () => {
       }],
     };
     expect(matchEspnEventToFixture(match, ev)).toBeNull();
+  });
+
+  it('reports candidate details for unresolved discovery logging', () => {
+    const match = {
+      utcDate: '2026-07-01T01:00:00.000Z',
+      homeTeam: { name: 'Mexico' },
+      awayTeam: { name: '3C/E/F/H/I' },
+    };
+    const ev = {
+      id: '760491',
+      competitions: [{
+        date: '2026-07-01T02:00Z',
+        competitors: [
+          { homeAway: 'home', score: '2', team: { displayName: 'Mexico' } },
+          { homeAway: 'away', score: '0', team: { displayName: 'Ecuador' } },
+        ],
+      }],
+    };
+    expect(espnCandidateDetails(match, ev)).toEqual({
+      id: '760491',
+      date: '2026-07-01T02:00Z',
+      home: 'Mexico',
+      away: 'Ecuador',
+      direct: false,
+      knownSideMatch: true,
+      kickoffDeltaMin: 60,
+    });
   });
 });
