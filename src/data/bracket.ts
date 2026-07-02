@@ -143,7 +143,7 @@ export function buildBracket(
     const team2 = isKnockoutTeam(sourceTeam2) && !isResultSlot(sourceTeam2)
       ? toBracketTeam(pair.team2)
       : resolveTeam(sourceTeam2);
-    let winner: 1 | 2 | undefined = m.winner;
+    let winner: 1 | 2 | undefined = m.winner ?? undefined;
     if (winner === undefined && m.shootout1 !== undefined && m.shootout2 !== undefined && m.shootout1 !== m.shootout2) {
       winner = m.shootout1 > m.shootout2 ? 1 : 2;
     }

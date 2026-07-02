@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPathSteps, type PathSelection } from './bracketPath';
-import type { BracketMatch, BracketRound } from './bracket';
+import { buildBracket, type BracketMatch, type BracketRound } from './bracket';
+import type { Match } from '../types';
 
 function match(overrides: Partial<BracketMatch> & Pick<BracketMatch, 'matchId' | 'round' | 'utcDate' | 'sourceTeam1' | 'sourceTeam2' | 'team1' | 'team2' | 'status'>): BracketMatch {
   return {
@@ -8,6 +9,24 @@ function match(overrides: Partial<BracketMatch> & Pick<BracketMatch, 'matchId' |
     score2: undefined,
     projected: false,
     ...overrides,
+  };
+}
+
+function rawMatch(overrides: Partial<Match> & Pick<Match, 'id' | 'team1' | 'team2'>): Match {
+  const { id, team1, team2, ...rest } = overrides;
+  return {
+    id,
+    round: rest.round ?? 'Group A',
+    phase: rest.phase ?? 'group',
+    date: rest.date ?? utcDate,
+    utcDate: rest.utcDate ?? utcDate,
+    team1,
+    team2,
+    venue: rest.venue ?? 'Test Venue',
+    city: rest.city ?? 'Test City',
+    tvChannels: rest.tvChannels ?? {},
+    status: rest.status ?? 'upcoming',
+    ...rest,
   };
 }
 
@@ -125,5 +144,69 @@ describe('buildPathSteps', () => {
 
     expect(steps.map((step) => step.match.matchId)).toEqual(['m80']);
     expect(steps[0]?.focusSide).toBe(1);
+  });
+
+  it('treats a null winner as unresolved so future path still shows', () => {
+    const matches: Match[] = [
+      rawMatch({
+        id: 'm81',
+        num: 81,
+        phase: 'knockout',
+        round: 'Round of 32',
+        team1: '1D',
+        team2: '3B/E/F/I/J',
+        status: 'upcoming',
+      }),
+      rawMatch({
+        id: 'm82',
+        num: 82,
+        phase: 'knockout',
+        round: 'Round of 32',
+        team1: 'Belgium',
+        team2: 'Senegal',
+        status: 'upcoming',
+        winner: null as unknown as 1 | 2,
+      }),
+      rawMatch({
+        id: 'm93',
+        num: 93,
+        phase: 'knockout',
+        round: 'Round of 16',
+        team1: 'W83',
+        team2: 'W84',
+        status: 'upcoming',
+      }),
+      rawMatch({
+        id: 'm94',
+        num: 94,
+        phase: 'knockout',
+        round: 'Round of 16',
+        team1: 'W81',
+        team2: 'W82',
+        status: 'upcoming',
+      }),
+      rawMatch({
+        id: 'm98',
+        num: 98,
+        phase: 'knockout',
+        round: 'Quarter-final',
+        team1: 'W93',
+        team2: 'W94',
+        status: 'upcoming',
+      }),
+    ];
+
+    const rounds = buildBracket(matches, [
+      rawMatch({ id: 'm81', num: 81, phase: 'knockout', round: 'Round of 32', team1: '1D', team2: '3B/E/F/I/J', status: 'upcoming' }),
+      rawMatch({ id: 'm82', num: 82, phase: 'knockout', round: 'Round of 32', team1: '1G', team2: '3A/E/H/I/J', status: 'upcoming' }),
+      rawMatch({ id: 'm93', num: 93, phase: 'knockout', round: 'Round of 16', team1: 'W83', team2: 'W84', status: 'upcoming' }),
+      rawMatch({ id: 'm94', num: 94, phase: 'knockout', round: 'Round of 16', team1: 'W81', team2: 'W82', status: 'upcoming' }),
+      rawMatch({ id: 'm98', num: 98, phase: 'knockout', round: 'Quarter-final', team1: 'W93', team2: 'W94', status: 'upcoming' }),
+    ]);
+    expect(rounds[0]?.matches[1]?.winner).toBeUndefined();
+    const steps = buildPathSteps(rounds, { matchId: 'm82', side: 1 });
+
+    expect(steps.map((step) => step.match.matchId)).toEqual(['m82', 'm94', 'm98']);
+    expect(steps.map((step) => step.focusSide)).toEqual([1, 2, 2]);
   });
 });

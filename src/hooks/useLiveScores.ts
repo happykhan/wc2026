@@ -50,7 +50,7 @@ interface FDMatch {
   minuteAt?: string; // ISO — when `minute` last changed (anchor for client clock)
   aflFixtureId?: number;
   espnEventId?: string;
-  winner?: 1 | 2;
+  winner?: 1 | 2 | null;
   score: {
     fullTime: FDScore;
     shootout?: FDScore;
@@ -119,7 +119,7 @@ export function mapApiMatchesToScores(
       score2: fdm.score.fullTime.away ?? undefined,
       shootout1: fdm.score.shootout?.home ?? undefined,
       shootout2: fdm.score.shootout?.away ?? undefined,
-      winner: fdm.winner,
+      winner: fdm.winner ?? undefined,
       status: mapStatus(fdm.status),
       minute: fdm.minute ?? undefined,
       minuteAt: fdm.minuteAt ? Date.parse(fdm.minuteAt) : blobAt,

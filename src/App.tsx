@@ -57,7 +57,7 @@ export default function App() {
         score2: live.score2,
         shootout1: live.shootout1,
         shootout2: live.shootout2,
-        winner: live.winner,
+        winner: live.winner ?? undefined,
         status: live.status,
         minute: live.minute,
         minuteAt: live.minuteAt,
