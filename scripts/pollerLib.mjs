@@ -98,6 +98,14 @@ export const espnDateStrings = (kickoffMs) => {
   return out;
 };
 
+export const futureDiscoveryEligible = (utcDate, now, lookaheadMs) => {
+  const kickoffMs = utcDate ? Date.parse(utcDate) : NaN;
+  if (Number.isNaN(kickoffMs)) return false;
+  return kickoffMs > now && kickoffMs <= now + lookaheadMs;
+};
+
+export const discoveryBucket = (now, bucketMs) => Math.floor(now / bucketMs);
+
 // --- Live/backfill window predicates ---------------------------------------
 // The poller decides, per feed tier, whether a match is worth fetching. The
 // window arithmetic (live window + post-kickoff backfill window) was inlined
@@ -221,4 +229,32 @@ export const matchEspnEventToFixture = (match, ev) => {
   }
 
   return null;
+};
+
+export const espnCandidateDetails = (match, ev) => {
+  const c = ev.competitions?.[0];
+  const home = c?.competitors?.find((x) => x.homeAway === 'home')?.team?.displayName;
+  const away = c?.competitors?.find((x) => x.homeAway === 'away')?.team?.displayName;
+  if (!home || !away) return null;
+  const kickoffMs = Date.parse(match?.utcDate || '');
+  const eventMs = Date.parse(c?.date || ev?.date || '');
+  const homeKnown = match?.homeTeam?.name && !isKnockoutSlot(match.homeTeam.name);
+  const awayKnown = match?.awayTeam?.name && !isKnockoutSlot(match.awayTeam.name);
+  const homeMatchesFeedHome = norm(match?.homeTeam?.name) === norm(home);
+  const homeMatchesFeedAway = norm(match?.homeTeam?.name) === norm(away);
+  const awayMatchesFeedHome = norm(match?.awayTeam?.name) === norm(home);
+  const awayMatchesFeedAway = norm(match?.awayTeam?.name) === norm(away);
+  const knownSideMatch =
+    (homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) ||
+    (awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway));
+  return {
+    id: ev.id,
+    date: c?.date || ev?.date || null,
+    home,
+    away,
+    direct: pairKey(match?.homeTeam?.name, match?.awayTeam?.name) === pairKey(home, away),
+    knownSideMatch,
+    kickoffDeltaMin:
+      Number.isNaN(kickoffMs) || Number.isNaN(eventMs) ? null : Math.round(Math.abs(kickoffMs - eventMs) / 60000),
+  };
 };

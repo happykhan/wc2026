@@ -6,7 +6,7 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture } from './pollerLib.mjs';
+import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
 import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
 import { resolveKnockoutTeams } from './knockoutLib.mjs';
 
@@ -17,6 +17,10 @@ const FIXTURES = '/home/nabil/projects/wc2026/src/data/fixtures.json';
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 const FD_BASE = 'https://api.football-data.org/v4/competitions/2000/matches'; // 2000 = FIFA World Cup
 const LIVE_WINDOW_MIN = 150;
+const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-kickoff
+const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
+const FUTURE_DISCOVERY_LOOKAHEAD_MS = 7 * 24 * 60 * 60000;
+const FUTURE_DISCOVERY_BUCKET_MS = 6 * 60 * 60000;
 
 // Keys live in poller.env. They were written with a trailing literal "\n", so
 // strip non-key chars defensively.
@@ -115,6 +119,9 @@ async function fetchEspnDates(dates) {
 async function main() {
   const now = Date.now();
   const prior = readPrior();
+  const previousDiscoveryBucket = prior?.meta?.espnDiscoveryBucket ?? null;
+  const currentDiscoveryBucket = discoveryBucket(now, FUTURE_DISCOVERY_BUCKET_MS);
+  const runFutureDiscovery = previousDiscoveryBucket !== currentDiscoveryBucket;
   const matches = resolveKnockoutTeams(buildBase(), prior?.matches ?? []);
   if (matches.length === 0) { console.log(new Date(now).toISOString(), 'no fixtures — skip'); return; }
 
@@ -130,9 +137,8 @@ async function main() {
   // attach espnEventId before the match starts and the lineup panel can show the
   // teamsheets ESPN publishes ~30-60 min before KO. Once a match has a final score
   // it stops being fetched, so this stays gentle on ESPN.
-  const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-kickoff
-  const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
   const needDates = new Set();
+  const futureDiscoveryMatches = [];
   for (const m of matches) {
     const { kickoffMs, preMatch, liveNow, withinBackfill } = matchWindow(m.utcDate, now, LIVE_WINDOW_MIN, BACKFILL_WINDOW_MS, PREMATCH_WINDOW_MS);
     if (Number.isNaN(kickoffMs)) continue;
@@ -145,9 +151,16 @@ async function main() {
     // Pre-match: fetch only until we have the id (don't re-poll a fixture that
     // already carries one), so the imminent-KO window stays cheap on ESPN.
     const needsPrematchId = preMatch && !haveEspnId;
+    const needsFutureIdRefresh =
+      runFutureDiscovery &&
+      !haveEspnId &&
+      futureDiscoveryEligible(m.utcDate, now, FUTURE_DISCOVERY_LOOKAHEAD_MS);
     // ESPN files each game under its US-LOCAL date (see espnDateStrings) — fetch
     // ±1 day; team-pair matching ignores the extra events harmlessly.
-    if (liveNow || needsBackfill || needsPrematchId) for (const d of espnDateStrings(kickoffMs)) needDates.add(d);
+    if (liveNow || needsBackfill || needsPrematchId || needsFutureIdRefresh) {
+      for (const d of espnDateStrings(kickoffMs)) needDates.add(d);
+    }
+    if (needsFutureIdRefresh) futureDiscoveryMatches.push(m);
   }
 
   let usedEspn = false;
@@ -156,10 +169,13 @@ async function main() {
   const espnDisabled = process.env.DISABLE_ESPN || ENV.DISABLE_ESPN;
   if (needDates.size && !espnDisabled) {
     const events = await fetchEspnDates([...needDates]);
+    const eventsById = new Map(events.map((ev) => [String(ev.id), ev]));
     for (const m of matches) {
-      const hit = events
-        .map((ev) => matchEspnEventToFixture(m, ev))
-        .find(Boolean);
+      const priorEspnId = m.espnEventId || priorOf(m)?.espnEventId;
+      const byId = priorEspnId ? eventsById.get(String(priorEspnId)) : null;
+      const hit = byId
+        ? matchEspnEventToFixture(m, byId)
+        : events.map((ev) => matchEspnEventToFixture(m, ev)).find(Boolean);
       if (!hit) continue;
       // Always attach the ESPN event id once the match is matched — this is what
       // the lineups/stats/timeline panels load from. We set it even for a
@@ -180,6 +196,30 @@ async function main() {
         fullTime: { home: hs, away: as },
         shootout: { home: hit.shootoutHome ?? null, away: hit.shootoutAway ?? null },
       };
+    }
+
+    if (runFutureDiscovery) {
+      for (const m of futureDiscoveryMatches) {
+        if (m.espnEventId) continue;
+        const candidates = events
+          .map((ev) => espnCandidateDetails(m, ev))
+          .filter((c) => c && (c.direct || c.knownSideMatch))
+          .sort((a, b) => {
+            const aScore = (a.direct ? 0 : 1) + (a.kickoffDeltaMin ?? 99999);
+            const bScore = (b.direct ? 0 : 1) + (b.kickoffDeltaMin ?? 99999);
+            return aScore - bScore;
+          })
+          .slice(0, 3);
+        if (candidates.length) {
+          console.log(
+            new Date(now).toISOString(),
+            'unresolved future ESPN id',
+            m.id,
+            `${m.homeTeam?.name} vs ${m.awayTeam?.name}`,
+            JSON.stringify(candidates),
+          );
+        }
+      }
     }
   }
 
@@ -282,10 +322,16 @@ async function main() {
   }
 
   const live = matches.some((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED');
-  const data = { updatedAt: new Date(now).toISOString(), live, matches, standings: [] };
+  const data = {
+    updatedAt: new Date(now).toISOString(),
+    live,
+    matches,
+    standings: [],
+    meta: { espnDiscoveryBucket: currentDiscoveryBucket },
+  };
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DATA_FILE + '.tmp', JSON.stringify(data));
   fs.renameSync(DATA_FILE + '.tmp', DATA_FILE); // atomic
-  console.log(new Date(now).toISOString(), 'wrote', matches.length, 'matches | live=' + live, 'usedEspn=' + usedEspn, 'usedFd=' + usedFd, 'usedAfl=' + usedAfl, 'dates=' + [...needDates]);
+  console.log(new Date(now).toISOString(), 'wrote', matches.length, 'matches | live=' + live, 'usedEspn=' + usedEspn, 'usedFd=' + usedFd, 'usedAfl=' + usedAfl, 'futureDiscovery=' + runFutureDiscovery, 'dates=' + [...needDates]);
 }
 main().catch((e) => { console.error('poller error', e?.message); process.exit(1); });
