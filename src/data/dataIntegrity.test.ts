@@ -5,6 +5,17 @@ import { getUkChannelsForMatch } from './ukTvSchedule';
 
 interface Fx { team1: string; team2: string; group?: string }
 const groupMatches = (fixturesData as { matches: Fx[] }).matches.filter((m) => m.group);
+const resolvedKnockoutUkMatches = [
+  { team1: 'Australia', team2: 'Egypt', primary: 'BBC One' },
+  { team1: 'Argentina', team2: 'Cape Verde', primary: 'ITV1' },
+  { team1: 'Colombia', team2: 'Ghana', primary: 'ITV1' },
+  { team1: 'Canada', team2: 'Morocco', primary: 'ITV1' },
+  { team1: 'Paraguay', team2: 'France', primary: 'BBC One' },
+  { team1: 'Brazil', team2: 'Norway', primary: 'ITV1' },
+  { team1: 'Mexico', team2: 'England', primary: 'BBC One' },
+  { team1: 'Portugal', team2: 'Spain', primary: 'BBC One' },
+  { team1: 'USA', team2: 'Belgium', primary: 'BBC One' },
+] as const;
 
 // Snapshot of the 48 team names as the live feed (football-data / ESPN) spells
 // them, captured 2026-06-12. If a feed renames a team this test fails — update
@@ -48,5 +59,17 @@ describe('UK TV schedule', () => {
       .filter(({ ch }) => ch && !ALLOWED.includes(ch[0]))
       .map(({ label, ch }) => `${label} → ${ch?.[0]}`);
     expect(bad, `non-specific primary channel: ${bad.join('; ')}`).toEqual([]);
+  });
+
+  it('resolved knockout fixtures have the current exact UK channel', () => {
+    const mismatches = resolvedKnockoutUkMatches
+      .map(({ team1, team2, primary }) => ({
+        label: `${team1} v ${team2}`,
+        primary,
+        actual: getUkChannelsForMatch(team1, team2)?.[0] ?? null,
+      }))
+      .filter(({ actual, primary }) => actual !== primary)
+      .map(({ label, primary, actual }) => `${label} → expected ${primary}, got ${actual}`);
+    expect(mismatches, `wrong knockout UK channel: ${mismatches.join('; ')}`).toEqual([]);
   });
 });

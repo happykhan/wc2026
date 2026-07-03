@@ -41,7 +41,7 @@ export default function App() {
   }, []);
 
   // Fetch live scores. Fast cadence only while a match is live/imminent.
-  const { scores } = useLiveScores(pollActive, processedMatches);
+  const { scores, ukTvSchedule } = useLiveScores(pollActive, processedMatches);
 
   // Merge live scores into the static fixture list.
   const matches = useMemo(() => {
@@ -88,6 +88,7 @@ export default function App() {
         {page === 'schedule' && (
           <Schedule
             matches={matches}
+            ukTvSchedule={ukTvSchedule}
             prefs={prefs}
             setPrefs={setPrefs}
             t={t}

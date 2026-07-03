@@ -9,6 +9,7 @@ import { getDateKey, formatMatchDate, isMatchToday, isMatchTomorrow } from '../u
 
 interface ScheduleProps {
   matches: Match[];
+  ukTvSchedule?: Record<string, string[]>;
   prefs: UserPreferences;
   setPrefs: (p: Partial<UserPreferences>) => void;
   t: (k: TranslationKey) => string;
@@ -18,7 +19,7 @@ interface ScheduleProps {
   focusMatchId?: string;
 }
 
-export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClubComp = false, focusMatchId }: ScheduleProps) {
+export function Schedule({ matches, ukTvSchedule, prefs, setPrefs, t, onToggleFavourite, isClubComp = false, focusMatchId }: ScheduleProps) {
   const [filters, setFilters] = useState<FilterState>({
     team: '',
     group: '',
@@ -227,6 +228,7 @@ export function Schedule({ matches, prefs, setPrefs, t, onToggleFavourite, isClu
                     <MatchRow
                       key={m.id}
                       match={m}
+                      ukTvSchedule={ukTvSchedule}
                       prefs={prefs}
                       t={t}
                       onToggleFavourite={onToggleFavourite}

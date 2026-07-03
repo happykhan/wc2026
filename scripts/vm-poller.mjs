@@ -9,6 +9,7 @@ import path from 'path';
 import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture } from './pollerLib.mjs';
 import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
 import { resolveKnockoutTeams } from './knockoutLib.mjs';
+import { scrapeLiveFootballOnTvWorldCup } from './ukTvScheduleLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -17,6 +18,7 @@ const FIXTURES = '/home/nabil/projects/wc2026/src/data/fixtures.json';
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 const FD_BASE = 'https://api.football-data.org/v4/competitions/2000/matches'; // 2000 = FIFA World Cup
 const LIVE_WINDOW_MIN = 150;
+const UK_TV_REFRESH_MS = 6 * 60 * 60 * 1000;
 
 // Keys live in poller.env. They were written with a trailing literal "\n", so
 // strip non-key chars defensively.
@@ -116,6 +118,22 @@ async function main() {
   const prior = readPrior();
   const matches = resolveKnockoutTeams(buildBase(), prior?.matches ?? []);
   if (matches.length === 0) { console.log(new Date(now).toISOString(), 'no fixtures — skip'); return; }
+
+  let ukTvSchedule = prior?.ukTvSchedule ?? {};
+  let ukTvUpdatedAt = prior?.ukTvUpdatedAt ?? null;
+  const lastUkTvFetchMs = ukTvUpdatedAt ? Date.parse(ukTvUpdatedAt) : NaN;
+  const shouldRefreshUkTv = !ukTvUpdatedAt || Number.isNaN(lastUkTvFetchMs) || (now - lastUkTvFetchMs >= UK_TV_REFRESH_MS);
+  if (shouldRefreshUkTv) {
+    try {
+      const scraped = await scrapeLiveFootballOnTvWorldCup();
+      if (Object.keys(scraped).length > 0) {
+        ukTvSchedule = { ...ukTvSchedule, ...scraped };
+        ukTvUpdatedAt = new Date(now).toISOString();
+      }
+    } catch (err) {
+      console.warn(new Date(now).toISOString(), 'uk tv scrape failed', err?.message ?? err);
+    }
+  }
 
   // Key prior by team-pair (not id) so carry-forward works even when seeded from
   // a different source (e.g. the old Vercel data with football-data ids).
@@ -267,7 +285,14 @@ async function main() {
   }
 
   const live = matches.some((m) => m.status === 'IN_PLAY' || m.status === 'PAUSED');
-  const data = { updatedAt: new Date(now).toISOString(), live, matches, standings: [] };
+  const data = {
+    updatedAt: new Date(now).toISOString(),
+    live,
+    matches,
+    ukTvSchedule,
+    ukTvUpdatedAt,
+    standings: [],
+  };
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DATA_FILE + '.tmp', JSON.stringify(data));
   fs.renameSync(DATA_FILE + '.tmp', DATA_FILE); // atomic

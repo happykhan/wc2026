@@ -15,7 +15,7 @@ function getQualifiedTeams(): string[] {
 // ---------------------------------------------------------------------------
 
 const VM_SCORES_URL = 'https://wc-scores.genomicx.org/scores.json';
-const EMPTY_RESPONSE = { live: false, matches: [], standings: [], qualifiedTeams: getQualifiedTeams() };
+const EMPTY_RESPONSE = { live: false, matches: [], standings: [], ukTvSchedule: {}, qualifiedTeams: getQualifiedTeams() };
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
@@ -24,12 +24,13 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       res.setHeader('Cache-Control', 'public, max-age=30');
       return res.status(200).json(EMPTY_RESPONSE);
     }
-    const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string };
+    const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string; ukTvSchedule?: Record<string, string[]> };
     res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=12, stale-while-revalidate=20');
     return res.status(200).json({
       live: data.live ?? false,
       matches: data.matches ?? [],
       standings: [],
+      ukTvSchedule: data.ukTvSchedule ?? {},
       updatedAt: data.updatedAt,
       qualifiedTeams: getQualifiedTeams(),
     });
