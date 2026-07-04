@@ -66,6 +66,7 @@ interface WCScoresResponse {
   updatedAt?: string; // when the poller captured this data (minute anchor)
   live: boolean;
   matches: FDMatch[];
+  ukTvSchedule?: Record<string, string[]>;
   standings: unknown[];
 }
 
@@ -131,12 +132,15 @@ export function mapApiMatchesToScores(
 
 async function fetchFromFootballData(
   local: Array<{ id: string; team1: string; team2: string }>
-): Promise<Map<string, LiveScore>> {
+): Promise<{ scores: Map<string, LiveScore>; ukTvSchedule: Record<string, string[]> }> {
   const res = await fetch(WC_SCORES_URL);
-  if (!res.ok) return new Map();
+  if (!res.ok) return { scores: new Map(), ukTvSchedule: {} };
   const data: WCScoresResponse = await res.json();
   const blobAt = data.updatedAt ? Date.parse(data.updatedAt) : Date.now();
-  return mapApiMatchesToScores(local, data.matches ?? [], blobAt);
+  return {
+    scores: mapApiMatchesToScores(local, data.matches ?? [], blobAt),
+    ukTvSchedule: data.ukTvSchedule ?? {},
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +149,7 @@ type MatchRef = Array<{ id: string; team1: string; team2: string }>;
 
 export function useLiveScores(enabled: boolean, matchList?: MatchRef) {
   const [scores, setScores] = useState<Map<string, LiveScore>>(new Map());
+  const [ukTvSchedule, setUkTvSchedule] = useState<Record<string, string[]>>({});
   const [lastFetch, setLastFetch] = useState<Date | null>(null);
 
   // Keep a stable ref to the match list so the fetch callback doesn't need it
@@ -157,14 +162,18 @@ export function useLiveScores(enabled: boolean, matchList?: MatchRef) {
   }, [matchList]);
 
   const fetchScores = useCallback(async () => {
-    const next = await fetchFromFootballData(matchListRef.current).catch(() => new Map<string, LiveScore>());
+    const next = await fetchFromFootballData(matchListRef.current).catch(() => ({ scores: new Map<string, LiveScore>(), ukTvSchedule: {} }));
 
-    if (next.size > 0) {
+    if (Object.keys(next.ukTvSchedule).length > 0) {
+      setUkTvSchedule(next.ukTvSchedule);
+    }
+
+    if (next.scores.size > 0) {
       setScores((prev) => {
         // Merge: keep previously seen FT results for matches that have since
         // dropped out of the API response.
         const merged = new Map(prev);
-        for (const [id, score] of next) {
+        for (const [id, score] of next.scores) {
           merged.set(id, score);
         }
         return merged;
@@ -191,5 +200,5 @@ export function useLiveScores(enabled: boolean, matchList?: MatchRef) {
     return () => clearInterval(interval);
   }, [enabled, fetchScores]);
 
-  return { scores, lastFetch };
+  return { scores, ukTvSchedule, lastFetch };
 }

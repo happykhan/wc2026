@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "fetch-fixtures": "node scripts/fetch-fixtures.mjs",
+    "update-uk-tv-schedule": "node scripts/update-uk-tv-schedule.mjs",
     "fetch-afl-fixtures": "node scripts/fetch-afl-fixtures.mjs",
     "fetch-afl-teams": "node scripts/fetch-afl-teams.mjs",
     "test": "vitest run",

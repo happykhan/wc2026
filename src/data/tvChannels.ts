@@ -1,5 +1,5 @@
 import type { TVSchedule } from '../types';
-import { getUkChannelsForMatch } from './ukTvSchedule';
+import { getUkChannelsForMatch, getUkChannelsFromSchedule, type UkTvSchedule } from './ukTvSchedule';
 
 // Broadcast rights for World Cup 2026 by territory (ISO 3166-1 alpha-2).
 // Sourced from Wikipedia "2026 FIFA World Cup broadcasting rights" (the listed
@@ -143,8 +143,10 @@ export const DEFAULT_TV_CHANNELS: TVSchedule = {
   ZW: ['ZBC', 'Azam TV'],
 };
 
-export function getChannelsForCountry(countryCode: string, team1?: string, team2?: string): string[] {
+export function getChannelsForCountry(countryCode: string, team1?: string, team2?: string, ukTvSchedule?: UkTvSchedule): string[] {
   if (countryCode === 'GB' && team1 && team2) {
+    const runtimeMatch = getUkChannelsFromSchedule(ukTvSchedule, team1, team2);
+    if (runtimeMatch) return runtimeMatch;
     const ukMatch = getUkChannelsForMatch(team1, team2);
     if (ukMatch) return ukMatch;
   }
