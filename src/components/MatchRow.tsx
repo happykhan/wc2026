@@ -13,6 +13,7 @@ import { H2HPanel, LineupsPanel, StatsPanel, TimelinePanel } from './MatchDetail
 
 interface MatchRowProps {
   match: Match;
+  ukTvSchedule?: Record<string, string[]>;
   prefs: UserPreferences;
   t: (key: TranslationKey) => string;
   onToggleFavourite: (id: string) => void;
@@ -49,8 +50,8 @@ function toICSDate(d: Date): string {
   );
 }
 
-function downloadMatchICS(match: Match, countryCode: string): void {
-  const channels = getChannelsForCountry(countryCode, match.team1, match.team2);
+function downloadMatchICS(match: Match, countryCode: string, ukTvSchedule?: Record<string, string[]>): void {
+  const channels = getChannelsForCountry(countryCode, match.team1, match.team2, ukTvSchedule);
   const channelStr = channels.length > 0 ? channels.join(', ') : 'Check local listings';
 
   const start = toICSDate(match.utcDate);
@@ -373,6 +374,7 @@ function CopyButton({
 
 export function MatchRow({
   match,
+  ukTvSchedule,
   prefs,
   t,
   onToggleFavourite,
@@ -399,7 +401,7 @@ export function MatchRow({
   // Default to the H2H tab when it's available, otherwise lineups.
   const [detailTab, setDetailTab] = useState<DetailTab>(knownTeams ? 'h2h' : 'lineups');
   // For club competitions broadcast rights are unknown — always show "check local listings"
-  const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode, match.team1, match.team2);
+  const channels = isClubComp ? [] : getChannelsForCountry(prefs.countryCode, match.team1, match.team2, ukTvSchedule);
   const primaryChannel = channels[0]; // the main TV channel to tune into (e.g. ITV1, BBC One)
   const showScore = match.status === 'ft' || match.status === 'live' || match.status === 'ht';
 
@@ -544,7 +546,7 @@ export function MatchRow({
             <CopyButton match={match} timezone={timezone} language={prefs.language} hour12={prefs.hour12} t={t} />
             <ShareButton match={match} timezone={timezone} language={prefs.language} hour12={prefs.hour12} t={t} />
             <button
-              onClick={() => downloadMatchICS(match, prefs.countryCode)}
+              onClick={() => downloadMatchICS(match, prefs.countryCode, ukTvSchedule)}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 transition-colors ml-auto"
               aria-label={t('exportMatch')}
             >

@@ -9,6 +9,7 @@ import path from 'path';
 import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
 import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
 import { resolveKnockoutTeams } from './knockoutLib.mjs';
+import { scrapeLiveFootballOnTvWorldCup } from './ukTvScheduleLib.mjs';
 
 const DATA_DIR = '/home/nabil/wc2026-data';
 const DATA_FILE = path.join(DATA_DIR, 'scores.json');
@@ -21,6 +22,7 @@ const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-k
 const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
 const FUTURE_DISCOVERY_LOOKAHEAD_MS = 7 * 24 * 60 * 60000;
 const FUTURE_DISCOVERY_BUCKET_MS = 6 * 60 * 60000;
+const UK_TV_REFRESH_MS = 6 * 60 * 60 * 1000;
 
 // Keys live in poller.env. They were written with a trailing literal "\n", so
 // strip non-key chars defensively.
@@ -124,6 +126,22 @@ async function main() {
   const runFutureDiscovery = previousDiscoveryBucket !== currentDiscoveryBucket;
   const matches = resolveKnockoutTeams(buildBase(), prior?.matches ?? []);
   if (matches.length === 0) { console.log(new Date(now).toISOString(), 'no fixtures — skip'); return; }
+
+  let ukTvSchedule = prior?.ukTvSchedule ?? {};
+  let ukTvUpdatedAt = prior?.ukTvUpdatedAt ?? null;
+  const lastUkTvFetchMs = ukTvUpdatedAt ? Date.parse(ukTvUpdatedAt) : NaN;
+  const shouldRefreshUkTv = !ukTvUpdatedAt || Number.isNaN(lastUkTvFetchMs) || (now - lastUkTvFetchMs >= UK_TV_REFRESH_MS);
+  if (shouldRefreshUkTv) {
+    try {
+      const scraped = await scrapeLiveFootballOnTvWorldCup();
+      if (Object.keys(scraped).length > 0) {
+        ukTvSchedule = { ...ukTvSchedule, ...scraped };
+        ukTvUpdatedAt = new Date(now).toISOString();
+      }
+    } catch (err) {
+      console.warn(new Date(now).toISOString(), 'uk tv scrape failed', err?.message ?? err);
+    }
+  }
 
   // Key prior by team-pair (not id) so carry-forward works even when seeded from
   // a different source (e.g. the old Vercel data with football-data ids).
@@ -326,6 +344,8 @@ async function main() {
     updatedAt: new Date(now).toISOString(),
     live,
     matches,
+    ukTvSchedule,
+    ukTvUpdatedAt,
     standings: [],
     meta: { espnDiscoveryBucket: currentDiscoveryBucket },
   };

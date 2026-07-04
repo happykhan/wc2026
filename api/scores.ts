@@ -13,7 +13,7 @@ import { getQualifiedTeams } from '../src/data/qualification.js';
 
 const VM_SCORES_URL = 'https://wc-scores.genomicx.org/scores.json';
 const ESPN_SUMMARY_URL = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary';
-const EMPTY_RESPONSE = { live: false, matches: [], standings: [], qualifiedTeams: getQualifiedTeams() };
+const EMPTY_RESPONSE = { live: false, matches: [], standings: [], ukTvSchedule: {}, qualifiedTeams: getQualifiedTeams() };
 
 interface ScoreLine {
   home: number | null;
@@ -97,13 +97,19 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       res.setHeader('Cache-Control', 'public, max-age=30');
       return res.status(200).json(EMPTY_RESPONSE);
     }
-    const data = (await r.json()) as { live?: boolean; matches?: unknown[]; updatedAt?: string };
+    const data = (await r.json()) as {
+      live?: boolean;
+      matches?: unknown[];
+      updatedAt?: string;
+      ukTvSchedule?: Record<string, string[]>;
+    };
     const matches = await enrichPenaltyShootouts(data.matches ?? []);
     res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=12, stale-while-revalidate=20');
     return res.status(200).json({
       live: data.live ?? false,
       matches,
       standings: [],
+      ukTvSchedule: data.ukTvSchedule ?? {},
       updatedAt: data.updatedAt,
       qualifiedTeams: getQualifiedTeams(),
     });
