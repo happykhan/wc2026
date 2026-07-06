@@ -106,6 +106,71 @@ export const futureDiscoveryEligible = (utcDate, now, lookaheadMs) => {
 
 export const discoveryBucket = (now, bucketMs) => Math.floor(now / bucketMs);
 
+const KNOCKOUT_ROUND_KEYS = new Set([
+  'roundof32',
+  'roundof16',
+  'quarterfinal',
+  'semifinal',
+  'matchforthirdplace',
+  'final',
+]);
+
+export const espnRoundKey = (round) => {
+  const key = `${round || ''}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (key === 'quarterfinals') return 'quarterfinal';
+  if (key === 'semifinals') return 'semifinal';
+  return key || null;
+};
+
+export const buildEspnSlotLookup = (matches) => {
+  const byMatchNum = new Map();
+  const seenByRound = new Map();
+  for (const match of matches ?? []) {
+    const roundKey = espnRoundKey(match?.round);
+    if (!roundKey || !KNOCKOUT_ROUND_KEYS.has(roundKey) || match?.num == null) continue;
+    const nextOrdinal = (seenByRound.get(roundKey) ?? 0) + 1;
+    seenByRound.set(roundKey, nextOrdinal);
+    byMatchNum.set(Number(match.num), { roundKey, ordinal: nextOrdinal });
+  }
+  return byMatchNum;
+};
+
+export const espnBindingToken = (name, slotLookup) => {
+  const raw = `${name || ''}`.trim();
+  if (!raw) return null;
+
+  const ref = raw.match(/^([WL])(\d+)$/i);
+  if (ref) {
+    const slot = slotLookup?.get(Number(ref[2]));
+    if (!slot) return null;
+    return `${ref[1].toUpperCase() === 'W' ? 'winner' : 'loser'}:${slot.roundKey}:${slot.ordinal}`;
+  }
+
+  const espnRef = raw.match(/^(Round of 32|Round of 16|Quarterfinal|Quarter-final|Semifinal|Semi-final)\s+(\d+)\s+(Winner|Loser)$/i);
+  if (espnRef) {
+    const roundKey = espnRoundKey(espnRef[1]);
+    const ordinal = Number(espnRef[2]);
+    const outcome = espnRef[3].toLowerCase();
+    return roundKey && ordinal ? `${outcome}:${roundKey}:${ordinal}` : null;
+  }
+
+  return `team:${norm(raw)}`;
+};
+
+export const espnBindingKey = (homeName, awayName, slotLookup) => {
+  const homeToken = espnBindingToken(homeName, slotLookup);
+  const awayToken = espnBindingToken(awayName, slotLookup);
+  if (!homeToken || !awayToken) return null;
+  return `${homeToken}|${awayToken}`;
+};
+
+export const espnEventBindingKey = (ev, slotLookup) => {
+  const c = ev?.competitions?.[0];
+  const home = c?.competitors?.find((x) => x.homeAway === 'home')?.team?.displayName;
+  const away = c?.competitors?.find((x) => x.homeAway === 'away')?.team?.displayName;
+  return espnBindingKey(home, away, slotLookup);
+};
+
 // --- Live/backfill window predicates ---------------------------------------
 // The poller decides, per feed tier, whether a match is worth fetching. The
 // window arithmetic (live window + post-kickoff backfill window) was inlined

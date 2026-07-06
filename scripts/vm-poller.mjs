@@ -6,7 +6,7 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
+import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails, buildEspnSlotLookup, espnBindingKey, espnEventBindingKey } from './pollerLib.mjs';
 import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
 import { resolveKnockoutTeams } from './knockoutLib.mjs';
 import { scrapeLiveFootballOnTvWorldCup } from './ukTvScheduleLib.mjs';
@@ -120,11 +120,13 @@ async function fetchEspnDates(dates) {
 
 async function main() {
   const now = Date.now();
+  const nowIso = new Date(now).toISOString();
   const prior = readPrior();
   const previousDiscoveryBucket = prior?.meta?.espnDiscoveryBucket ?? null;
   const currentDiscoveryBucket = discoveryBucket(now, FUTURE_DISCOVERY_BUCKET_MS);
   const runFutureDiscovery = previousDiscoveryBucket !== currentDiscoveryBucket;
   const matches = resolveKnockoutTeams(buildBase(), prior?.matches ?? []);
+  const slotLookup = buildEspnSlotLookup(matches);
   if (matches.length === 0) { console.log(new Date(now).toISOString(), 'no fixtures — skip'); return; }
 
   let ukTvSchedule = prior?.ukTvSchedule ?? {};
@@ -148,6 +150,8 @@ async function main() {
   const priorByMatchId = new Map((prior?.matches ?? []).map((m) => [m.id, m]));
   const priorByPair = new Map((prior?.matches ?? []).map((m) => [pairKey(m.homeTeam?.name, m.awayTeam?.name), m]));
   const priorOf = (m) => priorByMatchId.get(m.id) ?? priorByPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
+  const priorBindings = prior?.meta?.espnBindings ?? {};
+  const espnBindings = { ...priorBindings };
 
   // Decide which dates to hit ESPN for. Live now → yes. Past match without a
   // confirmed final result → keep retrying (BACKFILL) so a missed result (poller
@@ -189,26 +193,50 @@ async function main() {
   if (needDates.size && !espnDisabled) {
     const events = await fetchEspnDates([...needDates]);
     const eventsById = new Map(events.map((ev) => [String(ev.id), ev]));
+    const eventsByBindingKey = new Map();
+    for (const ev of events) {
+      const key = espnEventBindingKey(ev, slotLookup);
+      if (!key) continue;
+      const existing = eventsByBindingKey.get(key);
+      if (existing) existing.push(ev);
+      else eventsByBindingKey.set(key, [ev]);
+    }
     for (const m of matches) {
-      const priorEspnId = m.espnEventId || priorOf(m)?.espnEventId;
+      const binding = espnBindings[m.id];
+      const priorEspnId = binding?.espnEventId || m.espnEventId || priorOf(m)?.espnEventId;
       const byId = priorEspnId ? eventsById.get(String(priorEspnId)) : null;
+      const matchBinding = espnBindingKey(m.homeTeam?.name, m.awayTeam?.name, slotLookup);
+      const byBinding = !byId && matchBinding ? eventsByBindingKey.get(matchBinding)?.[0] ?? null : null;
       const hit = byId
         ? matchEspnEventToFixture(m, byId, { skipKickoffCheck: true })
-        : events
-          .map((ev) => matchEspnEventToFixture(m, ev, { relaxedKickoffCheck: true }))
-          .filter(Boolean)
-          .sort(compareEspnFixtureMatches)[0];
-      if (!hit) continue;
+        : byBinding
+          ? matchEspnEventToFixture(m, byBinding, { skipKickoffCheck: true })
+          : events
+            .map((ev) => matchEspnEventToFixture(m, ev, { relaxedKickoffCheck: true }))
+            .filter(Boolean)
+            .sort(compareEspnFixtureMatches)[0];
+      if (!hit && !byBinding) continue;
       // Always attach the ESPN event id once the match is matched — this is what
       // the lineups/stats/timeline panels load from. We set it even for a
       // STATUS_SCHEDULED (pre-match) game, whose espnStatus is null, so the
       // pre-match lineup panel can show the teamsheets before kickoff. Status and
       // score are only overwritten once ESPN reports a live/finished state.
-      m.espnEventId = hit.id;
-      m.homeTeam.name = hit.homeName;
-      m.awayTeam.name = hit.awayName;
+      const boundEvent = hit?.event ?? byBinding;
+      const boundId = String(hit?.id ?? byBinding?.id ?? '');
+      if (!boundId) continue;
+      m.espnEventId = boundId;
+      if (hit) {
+        m.homeTeam.name = hit.homeName;
+        m.awayTeam.name = hit.awayName;
+      }
+      espnBindings[m.id] = {
+        espnEventId: boundId,
+        boundAt: binding?.espnEventId === boundId ? binding.boundAt ?? nowIso : nowIso,
+        source: byId ? 'event-id' : byBinding ? 'binding-key' : 'fixture-match',
+        bindingKey: matchBinding ?? null,
+      };
       usedEspn = true;
-      const st = espnStatus(hit.event); if (!st) continue;
+      const st = espnStatus(boundEvent); if (!st || !hit) continue;
       const hs = Number.isNaN(hit.homeScore) ? null : hit.homeScore;
       const as = Number.isNaN(hit.awayScore) ? null : hit.awayScore;
       m.status = st;
@@ -327,6 +355,15 @@ async function main() {
         if (p.aflFixtureId && !m.aflFixtureId) m.aflFixtureId = p.aflFixtureId;
         if (p.espnEventId && !m.espnEventId) m.espnEventId = p.espnEventId;
       }
+      if (m.espnEventId) {
+        const binding = espnBindings[m.id];
+        espnBindings[m.id] = {
+          espnEventId: m.espnEventId,
+          boundAt: binding?.espnEventId === m.espnEventId ? binding.boundAt ?? nowIso : nowIso,
+          source: binding?.source ?? (p?.espnEventId === m.espnEventId ? 'carry-forward' : 'fixture-match'),
+          bindingKey: binding?.bindingKey ?? espnBindingKey(m.homeTeam?.name, m.awayTeam?.name, slotLookup),
+        };
+      }
     }
   }
 
@@ -336,7 +373,6 @@ async function main() {
   // updatedAt, which advances every poll) means the clock keeps counting up
   // through stoppage (when the feed minute plateaus at 90') instead of jumping
   // backwards each poll.
-  const nowIso = new Date(now).toISOString();
   for (const m of matches) {
     if (m.status !== 'IN_PLAY' || m.minute == null) continue;
     const p = priorOf(m);
@@ -351,7 +387,7 @@ async function main() {
     ukTvSchedule,
     ukTvUpdatedAt,
     standings: [],
-    meta: { espnDiscoveryBucket: currentDiscoveryBucket },
+    meta: { espnDiscoveryBucket: currentDiscoveryBucket, espnBindings },
   };
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(DATA_FILE + '.tmp', JSON.stringify(data));
