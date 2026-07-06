@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
 
 const WIN = 150;                       // LIVE_WINDOW_MIN
 const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
@@ -300,13 +300,71 @@ describe('poller: team matching', () => {
         ],
       }],
     };
-    expect(matchEspnEventToFixture(match, ev)).toMatchObject({
+    expect(matchEspnEventToFixture(match, ev, { relaxedKickoffCheck: true })).toMatchObject({
       id: '760491',
       homeName: 'Mexico',
       awayName: 'Ecuador',
       homeScore: 2,
       awayScore: 0,
     });
+  });
+
+  it('accepts a one-hour kickoff drift for an already-known ESPN event id', () => {
+    const match = {
+      utcDate: '2026-07-06T00:00:00.000Z',
+      homeTeam: { name: 'Mexico' },
+      awayTeam: { name: 'England' },
+      espnEventId: '760505',
+    };
+    const ev = {
+      id: '760505',
+      competitions: [{
+        date: '2026-07-06T01:00Z',
+        competitors: [
+          { homeAway: 'home', score: '2', winner: false, team: { displayName: 'Mexico' } },
+          { homeAway: 'away', score: '3', winner: true, team: { displayName: 'England' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev, { skipKickoffCheck: true })).toMatchObject({
+      id: '760505',
+      homeName: 'Mexico',
+      awayName: 'England',
+      homeScore: 2,
+      awayScore: 3,
+      winner: 2,
+    });
+  });
+
+  it('accepts a direct delayed match discovery when kickoff slips by two hours', () => {
+    const match = {
+      utcDate: '2026-07-06T00:00:00.000Z',
+      homeTeam: { name: 'Mexico' },
+      awayTeam: { name: 'England' },
+    };
+    const ev = {
+      id: '760505',
+      competitions: [{
+        date: '2026-07-06T02:00Z',
+        competitors: [
+          { homeAway: 'home', score: '2', team: { displayName: 'Mexico' } },
+          { homeAway: 'away', score: '3', team: { displayName: 'England' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev, { relaxedKickoffCheck: true })).toMatchObject({
+      id: '760505',
+      homeName: 'Mexico',
+      awayName: 'England',
+      homeScore: 2,
+      awayScore: 3,
+    });
+  });
+
+  it('prefers the closest direct ESPN candidate when multiple delayed candidates exist', () => {
+    const far = { id: 'old', direct: true, knownSideMatch: true, kickoffDeltaMin: 360 };
+    const near = { id: 'new', direct: true, knownSideMatch: true, kickoffDeltaMin: 90 };
+    expect([far, near].sort(compareEspnFixtureMatches)[0]).toBe(near);
   });
 
   it('still rejects stale same-team candidates from previous rounds', () => {

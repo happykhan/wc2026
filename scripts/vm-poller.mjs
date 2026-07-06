@@ -6,7 +6,7 @@
 // scores.json, served publicly by vm-server.mjs over its own cloudflared tunnel.
 import fs from 'fs';
 import path from 'path';
-import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
+import { pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
 import { parseKickoffUtc, makeIdAssigner } from './fixturesLib.mjs';
 import { resolveKnockoutTeams } from './knockoutLib.mjs';
 import { scrapeLiveFootballOnTvWorldCup } from './ukTvScheduleLib.mjs';
@@ -22,7 +22,7 @@ const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-k
 const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
 const FUTURE_DISCOVERY_LOOKAHEAD_MS = 7 * 24 * 60 * 60000;
 const FUTURE_DISCOVERY_BUCKET_MS = 6 * 60 * 60000;
-const UK_TV_REFRESH_MS = 6 * 60 * 60 * 1000;
+const UK_TV_REFRESH_MS = 60 * 60 * 1000; // refresh hourly so late broadcaster swaps land promptly
 
 // Keys live in poller.env. They were written with a trailing literal "\n", so
 // strip non-key chars defensively.
@@ -145,8 +145,9 @@ async function main() {
 
   // Key prior by team-pair (not id) so carry-forward works even when seeded from
   // a different source (e.g. the old Vercel data with football-data ids).
-  const priorById = new Map((prior?.matches ?? []).map((m) => [pairKey(m.homeTeam?.name, m.awayTeam?.name), m]));
-  const priorOf = (m) => priorById.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
+  const priorByMatchId = new Map((prior?.matches ?? []).map((m) => [m.id, m]));
+  const priorByPair = new Map((prior?.matches ?? []).map((m) => [pairKey(m.homeTeam?.name, m.awayTeam?.name), m]));
+  const priorOf = (m) => priorByMatchId.get(m.id) ?? priorByPair.get(pairKey(m.homeTeam?.name, m.awayTeam?.name));
 
   // Decide which dates to hit ESPN for. Live now → yes. Past match without a
   // confirmed final result → keep retrying (BACKFILL) so a missed result (poller
@@ -192,8 +193,11 @@ async function main() {
       const priorEspnId = m.espnEventId || priorOf(m)?.espnEventId;
       const byId = priorEspnId ? eventsById.get(String(priorEspnId)) : null;
       const hit = byId
-        ? matchEspnEventToFixture(m, byId)
-        : events.map((ev) => matchEspnEventToFixture(m, ev)).find(Boolean);
+        ? matchEspnEventToFixture(m, byId, { skipKickoffCheck: true })
+        : events
+          .map((ev) => matchEspnEventToFixture(m, ev, { relaxedKickoffCheck: true }))
+          .filter(Boolean)
+          .sort(compareEspnFixtureMatches)[0];
       if (!hit) continue;
       // Always attach the ESPN event id once the match is matched — this is what
       // the lineups/stats/timeline panels load from. We set it even for a

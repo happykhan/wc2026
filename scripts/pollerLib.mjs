@@ -157,12 +157,14 @@ const isKnockoutSlot = (name) =>
 
 const ESPN_KICKOFF_TOLERANCE_MS = 5 * 60000;
 const ESPN_KNOWN_SIDE_TOLERANCE_MS = 4 * 60 * 60000;
+const ESPN_DIRECT_DISCOVERY_TOLERANCE_MS = 12 * 60 * 60000;
+const ESPN_KNOWN_SIDE_DISCOVERY_TOLERANCE_MS = 12 * 60 * 60000;
 
 // Knockout fixtures can still carry placeholders (e.g. "3A/B/C/D/F") after the
 // group stage, while ESPN exposes the actual pairing. Match those by kickoff +
 // the resolved side we already know, then orient the feed's home/away order to
 // our fixture slots.
-export const matchEspnEventToFixture = (match, ev) => {
+export const matchEspnEventToFixture = (match, ev, options = {}) => {
   const c = ev.competitions?.[0];
   const home = c?.competitors?.find((x) => x.homeAway === 'home')?.team?.displayName;
   const away = c?.competitors?.find((x) => x.homeAway === 'away')?.team?.displayName;
@@ -182,13 +184,21 @@ export const matchEspnEventToFixture = (match, ev) => {
   const knownSideMatch =
     (homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) ||
     (awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway));
+  const kickoffDeltaMin =
+    Number.isNaN(kickoffMs) || Number.isNaN(eventMs) ? null : Math.round(Math.abs(kickoffMs - eventMs) / 60000);
 
-  if (!Number.isNaN(kickoffMs) && !Number.isNaN(eventMs)) {
-    const toleranceMs = direct
-      ? ESPN_KICKOFF_TOLERANCE_MS
-      : knownSideMatch
-        ? ESPN_KNOWN_SIDE_TOLERANCE_MS
-        : ESPN_KICKOFF_TOLERANCE_MS;
+  if (!options.skipKickoffCheck && !Number.isNaN(kickoffMs) && !Number.isNaN(eventMs)) {
+    const toleranceMs = options.relaxedKickoffCheck
+      ? direct
+        ? ESPN_DIRECT_DISCOVERY_TOLERANCE_MS
+        : knownSideMatch
+          ? ESPN_KNOWN_SIDE_DISCOVERY_TOLERANCE_MS
+          : ESPN_KICKOFF_TOLERANCE_MS
+      : direct
+        ? ESPN_KICKOFF_TOLERANCE_MS
+        : knownSideMatch
+          ? ESPN_KNOWN_SIDE_TOLERANCE_MS
+          : ESPN_KICKOFF_TOLERANCE_MS;
     if (Math.abs(kickoffMs - eventMs) > toleranceMs) return null;
   }
 
@@ -209,6 +219,9 @@ export const matchEspnEventToFixture = (match, ev) => {
       shootoutHome: shootout.home,
       shootoutAway: shootout.away,
       winner,
+      direct,
+      knownSideMatch,
+      kickoffDeltaMin,
       event: ev,
     };
   }
@@ -224,6 +237,9 @@ export const matchEspnEventToFixture = (match, ev) => {
       shootoutHome: shootout.away,
       shootoutAway: shootout.home,
       winner: winner === 1 ? 2 : winner === 2 ? 1 : null,
+      direct,
+      knownSideMatch,
+      kickoffDeltaMin,
       event: ev,
     };
   }
@@ -257,4 +273,14 @@ export const espnCandidateDetails = (match, ev) => {
     kickoffDeltaMin:
       Number.isNaN(kickoffMs) || Number.isNaN(eventMs) ? null : Math.round(Math.abs(kickoffMs - eventMs) / 60000),
   };
+};
+
+export const compareEspnFixtureMatches = (a, b) => {
+  const aDirect = a?.direct ? 0 : 1;
+  const bDirect = b?.direct ? 0 : 1;
+  if (aDirect !== bDirect) return aDirect - bDirect;
+  const aKnown = a?.knownSideMatch ? 0 : 1;
+  const bKnown = b?.knownSideMatch ? 0 : 1;
+  if (aKnown !== bKnown) return aKnown - bKnown;
+  return (a?.kickoffDeltaMin ?? 99999) - (b?.kickoffDeltaMin ?? 99999);
 };
