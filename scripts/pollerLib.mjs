@@ -162,7 +162,7 @@ const ESPN_KNOWN_SIDE_TOLERANCE_MS = 4 * 60 * 60000;
 // group stage, while ESPN exposes the actual pairing. Match those by kickoff +
 // the resolved side we already know, then orient the feed's home/away order to
 // our fixture slots.
-export const matchEspnEventToFixture = (match, ev) => {
+export const matchEspnEventToFixture = (match, ev, options = {}) => {
   const c = ev.competitions?.[0];
   const home = c?.competitors?.find((x) => x.homeAway === 'home')?.team?.displayName;
   const away = c?.competitors?.find((x) => x.homeAway === 'away')?.team?.displayName;
@@ -183,7 +183,7 @@ export const matchEspnEventToFixture = (match, ev) => {
     (homeKnown && (homeMatchesFeedHome || homeMatchesFeedAway)) ||
     (awayKnown && (awayMatchesFeedHome || awayMatchesFeedAway));
 
-  if (!Number.isNaN(kickoffMs) && !Number.isNaN(eventMs)) {
+  if (!options.skipKickoffCheck && !Number.isNaN(kickoffMs) && !Number.isNaN(eventMs)) {
     const toleranceMs = direct
       ? ESPN_KICKOFF_TOLERANCE_MS
       : knownSideMatch

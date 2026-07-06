@@ -309,6 +309,33 @@ describe('poller: team matching', () => {
     });
   });
 
+  it('accepts a one-hour kickoff drift for an already-known ESPN event id', () => {
+    const match = {
+      utcDate: '2026-07-06T00:00:00.000Z',
+      homeTeam: { name: 'Mexico' },
+      awayTeam: { name: 'England' },
+      espnEventId: '760505',
+    };
+    const ev = {
+      id: '760505',
+      competitions: [{
+        date: '2026-07-06T01:00Z',
+        competitors: [
+          { homeAway: 'home', score: '2', winner: false, team: { displayName: 'Mexico' } },
+          { homeAway: 'away', score: '3', winner: true, team: { displayName: 'England' } },
+        ],
+      }],
+    };
+    expect(matchEspnEventToFixture(match, ev, { skipKickoffCheck: true })).toMatchObject({
+      id: '760505',
+      homeName: 'Mexico',
+      awayName: 'England',
+      homeScore: 2,
+      awayScore: 3,
+      winner: 2,
+    });
+  });
+
   it('still rejects stale same-team candidates from previous rounds', () => {
     const match = {
       utcDate: '2026-07-04T17:00:00.000Z',

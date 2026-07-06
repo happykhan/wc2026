@@ -192,7 +192,7 @@ async function main() {
       const priorEspnId = m.espnEventId || priorOf(m)?.espnEventId;
       const byId = priorEspnId ? eventsById.get(String(priorEspnId)) : null;
       const hit = byId
-        ? matchEspnEventToFixture(m, byId)
+        ? matchEspnEventToFixture(m, byId, { skipKickoffCheck: true })
         : events.map((ev) => matchEspnEventToFixture(m, ev)).find(Boolean);
       if (!hit) continue;
       // Always attach the ESPN event id once the match is matched — this is what
