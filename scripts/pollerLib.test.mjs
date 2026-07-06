@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails } from './pollerLib.mjs';
+import { norm, pairKey, hasScore, espnStatus, espnMinute, espnDateStrings, espnShootout, fdStatus, aflStatus, matchWindow, isResolved, haveFinalScore, orient, matchEspnEventToFixture, compareEspnFixtureMatches, futureDiscoveryEligible, discoveryBucket, espnCandidateDetails, espnRoundKey, buildEspnSlotLookup, espnBindingToken, espnBindingKey, espnEventBindingKey } from './pollerLib.mjs';
 
 const WIN = 150;                       // LIVE_WINDOW_MIN
 const BF = 3 * 24 * 60 * 60000;        // BACKFILL_WINDOW_MS
@@ -202,6 +202,49 @@ describe('poller: discoveryBucket', () => {
     expect(discoveryBucket(0, bucketMs)).toBe(0);
     expect(discoveryBucket(bucketMs - 1, bucketMs)).toBe(0);
     expect(discoveryBucket(bucketMs, bucketMs)).toBe(1);
+  });
+});
+
+describe('poller: ESPN binding keys', () => {
+  const slotLookup = buildEspnSlotLookup([
+    { num: 91, round: 'Round of 16' },
+    { num: 92, round: 'Round of 16' },
+    { num: 93, round: 'Round of 16' },
+    { num: 94, round: 'Round of 16' },
+    { num: 95, round: 'Round of 16' },
+    { num: 96, round: 'Round of 16' },
+    { num: 97, round: 'Round of 16' },
+    { num: 98, round: 'Round of 16' },
+    { num: 99, round: 'Quarter-final' },
+    { num: 100, round: 'Quarter-final' },
+    { num: 101, round: 'Quarter-final' },
+    { num: 102, round: 'Quarter-final' },
+  ]);
+
+  it('normalizes knockout round labels used by fixtures and ESPN', () => {
+    expect(espnRoundKey('Quarter-final')).toBe('quarterfinal');
+    expect(espnRoundKey('Quarterfinal')).toBe('quarterfinal');
+    expect(espnRoundKey('Semi-final')).toBe('semifinal');
+  });
+
+  it('maps our winner/loser slot references onto ESPN generic future labels', () => {
+    expect(espnBindingToken('W93', slotLookup)).toBe('winner:roundof16:3');
+    expect(espnBindingToken('L102', slotLookup)).toBe('loser:quarterfinal:4');
+    expect(espnBindingToken('Round of 16 3 Winner', slotLookup)).toBe('winner:roundof16:3');
+    expect(espnBindingToken('Quarterfinal 4 Loser', slotLookup)).toBe('loser:quarterfinal:4');
+  });
+
+  it('builds the same ordered binding key for our placeholders and ESPN future events', () => {
+    expect(espnBindingKey('W93', 'W94', slotLookup)).toBe('winner:roundof16:3|winner:roundof16:4');
+    const ev = {
+      competitions: [{
+        competitors: [
+          { homeAway: 'home', team: { displayName: 'Round of 16 3 Winner' } },
+          { homeAway: 'away', team: { displayName: 'Round of 16 4 Winner' } },
+        ],
+      }],
+    };
+    expect(espnEventBindingKey(ev, slotLookup)).toBe('winner:roundof16:3|winner:roundof16:4');
   });
 });
 
