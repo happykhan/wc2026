@@ -22,7 +22,7 @@ const BACKFILL_WINDOW_MS = 3 * 24 * 60 * 60000; // keep trying for 3 days post-k
 const PREMATCH_WINDOW_MS = 2 * 60 * 60000; // fetch ESPN from 2h before KO (lineups land ~30-60m out)
 const FUTURE_DISCOVERY_LOOKAHEAD_MS = 7 * 24 * 60 * 60000;
 const FUTURE_DISCOVERY_BUCKET_MS = 6 * 60 * 60000;
-const UK_TV_REFRESH_MS = 6 * 60 * 60 * 1000;
+const UK_TV_REFRESH_MS = 60 * 60 * 1000; // refresh hourly so late broadcaster swaps land promptly
 
 // Keys live in poller.env. They were written with a trailing literal "\n", so
 // strip non-key chars defensively.
