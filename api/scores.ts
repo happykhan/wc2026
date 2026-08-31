@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import finalScores from './data/final-scores.json';
+import finalScores from './data/final-scores.json' with { type: 'json' };
 import { getQualifiedTeams } from '../src/data/qualification.js';
 
 // The tournament is complete, so the final score snapshot is bundled with the
