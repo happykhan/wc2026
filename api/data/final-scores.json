@@ -1,0 +1,2568 @@
+{
+  "updatedAt": "2026-08-31T12:37:46.550Z",
+  "live": false,
+  "matches": [
+    {
+      "id": "m1",
+      "utcDate": "2026-06-11T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Mexico"
+      },
+      "awayTeam": {
+        "name": "South Africa"
+      },
+      "group": "Group A",
+      "round": "Matchday 1",
+      "espnEventId": "760415"
+    },
+    {
+      "id": "m2",
+      "utcDate": "2026-06-12T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "South Korea"
+      },
+      "awayTeam": {
+        "name": "Czech Republic"
+      },
+      "group": "Group A",
+      "round": "Matchday 1",
+      "aflFixtureId": 1538999,
+      "espnEventId": "760414"
+    },
+    {
+      "id": "m3",
+      "utcDate": "2026-06-18T16:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Czech Republic"
+      },
+      "awayTeam": {
+        "name": "South Africa"
+      },
+      "group": "Group A",
+      "round": "Matchday 8",
+      "espnEventId": "760438"
+    },
+    {
+      "id": "m4",
+      "utcDate": "2026-06-19T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Mexico"
+      },
+      "awayTeam": {
+        "name": "South Korea"
+      },
+      "group": "Group A",
+      "round": "Matchday 8",
+      "espnEventId": "760441"
+    },
+    {
+      "id": "m5",
+      "utcDate": "2026-06-25T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Czech Republic"
+      },
+      "awayTeam": {
+        "name": "Mexico"
+      },
+      "group": "Group A",
+      "round": "Matchday 14",
+      "espnEventId": "760467"
+    },
+    {
+      "id": "m6",
+      "utcDate": "2026-06-25T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "South Africa"
+      },
+      "awayTeam": {
+        "name": "South Korea"
+      },
+      "group": "Group A",
+      "round": "Matchday 14",
+      "espnEventId": "760466"
+    },
+    {
+      "id": "m7",
+      "utcDate": "2026-06-12T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Canada"
+      },
+      "awayTeam": {
+        "name": "Bosnia & Herzegovina"
+      },
+      "group": "Group B",
+      "round": "Matchday 2",
+      "espnEventId": "760416"
+    },
+    {
+      "id": "m8",
+      "utcDate": "2026-06-13T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Qatar"
+      },
+      "awayTeam": {
+        "name": "Switzerland"
+      },
+      "group": "Group B",
+      "round": "Matchday 3",
+      "espnEventId": "760420"
+    },
+    {
+      "id": "m9",
+      "utcDate": "2026-06-18T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Switzerland"
+      },
+      "awayTeam": {
+        "name": "Bosnia & Herzegovina"
+      },
+      "group": "Group B",
+      "round": "Matchday 8",
+      "espnEventId": "760439"
+    },
+    {
+      "id": "m10",
+      "utcDate": "2026-06-18T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 6,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Canada"
+      },
+      "awayTeam": {
+        "name": "Qatar"
+      },
+      "group": "Group B",
+      "round": "Matchday 8",
+      "espnEventId": "760440"
+    },
+    {
+      "id": "m11",
+      "utcDate": "2026-06-24T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Switzerland"
+      },
+      "awayTeam": {
+        "name": "Canada"
+      },
+      "group": "Group B",
+      "round": "Matchday 14",
+      "espnEventId": "760463"
+    },
+    {
+      "id": "m12",
+      "utcDate": "2026-06-24T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Bosnia & Herzegovina"
+      },
+      "awayTeam": {
+        "name": "Qatar"
+      },
+      "group": "Group B",
+      "round": "Matchday 14",
+      "espnEventId": "760462"
+    },
+    {
+      "id": "m13",
+      "utcDate": "2026-06-13T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Brazil"
+      },
+      "awayTeam": {
+        "name": "Morocco"
+      },
+      "group": "Group C",
+      "round": "Matchday 3",
+      "espnEventId": "760419"
+    },
+    {
+      "id": "m14",
+      "utcDate": "2026-06-14T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Haiti"
+      },
+      "awayTeam": {
+        "name": "Scotland"
+      },
+      "group": "Group C",
+      "round": "Matchday 3",
+      "espnEventId": "760418"
+    },
+    {
+      "id": "m15",
+      "utcDate": "2026-06-19T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Scotland"
+      },
+      "awayTeam": {
+        "name": "Morocco"
+      },
+      "group": "Group C",
+      "round": "Matchday 9",
+      "espnEventId": "760445"
+    },
+    {
+      "id": "m16",
+      "utcDate": "2026-06-20T00:30:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Brazil"
+      },
+      "awayTeam": {
+        "name": "Haiti"
+      },
+      "group": "Group C",
+      "round": "Matchday 9",
+      "espnEventId": "760444"
+    },
+    {
+      "id": "m17",
+      "utcDate": "2026-06-24T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Scotland"
+      },
+      "awayTeam": {
+        "name": "Brazil"
+      },
+      "group": "Group C",
+      "round": "Matchday 14",
+      "espnEventId": "760465"
+    },
+    {
+      "id": "m18",
+      "utcDate": "2026-06-24T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Morocco"
+      },
+      "awayTeam": {
+        "name": "Haiti"
+      },
+      "group": "Group C",
+      "round": "Matchday 14",
+      "espnEventId": "760464"
+    },
+    {
+      "id": "m19",
+      "utcDate": "2026-06-13T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "USA"
+      },
+      "awayTeam": {
+        "name": "Paraguay"
+      },
+      "group": "Group D",
+      "round": "Matchday 2",
+      "espnEventId": "760417"
+    },
+    {
+      "id": "m20",
+      "utcDate": "2026-06-14T04:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Australia"
+      },
+      "awayTeam": {
+        "name": "Turkey"
+      },
+      "group": "Group D",
+      "round": "Matchday 3",
+      "espnEventId": "760421"
+    },
+    {
+      "id": "m21",
+      "utcDate": "2026-06-19T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "USA"
+      },
+      "awayTeam": {
+        "name": "Australia"
+      },
+      "group": "Group D",
+      "round": "Matchday 9",
+      "espnEventId": "760442"
+    },
+    {
+      "id": "m22",
+      "utcDate": "2026-06-20T03:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Turkey"
+      },
+      "awayTeam": {
+        "name": "Paraguay"
+      },
+      "group": "Group D",
+      "round": "Matchday 9",
+      "espnEventId": "760443"
+    },
+    {
+      "id": "m23",
+      "utcDate": "2026-06-26T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Turkey"
+      },
+      "awayTeam": {
+        "name": "USA"
+      },
+      "group": "Group D",
+      "round": "Matchday 15",
+      "espnEventId": "760470"
+    },
+    {
+      "id": "m24",
+      "utcDate": "2026-06-26T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Paraguay"
+      },
+      "awayTeam": {
+        "name": "Australia"
+      },
+      "group": "Group D",
+      "round": "Matchday 15",
+      "espnEventId": "760469"
+    },
+    {
+      "id": "m25",
+      "utcDate": "2026-06-14T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 7,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Germany"
+      },
+      "awayTeam": {
+        "name": "Curacoa"
+      },
+      "group": "Group E",
+      "round": "Matchday 4",
+      "espnEventId": "760422"
+    },
+    {
+      "id": "m26",
+      "utcDate": "2026-06-14T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Ivory Coast"
+      },
+      "awayTeam": {
+        "name": "Ecuador"
+      },
+      "group": "Group E",
+      "round": "Matchday 4",
+      "espnEventId": "760423"
+    },
+    {
+      "id": "m27",
+      "utcDate": "2026-06-20T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Germany"
+      },
+      "awayTeam": {
+        "name": "Ivory Coast"
+      },
+      "group": "Group E",
+      "round": "Matchday 10",
+      "espnEventId": "760448"
+    },
+    {
+      "id": "m28",
+      "utcDate": "2026-06-21T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Ecuador"
+      },
+      "awayTeam": {
+        "name": "Curacoa"
+      },
+      "group": "Group E",
+      "round": "Matchday 10",
+      "espnEventId": "760446"
+    },
+    {
+      "id": "m29",
+      "utcDate": "2026-06-25T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Curacoa"
+      },
+      "awayTeam": {
+        "name": "Ivory Coast"
+      },
+      "group": "Group E",
+      "round": "Matchday 15",
+      "espnEventId": "760473"
+    },
+    {
+      "id": "m30",
+      "utcDate": "2026-06-25T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Ecuador"
+      },
+      "awayTeam": {
+        "name": "Germany"
+      },
+      "group": "Group E",
+      "round": "Matchday 15",
+      "espnEventId": "760468"
+    },
+    {
+      "id": "m31",
+      "utcDate": "2026-06-14T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Netherlands"
+      },
+      "awayTeam": {
+        "name": "Japan"
+      },
+      "group": "Group F",
+      "round": "Matchday 4",
+      "espnEventId": "760425"
+    },
+    {
+      "id": "m32",
+      "utcDate": "2026-06-15T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 5,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Sweden"
+      },
+      "awayTeam": {
+        "name": "Tunisia"
+      },
+      "group": "Group F",
+      "round": "Matchday 4",
+      "espnEventId": "760424"
+    },
+    {
+      "id": "m33",
+      "utcDate": "2026-06-20T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 5,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Netherlands"
+      },
+      "awayTeam": {
+        "name": "Sweden"
+      },
+      "group": "Group F",
+      "round": "Matchday 10",
+      "espnEventId": "760447"
+    },
+    {
+      "id": "m34",
+      "utcDate": "2026-06-21T04:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 4
+        }
+      },
+      "homeTeam": {
+        "name": "Tunisia"
+      },
+      "awayTeam": {
+        "name": "Japan"
+      },
+      "group": "Group F",
+      "round": "Matchday 10",
+      "espnEventId": "760449"
+    },
+    {
+      "id": "m35",
+      "utcDate": "2026-06-25T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Japan"
+      },
+      "awayTeam": {
+        "name": "Sweden"
+      },
+      "group": "Group F",
+      "round": "Matchday 15",
+      "espnEventId": "760471"
+    },
+    {
+      "id": "m36",
+      "utcDate": "2026-06-25T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Tunisia"
+      },
+      "awayTeam": {
+        "name": "Netherlands"
+      },
+      "group": "Group F",
+      "round": "Matchday 15",
+      "espnEventId": "760472"
+    },
+    {
+      "id": "m37",
+      "utcDate": "2026-06-15T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Belgium"
+      },
+      "awayTeam": {
+        "name": "Egypt"
+      },
+      "group": "Group G",
+      "round": "Matchday 5",
+      "espnEventId": "760426"
+    },
+    {
+      "id": "m38",
+      "utcDate": "2026-06-16T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Iran"
+      },
+      "awayTeam": {
+        "name": "New Zealand"
+      },
+      "group": "Group G",
+      "round": "Matchday 5",
+      "espnEventId": "760427"
+    },
+    {
+      "id": "m39",
+      "utcDate": "2026-06-21T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Belgium"
+      },
+      "awayTeam": {
+        "name": "Iran"
+      },
+      "group": "Group G",
+      "round": "Matchday 11",
+      "espnEventId": "760451"
+    },
+    {
+      "id": "m40",
+      "utcDate": "2026-06-22T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "New Zealand"
+      },
+      "awayTeam": {
+        "name": "Egypt"
+      },
+      "group": "Group G",
+      "round": "Matchday 11",
+      "espnEventId": "760452"
+    },
+    {
+      "id": "m41",
+      "utcDate": "2026-06-27T03:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Egypt"
+      },
+      "awayTeam": {
+        "name": "Iran"
+      },
+      "group": "Group G",
+      "round": "Matchday 16",
+      "espnEventId": "760476"
+    },
+    {
+      "id": "m42",
+      "utcDate": "2026-06-27T03:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 5
+        }
+      },
+      "homeTeam": {
+        "name": "New Zealand"
+      },
+      "awayTeam": {
+        "name": "Belgium"
+      },
+      "group": "Group G",
+      "round": "Matchday 16",
+      "espnEventId": "760477"
+    },
+    {
+      "id": "m43",
+      "utcDate": "2026-06-15T16:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Spain"
+      },
+      "awayTeam": {
+        "name": "Cape Verde"
+      },
+      "group": "Group H",
+      "round": "Matchday 5",
+      "espnEventId": "760428"
+    },
+    {
+      "id": "m44",
+      "utcDate": "2026-06-15T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Saudi Arabia"
+      },
+      "awayTeam": {
+        "name": "Uruguay"
+      },
+      "group": "Group H",
+      "round": "Matchday 5",
+      "espnEventId": "760429"
+    },
+    {
+      "id": "m45",
+      "utcDate": "2026-06-21T16:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Spain"
+      },
+      "awayTeam": {
+        "name": "Saudi Arabia"
+      },
+      "group": "Group H",
+      "round": "Matchday 11",
+      "espnEventId": "760453"
+    },
+    {
+      "id": "m46",
+      "utcDate": "2026-06-21T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Uruguay"
+      },
+      "awayTeam": {
+        "name": "Cape Verde"
+      },
+      "group": "Group H",
+      "round": "Matchday 11",
+      "espnEventId": "760450"
+    },
+    {
+      "id": "m47",
+      "utcDate": "2026-06-27T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Cape Verde"
+      },
+      "awayTeam": {
+        "name": "Saudi Arabia"
+      },
+      "group": "Group H",
+      "round": "Matchday 16",
+      "espnEventId": "760478"
+    },
+    {
+      "id": "m48",
+      "utcDate": "2026-06-27T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Uruguay"
+      },
+      "awayTeam": {
+        "name": "Spain"
+      },
+      "group": "Group H",
+      "round": "Matchday 16",
+      "espnEventId": "760479"
+    },
+    {
+      "id": "m49",
+      "utcDate": "2026-06-16T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "Senegal"
+      },
+      "group": "Group I",
+      "round": "Matchday 6",
+      "espnEventId": "760432"
+    },
+    {
+      "id": "m50",
+      "utcDate": "2026-06-16T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 4
+        }
+      },
+      "homeTeam": {
+        "name": "Iraq"
+      },
+      "awayTeam": {
+        "name": "Norway"
+      },
+      "group": "Group I",
+      "round": "Matchday 6",
+      "espnEventId": "760430"
+    },
+    {
+      "id": "m51",
+      "utcDate": "2026-06-22T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "Iraq"
+      },
+      "group": "Group I",
+      "round": "Matchday 12",
+      "espnEventId": "760457"
+    },
+    {
+      "id": "m52",
+      "utcDate": "2026-06-23T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Norway"
+      },
+      "awayTeam": {
+        "name": "Senegal"
+      },
+      "group": "Group I",
+      "round": "Matchday 12",
+      "espnEventId": "760454"
+    },
+    {
+      "id": "m53",
+      "utcDate": "2026-06-26T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 4
+        }
+      },
+      "homeTeam": {
+        "name": "Norway"
+      },
+      "awayTeam": {
+        "name": "France"
+      },
+      "group": "Group I",
+      "round": "Matchday 16",
+      "espnEventId": "760475"
+    },
+    {
+      "id": "m54",
+      "utcDate": "2026-06-26T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 5,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Senegal"
+      },
+      "awayTeam": {
+        "name": "Iraq"
+      },
+      "group": "Group I",
+      "round": "Matchday 16",
+      "espnEventId": "760474"
+    },
+    {
+      "id": "m55",
+      "utcDate": "2026-06-17T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Argentina"
+      },
+      "awayTeam": {
+        "name": "Algeria"
+      },
+      "group": "Group J",
+      "round": "Matchday 6",
+      "espnEventId": "760433"
+    },
+    {
+      "id": "m56",
+      "utcDate": "2026-06-17T04:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Austria"
+      },
+      "awayTeam": {
+        "name": "Jordan"
+      },
+      "group": "Group J",
+      "round": "Matchday 6",
+      "espnEventId": "760431"
+    },
+    {
+      "id": "m57",
+      "utcDate": "2026-06-22T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Argentina"
+      },
+      "awayTeam": {
+        "name": "Austria"
+      },
+      "group": "Group J",
+      "round": "Matchday 12",
+      "espnEventId": "760456"
+    },
+    {
+      "id": "m58",
+      "utcDate": "2026-06-23T03:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Jordan"
+      },
+      "awayTeam": {
+        "name": "Algeria"
+      },
+      "group": "Group J",
+      "round": "Matchday 12",
+      "espnEventId": "760455"
+    },
+    {
+      "id": "m59",
+      "utcDate": "2026-06-28T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Algeria"
+      },
+      "awayTeam": {
+        "name": "Austria"
+      },
+      "group": "Group J",
+      "round": "Matchday 17",
+      "espnEventId": "760484"
+    },
+    {
+      "id": "m60",
+      "utcDate": "2026-06-28T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Jordan"
+      },
+      "awayTeam": {
+        "name": "Argentina"
+      },
+      "group": "Group J",
+      "round": "Matchday 17",
+      "espnEventId": "760483"
+    },
+    {
+      "id": "m61",
+      "utcDate": "2026-06-17T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Portugal"
+      },
+      "awayTeam": {
+        "name": "DR Congo"
+      },
+      "group": "Group K",
+      "round": "Matchday 7",
+      "espnEventId": "760435"
+    },
+    {
+      "id": "m62",
+      "utcDate": "2026-06-18T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Uzbekistan"
+      },
+      "awayTeam": {
+        "name": "Colombia"
+      },
+      "group": "Group K",
+      "round": "Matchday 7",
+      "espnEventId": "760436"
+    },
+    {
+      "id": "m63",
+      "utcDate": "2026-06-23T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 5,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Portugal"
+      },
+      "awayTeam": {
+        "name": "Uzbekistan"
+      },
+      "group": "Group K",
+      "round": "Matchday 13",
+      "espnEventId": "760461"
+    },
+    {
+      "id": "m64",
+      "utcDate": "2026-06-24T02:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Colombia"
+      },
+      "awayTeam": {
+        "name": "DR Congo"
+      },
+      "group": "Group K",
+      "round": "Matchday 13",
+      "espnEventId": "760459"
+    },
+    {
+      "id": "m65",
+      "utcDate": "2026-06-27T23:30:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Colombia"
+      },
+      "awayTeam": {
+        "name": "Portugal"
+      },
+      "group": "Group K",
+      "round": "Matchday 17",
+      "espnEventId": "760481"
+    },
+    {
+      "id": "m66",
+      "utcDate": "2026-06-27T23:30:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "DR Congo"
+      },
+      "awayTeam": {
+        "name": "Uzbekistan"
+      },
+      "group": "Group K",
+      "round": "Matchday 17",
+      "espnEventId": "760482"
+    },
+    {
+      "id": "m67",
+      "utcDate": "2026-06-17T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "England"
+      },
+      "awayTeam": {
+        "name": "Croatia"
+      },
+      "group": "Group L",
+      "round": "Matchday 7",
+      "espnEventId": "760437"
+    },
+    {
+      "id": "m68",
+      "utcDate": "2026-06-17T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "Ghana"
+      },
+      "awayTeam": {
+        "name": "Panama"
+      },
+      "group": "Group L",
+      "round": "Matchday 7",
+      "espnEventId": "760434"
+    },
+    {
+      "id": "m69",
+      "utcDate": "2026-06-23T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        }
+      },
+      "homeTeam": {
+        "name": "England"
+      },
+      "awayTeam": {
+        "name": "Ghana"
+      },
+      "group": "Group L",
+      "round": "Matchday 13",
+      "espnEventId": "760458"
+    },
+    {
+      "id": "m70",
+      "utcDate": "2026-06-23T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Panama"
+      },
+      "awayTeam": {
+        "name": "Croatia"
+      },
+      "group": "Group L",
+      "round": "Matchday 13",
+      "espnEventId": "760460"
+    },
+    {
+      "id": "m71",
+      "utcDate": "2026-06-27T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 2
+        }
+      },
+      "homeTeam": {
+        "name": "Panama"
+      },
+      "awayTeam": {
+        "name": "England"
+      },
+      "group": "Group L",
+      "round": "Matchday 17",
+      "espnEventId": "760485"
+    },
+    {
+      "id": "m72",
+      "utcDate": "2026-06-27T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": null,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        }
+      },
+      "homeTeam": {
+        "name": "Croatia"
+      },
+      "awayTeam": {
+        "name": "Ghana"
+      },
+      "group": "Group L",
+      "round": "Matchday 17",
+      "espnEventId": "760480"
+    },
+    {
+      "id": "m73",
+      "num": 73,
+      "utcDate": "2026-06-28T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "South Africa"
+      },
+      "awayTeam": {
+        "name": "Canada"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760486"
+    },
+    {
+      "id": "m74",
+      "num": 74,
+      "utcDate": "2026-06-29T20:30:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        },
+        "shootout": {
+          "home": 3,
+          "away": 4
+        }
+      },
+      "homeTeam": {
+        "name": "Germany"
+      },
+      "awayTeam": {
+        "name": "3A/B/C/D/F"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760489"
+    },
+    {
+      "id": "m75",
+      "num": 75,
+      "utcDate": "2026-06-30T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        },
+        "shootout": {
+          "home": 2,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Netherlands"
+      },
+      "awayTeam": {
+        "name": "Morocco"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760488"
+    },
+    {
+      "id": "m76",
+      "num": 76,
+      "utcDate": "2026-06-29T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Brazil"
+      },
+      "awayTeam": {
+        "name": "Japan"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760487"
+    },
+    {
+      "id": "m77",
+      "num": 77,
+      "utcDate": "2026-06-30T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "3C/D/F/G/H"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760492"
+    },
+    {
+      "id": "m78",
+      "num": 78,
+      "utcDate": "2026-06-30T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Ivory Coast"
+      },
+      "awayTeam": {
+        "name": "Norway"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760490"
+    },
+    {
+      "id": "m79",
+      "num": 79,
+      "utcDate": "2026-07-01T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Mexico"
+      },
+      "awayTeam": {
+        "name": "3C/E/F/H/I"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760491"
+    },
+    {
+      "id": "m80",
+      "num": 80,
+      "utcDate": "2026-07-01T16:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "England"
+      },
+      "awayTeam": {
+        "name": "3E/H/I/J/K"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760495"
+    },
+    {
+      "id": "m81",
+      "num": 81,
+      "utcDate": "2026-07-02T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "USA"
+      },
+      "awayTeam": {
+        "name": "3B/E/F/I/J"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760494"
+    },
+    {
+      "id": "m82",
+      "num": 82,
+      "utcDate": "2026-07-01T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Belgium"
+      },
+      "awayTeam": {
+        "name": "3A/E/H/I/J"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760493"
+    },
+    {
+      "id": "m83",
+      "num": 83,
+      "utcDate": "2026-07-02T23:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Portugal"
+      },
+      "awayTeam": {
+        "name": "Croatia"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760496"
+    },
+    {
+      "id": "m84",
+      "num": 84,
+      "utcDate": "2026-07-02T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Spain"
+      },
+      "awayTeam": {
+        "name": "Austria"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760497"
+    },
+    {
+      "id": "m85",
+      "num": 85,
+      "utcDate": "2026-07-03T03:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Switzerland"
+      },
+      "awayTeam": {
+        "name": "3E/F/G/I/J"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760498"
+    },
+    {
+      "id": "m86",
+      "num": 86,
+      "utcDate": "2026-07-03T22:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Argentina"
+      },
+      "awayTeam": {
+        "name": "Cape Verde"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760500"
+    },
+    {
+      "id": "m87",
+      "num": 87,
+      "utcDate": "2026-07-04T01:30:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Colombia"
+      },
+      "awayTeam": {
+        "name": "3D/E/I/J/L"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760501"
+    },
+    {
+      "id": "m88",
+      "num": 88,
+      "utcDate": "2026-07-03T18:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 1
+        },
+        "shootout": {
+          "home": 2,
+          "away": 4
+        }
+      },
+      "homeTeam": {
+        "name": "Australia"
+      },
+      "awayTeam": {
+        "name": "Egypt"
+      },
+      "group": null,
+      "round": "Round of 32",
+      "espnEventId": "760499"
+    },
+    {
+      "id": "m89",
+      "num": 89,
+      "utcDate": "2026-07-04T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "W74"
+      },
+      "awayTeam": {
+        "name": "France"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760503"
+    },
+    {
+      "id": "m90",
+      "num": 90,
+      "utcDate": "2026-07-04T17:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 3
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Canada"
+      },
+      "awayTeam": {
+        "name": "W75"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760502"
+    },
+    {
+      "id": "m91",
+      "num": 91,
+      "utcDate": "2026-07-05T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Brazil"
+      },
+      "awayTeam": {
+        "name": "Norway"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760504"
+    },
+    {
+      "id": "m92",
+      "num": 92,
+      "utcDate": "2026-07-06T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 3
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Mexico"
+      },
+      "awayTeam": {
+        "name": "England"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760505"
+    },
+    {
+      "id": "m93",
+      "num": 93,
+      "utcDate": "2026-07-06T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Portugal"
+      },
+      "awayTeam": {
+        "name": "Spain"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760506"
+    },
+    {
+      "id": "m94",
+      "num": 94,
+      "utcDate": "2026-07-07T00:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 4
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "USA"
+      },
+      "awayTeam": {
+        "name": "Belgium"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760507"
+    },
+    {
+      "id": "m95",
+      "num": 95,
+      "utcDate": "2026-07-07T16:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Argentina"
+      },
+      "awayTeam": {
+        "name": "W88"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760509"
+    },
+    {
+      "id": "m96",
+      "num": 96,
+      "utcDate": "2026-07-07T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 0
+        },
+        "shootout": {
+          "home": 4,
+          "away": 3
+        }
+      },
+      "homeTeam": {
+        "name": "Switzerland"
+      },
+      "awayTeam": {
+        "name": "Colombia"
+      },
+      "group": null,
+      "round": "Round of 16",
+      "espnEventId": "760508"
+    },
+    {
+      "id": "m97",
+      "num": 97,
+      "utcDate": "2026-07-09T20:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "W75"
+      },
+      "group": null,
+      "round": "Quarter-final",
+      "espnEventId": "760510"
+    },
+    {
+      "id": "m98",
+      "num": 98,
+      "utcDate": "2026-07-10T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 2,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Spain"
+      },
+      "awayTeam": {
+        "name": "Belgium"
+      },
+      "group": null,
+      "round": "Quarter-final",
+      "espnEventId": "760511"
+    },
+    {
+      "id": "m99",
+      "num": 99,
+      "utcDate": "2026-07-11T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Norway"
+      },
+      "awayTeam": {
+        "name": "England"
+      },
+      "group": null,
+      "round": "Quarter-final",
+      "espnEventId": "760512"
+    },
+    {
+      "id": "m100",
+      "num": 100,
+      "utcDate": "2026-07-12T01:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 3,
+          "away": 1
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Argentina"
+      },
+      "awayTeam": {
+        "name": "W96"
+      },
+      "group": null,
+      "round": "Quarter-final",
+      "espnEventId": "760513"
+    },
+    {
+      "id": "m101",
+      "num": 101,
+      "utcDate": "2026-07-14T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 0,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "Spain"
+      },
+      "group": null,
+      "round": "Semi-final",
+      "espnEventId": "760514"
+    },
+    {
+      "id": "m102",
+      "num": 102,
+      "utcDate": "2026-07-15T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 2
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "England"
+      },
+      "awayTeam": {
+        "name": "Argentina"
+      },
+      "group": null,
+      "round": "Semi-final",
+      "espnEventId": "760515"
+    },
+    {
+      "id": "m-match-for-third-place",
+      "utcDate": "2026-07-18T21:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 90,
+      "winner": 2,
+      "score": {
+        "fullTime": {
+          "home": 4,
+          "away": 6
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "France"
+      },
+      "awayTeam": {
+        "name": "England"
+      },
+      "group": null,
+      "round": "Match for third place",
+      "espnEventId": "760516"
+    },
+    {
+      "id": "m-final",
+      "utcDate": "2026-07-19T19:00:00.000Z",
+      "status": "FINISHED",
+      "minute": 120,
+      "winner": 1,
+      "score": {
+        "fullTime": {
+          "home": 1,
+          "away": 0
+        },
+        "shootout": {
+          "home": null,
+          "away": null
+        }
+      },
+      "homeTeam": {
+        "name": "Spain"
+      },
+      "awayTeam": {
+        "name": "Argentina"
+      },
+      "group": null,
+      "round": "Final",
+      "espnEventId": "760517"
+    }
+  ],
+  "ukTvSchedule": {
+    "australia_vs_egypt": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "argentina_vs_cape-verde": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "colombia_vs_ghana": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "canada_vs_morocco": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "france_vs_paraguay": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "brazil_vs_norway": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "england_vs_mexico": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "portugal_vs_spain": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "belgium_vs_usa": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "argentina_vs_egypt": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "colombia_vs_switzerland": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "england_vs_norway": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "france_vs_morocco": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "belgium_vs_spain": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "argentina_vs_switzerland": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "france_vs_spain": [
+      "ITV1",
+      "STV",
+      "ITVX",
+      "STV Player"
+    ],
+    "argentina_vs_england": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "england_vs_france": [
+      "BBC One",
+      "BBC iPlayer",
+      "BBC Sport"
+    ],
+    "argentina_vs_spain": [
+      "BBC One",
+      "ITV1",
+      "STV",
+      "BBC iPlayer",
+      "STV Player",
+      "BBC Sport"
+    ]
+  },
+  "ukTvUpdatedAt": "2026-07-19T21:25:01.578Z",
+  "standings": [],
+  "meta": {
+    "espnDiscoveryBucket": 82786
+  }
+}

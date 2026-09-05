@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { normTeam } from '../data/teamMatch';
 
-// Poll intervals: faster while a match is live (goals show fast), slower when
-// there's no live action to be polite to the cache/VM.
+// The final snapshot is immutable, but the existing polling cadence is retained
+// so this hook's lifecycle and client behaviour do not change in the archive.
 const POLL_ACTIVE = 15_000;    // 15 s — a match is in progress (goals show fast)
 const POLL_IDLE   = 5 * 60_000; // 5 min — no live action
 
@@ -23,11 +23,8 @@ export interface LiveScore {
 }
 
 // ---------------------------------------------------------------------------
-// Live scores come from /api/scores, which proxies (and edge-caches ~12s) the
-// VM poller's scores.json — it makes no upstream feed calls of its own. The VM
-// poller (scripts/vm-poller.mjs) resolves each match via ESPN (primary) →
-// football-data.org → API-Football, so `status` already carries the
-// feed-authoritative state (incl. PAUSED = half-time) by the time we read it.
+// Final scores come from /api/scores, which serves the snapshot bundled in the
+// Vercel deployment and makes no runtime network request of its own.
 // ---------------------------------------------------------------------------
 
 const WC_SCORES_URL = '/api/scores';
@@ -60,10 +57,9 @@ interface FDMatch {
   awayTeam: { name: string };
 }
 
-// Shape written by the VM poller (scripts/vm-poller.mjs → scores.json).
+// Shape served by the bundled final score snapshot.
 interface WCScoresResponse {
-  fetchedAt: string;
-  updatedAt?: string; // when the poller captured this data (minute anchor)
+  updatedAt?: string; // when the final snapshot was captured (minute anchor)
   live: boolean;
   matches: FDMatch[];
   ukTvSchedule?: Record<string, string[]>;
